@@ -1,0 +1,105 @@
+{
+  "title": "الإعدادات",
+  "subtitle": "قم بتكوين شركتك وتفضيلاتك",
+  "company": {
+    "title": "معلومات الشركة",
+    "name": "اسم الشركة",
+    "nameRequired": "اسم الشركة *",
+    "address": "العنوان",
+    "addressTitle": "العنوان",
+    "city": "المدينة",
+    "postalCode": "الرمز البريدي",
+    "country": "البلد",
+    "phone": "الهاتف",
+    "email": "البريد الإلكتروني",
+    "website": "الموقع الإلكتروني",
+    "siret": "رقم السجل التجاري",
+    "vatNumber": "الرقم الضريبي"
+  },
+  "branding": {
+    "title": "الشعار والعلامة التجارية",
+    "logo": "شعار الشركة",
+    "logoAlt": "شعار الشركة",
+    "logoDescription": "سيظهر الشعار على عروض الأسعار والفواتير.",
+    "acceptedFormats": "PNG، JPG، GIF، WebP :الصيغ المقبولة",
+    "uploadLogo": "رفع الشعار",
+    "changeLogo": "تغيير الشعار",
+    "removeLogo": "حذف الشعار",
+    "delete": "حذف"
+  },
+  "billing": {
+    "title": "تفضيلات الفوترة",
+    "defaultVatRate": "معدل الضريبة الافتراضي",
+    "defaultPaymentTerms": "مدة الدفع (أيام)",
+    "invoicePrefix": "بادئة الفاتورة",
+    "quotePrefix": "بادئة عرض السعر"
+  },
+  "legal": {
+    "title": "المعلومات القانونية",
+    "legalMentions": "البيانات القانونية",
+    "legalMentionsPlaceholder": "البيانات القانونية المراد عرضها على المستندات...",
+    "legalMentionsHint": "ستظهر هذه البيانات في أسفل المستندات",
+    "bankDetails": "التفاصيل البنكية",
+    "bankDetailsPlaceholder": ".إلخ ،IBAN، BIC"
+  },
+  "backup": {
+    "title": "النسخ الاحتياطي والاستعادة",
+    "description": "أنشئ نسخاً احتياطية من بياناتك للحماية من فقدان البيانات. يتم تخزين النسخ الاحتياطية محلياً (يتم الاحتفاظ بآخر 10 نسخ).",
+    "lastBackupDate": "آخر نسخة احتياطية: {{date}}",
+    "noBackupYet": "لم يتم إنشاء نسخة احتياطية بعد",
+    "backupNow": "نسخ احتياطي الآن",
+    "viewBackups": "عرض النسخ الاحتياطية",
+    "backupCreated": "تم إنشاء النسخة الاحتياطية!",
+    "manualBackup": "تصدير / استيراد يدوي",
+    "export": "تصدير",
+    "import": "استيراد",
+    "tip": ".(Dropbox، Google Drive، OneDrive) للحماية الإضافية، انسخ ملفات النسخ الاحتياطي إلى مجلد متزامن مع خدمة السحابة",
+    "setPassword": "تعيين كلمة مرور",
+    "enterPassword": "أدخل كلمة المرور",
+    "password": "كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "passwordPlaceholder": "أدخل كلمة مرور آمنة",
+    "confirmPasswordPlaceholder": "أكد كلمة المرور",
+    "passwordDescription": "سيتم تشفير النسخة الاحتياطية بكلمة المرور هذه. ستحتاجها لاستعادة النسخة الاحتياطية.",
+    "importPasswordDescription": "أدخل كلمة المرور المستخدمة لتشفير هذه النسخة الاحتياطية.",
+    "passwordTooShort": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل",
+    "passwordMismatch": "كلمات المرور غير متطابقة",
+    "wrongPassword": "كلمة مرور خاطئة أو ملف تالف",
+    "exportEncrypted": "تصدير مشفر",
+    "importDecrypt": "فك التشفير والاستيراد",
+    "showPassword": "إظهار كلمة المرور",
+    "hidePassword": "إخفاء كلمة المرور"
+  },
+  "appearance": {
+    "title": "المظهر",
+    "language": "اللغة",
+    "theme": "السمة",
+    "systemLanguage": "لغة النظام",
+    "systemTheme": "سمة النظام",
+    "lightTheme": "فاتح",
+    "darkTheme": "داكن"
+  },
+  "buttons": {
+    "save": "حفظ"
+  },
+  "dialogs": {
+    "images": "الصور"
+  },
+  "messages": {
+    "saveSuccess": "تم حفظ الإعدادات بنجاح!",
+    "saveFailed": "فشل في حفظ الإعدادات",
+    "exportSuccess": "تم تصدير النسخة الاحتياطية بنجاح!",
+    "exportFailed": "فشل في تصدير النسخة الاحتياطية",
+    "importSuccess": "تم استيراد النسخة الاحتياطية بنجاح! أعد تحميل التطبيق لرؤية التغييرات.",
+    "importFailed": "فشل في استيراد النسخة الاحتياطية",
+    "deleteLogoConfirm": "هل أنت متأكد أنك تريد حذف الشعار؟",
+    "backupFailed": "فشل في إنشاء النسخة الاحتياطية",
+    "openFolderFailed": "فشل في فتح مجلد النسخ الاحتياطية"
+  },
+  "validation": {
+    "companyNameRequired": "اسم الشركة مطلوب",
+    "emailInvalid": "بريد إلكتروني غير صالح",
+    "invoicePrefixRequired": "بادئة الفاتورة مطلوبة",
+    "quotePrefixRequired": "بادئة عرض السعر مطلوبة"
+  }
+}

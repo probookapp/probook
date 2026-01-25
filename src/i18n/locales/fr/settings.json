@@ -1,0 +1,105 @@
+{
+  "title": "Paramètres",
+  "subtitle": "Configurez votre entreprise et vos préférences",
+  "company": {
+    "title": "Informations de l'entreprise",
+    "name": "Nom de l'entreprise",
+    "nameRequired": "Nom de l'entreprise *",
+    "address": "Adresse",
+    "addressTitle": "Adresse",
+    "city": "Ville",
+    "postalCode": "Code postal",
+    "country": "Pays",
+    "phone": "Téléphone",
+    "email": "Email",
+    "website": "Site web",
+    "siret": "SIRET",
+    "vatNumber": "Numéro de TVA"
+  },
+  "branding": {
+    "title": "Logo et marque",
+    "logo": "Logo de l'entreprise",
+    "logoAlt": "Logo de l'entreprise",
+    "logoDescription": "Le logo apparaîtra sur vos devis et factures.",
+    "acceptedFormats": "Formats acceptés : PNG, JPG, GIF, WebP",
+    "uploadLogo": "Téléverser un logo",
+    "changeLogo": "Changer le logo",
+    "removeLogo": "Supprimer le logo",
+    "delete": "Supprimer"
+  },
+  "billing": {
+    "title": "Préférences de facturation",
+    "defaultVatRate": "Taux de TVA par défaut",
+    "defaultPaymentTerms": "Délai de paiement (jours)",
+    "invoicePrefix": "Préfixe de facture",
+    "quotePrefix": "Préfixe de devis"
+  },
+  "legal": {
+    "title": "Informations légales",
+    "legalMentions": "Mentions légales",
+    "legalMentionsPlaceholder": "Mentions légales à afficher sur les documents...",
+    "legalMentionsHint": "Ces mentions apparaîtront en bas de vos documents",
+    "bankDetails": "Coordonnées bancaires",
+    "bankDetailsPlaceholder": "IBAN, BIC, etc."
+  },
+  "backup": {
+    "title": "Sauvegarde & Restauration",
+    "description": "Créez des sauvegardes de vos données pour vous protéger contre la perte de données. Les sauvegardes sont stockées localement (les 10 dernières sont conservées).",
+    "lastBackupDate": "Dernière sauvegarde : {{date}}",
+    "noBackupYet": "Aucune sauvegarde créée",
+    "backupNow": "Sauvegarder",
+    "viewBackups": "Voir les sauvegardes",
+    "backupCreated": "Sauvegarde créée !",
+    "manualBackup": "Export / Import manuel",
+    "export": "Exporter",
+    "import": "Importer",
+    "tip": "Pour une protection supplémentaire, copiez vos fichiers de sauvegarde dans un dossier synchronisé avec le cloud (Dropbox, Google Drive, OneDrive).",
+    "setPassword": "Définir un mot de passe",
+    "enterPassword": "Entrer le mot de passe",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "passwordPlaceholder": "Entrez un mot de passe sécurisé",
+    "confirmPasswordPlaceholder": "Confirmez votre mot de passe",
+    "passwordDescription": "Votre sauvegarde sera chiffrée avec ce mot de passe. Vous en aurez besoin pour la restaurer.",
+    "importPasswordDescription": "Entrez le mot de passe utilisé pour chiffrer cette sauvegarde.",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères",
+    "passwordMismatch": "Les mots de passe ne correspondent pas",
+    "wrongPassword": "Mot de passe incorrect ou fichier corrompu",
+    "exportEncrypted": "Exporter chiffré",
+    "importDecrypt": "Déchiffrer & Importer",
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe"
+  },
+  "appearance": {
+    "title": "Apparence",
+    "language": "Langue",
+    "theme": "Thème",
+    "systemLanguage": "Langue du système",
+    "systemTheme": "Thème du système",
+    "lightTheme": "Clair",
+    "darkTheme": "Sombre"
+  },
+  "buttons": {
+    "save": "Enregistrer"
+  },
+  "dialogs": {
+    "images": "Images"
+  },
+  "messages": {
+    "saveSuccess": "Paramètres enregistrés avec succès !",
+    "saveFailed": "Erreur lors de l'enregistrement",
+    "exportSuccess": "Sauvegarde exportée avec succès !",
+    "exportFailed": "Erreur lors de l'export de la sauvegarde",
+    "importSuccess": "Sauvegarde importée avec succès ! Rechargez l'application pour voir les changements.",
+    "importFailed": "Erreur lors de l'import de la sauvegarde",
+    "deleteLogoConfirm": "Êtes-vous sûr de vouloir supprimer le logo ?",
+    "backupFailed": "Erreur lors de la création de la sauvegarde",
+    "openFolderFailed": "Erreur lors de l'ouverture du dossier de sauvegardes"
+  },
+  "validation": {
+    "companyNameRequired": "Le nom de l'entreprise est requis",
+    "emailInvalid": "Email invalide",
+    "invoicePrefixRequired": "Le préfixe de facture est requis",
+    "quotePrefixRequired": "Le préfixe de devis est requis"
+  }
+}

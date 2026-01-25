@@ -1,0 +1,295 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import {
+  Plus,
+  Eye,
+  Pencil,
+  Trash2,
+  Search,
+  Copy,
+  Truck,
+  FileText,
+} from "lucide-react";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Modal,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  Input,
+  Badge,
+} from "@/components/ui";
+import {
+  useDeliveryNotes,
+  useDeleteDeliveryNote,
+  useDuplicateDeliveryNote,
+} from "./hooks/useDeliveryNotes";
+import { useCreateInvoiceFromDeliveryNotes } from "@/features/invoices/hooks/useInvoices";
+import type { DeliveryNote, DeliveryNoteStatus } from "@/types";
+import { formatDate } from "@/lib/utils";
+
+export function DeliveryNotesPage() {
+  const { t } = useTranslation(["delivery", "common"]);
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const statusConfig: Record<
+    DeliveryNoteStatus,
+    { label: string; variant: "default" | "success" | "warning" | "danger" | "info" }
+  > = {
+    DRAFT: { label: t("delivery:status.DRAFT"), variant: "default" },
+    DELIVERED: { label: t("delivery:status.DELIVERED"), variant: "success" },
+    CANCELLED: { label: t("delivery:status.CANCELLED"), variant: "danger" },
+  };
+
+  const { data: deliveryNotes, isLoading } = useDeliveryNotes();
+  const deleteDeliveryNote = useDeleteDeliveryNote();
+  const duplicateDeliveryNote = useDuplicateDeliveryNote();
+  const createInvoiceFromDNs = useCreateInvoiceFromDeliveryNotes();
+
+  const filteredDeliveryNotes = deliveryNotes?.filter(
+    (note) =>
+      note.delivery_note_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      note.client?.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleDelete = async (id: string) => {
+    await deleteDeliveryNote.mutateAsync(id);
+    setDeleteConfirmId(null);
+  };
+
+  const handleDuplicate = async (note: DeliveryNote) => {
+    const newNote = await duplicateDeliveryNote.mutateAsync(note.id);
+    navigate(`/delivery-notes/${newNote.id}/edit`);
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleCreateInvoiceFromSelection = async () => {
+    if (selectedIds.size === 0) return;
+
+    // Check if all selected delivery notes are for the same client
+    const selectedNotes = deliveryNotes?.filter((n) => selectedIds.has(n.id)) || [];
+    const clientIds = new Set(selectedNotes.map((n) => n.client_id));
+
+    if (clientIds.size > 1) {
+      alert(t("delivery:sameClientRequired", "Veuillez sélectionner des bons de livraison du même client."));
+      return;
+    }
+
+    const invoice = await createInvoiceFromDNs.mutateAsync(Array.from(selectedIds));
+    setSelectedIds(new Set());
+    navigate(`/invoices/${invoice.id}`);
+  };
+
+  const selectedCount = selectedIds.size;
+  const canCreateInvoice = selectedCount > 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-(--color-text-primary)">{t("delivery:title")}</h1>
+          <p className="text-sm sm:text-base text-(--color-text-secondary)">{t("delivery:subtitle", "Gérez vos bons de livraison")}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {canCreateInvoice && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleCreateInvoiceFromSelection}
+              isLoading={createInvoiceFromDNs.isPending}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">{t("delivery:createInvoiceFromSelection", "Créer facture")}</span>
+              <span className="sm:hidden">{t("common:buttons.create")}</span>
+              ({selectedCount})
+            </Button>
+          )}
+          <Button onClick={() => navigate("/delivery-notes/new")} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            {t("delivery:newDeliveryNote")}
+          </Button>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle>{t("delivery:listTitle", "Liste des bons de livraison")}</CardTitle>
+            <div className="relative w-full sm:w-56 md:w-64 lg:w-72">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                id="delivery-note-search"
+                name="delivery-note-search"
+                placeholder={t("delivery:searchPlaceholder")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoComplete="off"
+                className="pl-9"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-200">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10"></TableHead>
+                <TableHead>{t("delivery:fields.deliveryNoteNumber")}</TableHead>
+                <TableHead>{t("delivery:fields.client")}</TableHead>
+                <TableHead>{t("delivery:fields.issueDate")}</TableHead>
+                <TableHead>{t("delivery:fields.deliveryDate")}</TableHead>
+                <TableHead>{t("delivery:fields.status")}</TableHead>
+                <TableHead>{t("delivery:fields.linkedQuote")}</TableHead>
+                <TableHead className="w-32">{t("common:buttons.actions")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredDeliveryNotes && filteredDeliveryNotes.length > 0 ? (
+                filteredDeliveryNotes.map((note) => (
+                  <TableRow key={note.id}>
+                    <TableCell>
+                      {note.status === "DELIVERED" && !note.invoice_id && (
+                        <input
+                          type="checkbox"
+                          id={`select-${note.id}`}
+                          name={`select-${note.id}`}
+                          checked={selectedIds.has(note.id)}
+                          onChange={() => toggleSelection(note.id)}
+                          className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell className="font-mono font-medium">
+                      {note.delivery_note_number}
+                    </TableCell>
+                    <TableCell>{note.client?.name || "-"}</TableCell>
+                    <TableCell>{formatDate(note.issue_date)}</TableCell>
+                    <TableCell>
+                      {note.delivery_date ? formatDate(note.delivery_date) : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusConfig[note.status].variant}>
+                        <Truck className="h-3 w-3 mr-1" />
+                        {statusConfig[note.status].label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {note.quote_id ? (
+                        <Link
+                          to={`/quotes/${note.quote_id}`}
+                          className="text-primary-600 hover:underline inline-flex items-center gap-1"
+                        >
+                          <FileText className="h-3 w-3" />
+                          {t("common:buttons.view")}
+                        </Link>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to={`/delivery-notes/${note.id}`}
+                          className="p-1 text-gray-500 hover:text-primary-600 transition-colors"
+                          title={t("common:buttons.view")}
+                          aria-label={t("common:buttons.view")}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                        {note.status === "DRAFT" && (
+                          <Link
+                            to={`/delivery-notes/${note.id}/edit`}
+                            className="p-1 text-gray-500 hover:text-primary-600 transition-colors"
+                            title={t("common:buttons.edit")}
+                            aria-label={t("common:buttons.edit")}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Link>
+                        )}
+                        <button
+                          onClick={() => handleDuplicate(note)}
+                          className="p-1 text-gray-500 hover:text-primary-600 transition-colors"
+                          title={t("delivery:actions.duplicate", "Dupliquer")}
+                          aria-label={t("delivery:actions.duplicate", "Dupliquer")}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmId(note.id)}
+                          className="p-1 text-gray-500 hover:text-red-600 transition-colors"
+                          title={t("common:buttons.delete")}
+                          aria-label={t("common:buttons.delete")}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-gray-500 py-8">
+                    {t("delivery:noDeliveryNotes")}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Modal
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        title={t("delivery:deleteDeliveryNote")}
+        size="sm"
+      >
+        <p className="text-(--color-text-secondary) mb-6">
+          {t("delivery:confirmDelete")}
+        </p>
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={() => setDeleteConfirmId(null)}>
+            {t("common:buttons.cancel")}
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+            isLoading={deleteDeliveryNote.isPending}
+          >
+            {t("common:buttons.delete")}
+          </Button>
+        </div>
+      </Modal>
+    </div>
+  );
+}

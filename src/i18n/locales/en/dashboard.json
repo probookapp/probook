@@ -1,0 +1,47 @@
+{
+  "title": "Dashboard",
+  "welcome": "Welcome to your management space",
+  "stats": {
+    "clients": "Clients",
+    "totalClients": "Total clients",
+    "quotes": "Quotes",
+    "quotesCreated": "Quotes created",
+    "invoices": "Invoices",
+    "invoicesIssued": "Invoices issued",
+    "monthlyRevenue": "Monthly Revenue",
+    "monthlyRevenueDesc": "Monthly revenue",
+    "yearlyRevenue": "Annual Revenue",
+    "yearlyRevenueDesc": "Annual revenue",
+    "pending": "Pending",
+    "pendingPayments": "Pending payments"
+  },
+  "recentInvoices": "Recent Invoices",
+  "recentQuotes": "Recent Quotes",
+  "noRecentInvoices": "No recent invoices",
+  "noRecentQuotes": "No recent quotes",
+  "alerts": {
+    "title": "Alerts and Reminders",
+    "overdueInvoices": "Overdue invoices ({{count}})",
+    "dueSoonInvoices": "Invoices due soon ({{count}})",
+    "expiringQuotes": "Expiring quotes ({{count}})",
+    "expiredQuotes": "Expired quotes ({{count}})",
+    "noAlerts": "No current alerts",
+    "allGood": "Everything is in order!",
+    "overdue": "overdue",
+    "urgent": "Urgent",
+    "markExpired": "Mark as expired",
+    "viewDetails": "View details",
+    "viewMore": "View {{count}} more",
+    "totalOverdue": "Total Overdue",
+    "daysOverdue": "day(s) overdue",
+    "daysUntil": "day(s) remaining",
+    "viewAll": "View all"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "newInvoice": "New Invoice",
+    "newQuote": "New Quote",
+    "newClient": "New Client"
+  },
+  "noData": "No data available"
+}

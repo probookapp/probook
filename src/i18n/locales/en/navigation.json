@@ -1,0 +1,13 @@
+{
+  "dashboard": "Dashboard",
+  "clients": "Clients",
+  "products": "Products",
+  "quotes": "Quotes",
+  "invoices": "Invoices",
+  "deliveryNotes": "Delivery Notes",
+  "phonebook": "Phonebook",
+  "reports": "Reports",
+  "settings": "Settings",
+  "logout": "Logout",
+  "closeSidebar": "Close sidebar"
+}

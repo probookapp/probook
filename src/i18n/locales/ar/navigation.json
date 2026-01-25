@@ -1,0 +1,13 @@
+{
+  "dashboard": "لوحة التحكم",
+  "clients": "العملاء",
+  "products": "المنتجات",
+  "quotes": "عروض الأسعار",
+  "invoices": "الفواتير",
+  "deliveryNotes": "سندات التسليم",
+  "phonebook": "دليل الهاتف",
+  "reports": "التقارير",
+  "settings": "الإعدادات",
+  "logout": "تسجيل الخروج",
+  "closeSidebar": "إغلاق القائمة"
+}

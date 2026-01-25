@@ -1,0 +1,105 @@
+{
+  "title": "Settings",
+  "subtitle": "Configure your company and preferences",
+  "company": {
+    "title": "Company Information",
+    "name": "Company Name",
+    "nameRequired": "Company Name *",
+    "address": "Address",
+    "addressTitle": "Address",
+    "city": "City",
+    "postalCode": "Postal Code",
+    "country": "Country",
+    "phone": "Phone",
+    "email": "Email",
+    "website": "Website",
+    "siret": "SIRET",
+    "vatNumber": "VAT Number"
+  },
+  "branding": {
+    "title": "Logo and Branding",
+    "logo": "Company Logo",
+    "logoAlt": "Company logo",
+    "logoDescription": "The logo will appear on your quotes and invoices.",
+    "acceptedFormats": "Accepted formats: PNG, JPG, GIF, WebP",
+    "uploadLogo": "Upload Logo",
+    "changeLogo": "Change Logo",
+    "removeLogo": "Remove Logo",
+    "delete": "Delete"
+  },
+  "billing": {
+    "title": "Billing Preferences",
+    "defaultVatRate": "Default VAT Rate",
+    "defaultPaymentTerms": "Payment Terms (days)",
+    "invoicePrefix": "Invoice Prefix",
+    "quotePrefix": "Quote Prefix"
+  },
+  "legal": {
+    "title": "Legal Information",
+    "legalMentions": "Legal Mentions",
+    "legalMentionsPlaceholder": "Legal mentions to display on documents...",
+    "legalMentionsHint": "These mentions will appear at the bottom of your documents",
+    "bankDetails": "Bank Details",
+    "bankDetailsPlaceholder": "IBAN, BIC, etc."
+  },
+  "backup": {
+    "title": "Backup & Restore",
+    "description": "Create backups of your data to protect against data loss. Backups are stored locally and kept automatically (last 10).",
+    "lastBackupDate": "Last backup: {{date}}",
+    "noBackupYet": "No backup created yet",
+    "backupNow": "Backup Now",
+    "viewBackups": "View Backups",
+    "backupCreated": "Backup created!",
+    "manualBackup": "Manual Export / Import",
+    "export": "Export",
+    "import": "Import",
+    "tip": "For extra protection, copy your backup files to a cloud-synced folder (Dropbox, Google Drive, OneDrive).",
+    "setPassword": "Set Backup Password",
+    "enterPassword": "Enter Backup Password",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "passwordPlaceholder": "Enter a secure password",
+    "confirmPasswordPlaceholder": "Confirm your password",
+    "passwordDescription": "Your backup will be encrypted with this password. You will need it to restore the backup.",
+    "importPasswordDescription": "Enter the password used to encrypt this backup.",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordMismatch": "Passwords do not match",
+    "wrongPassword": "Wrong password or corrupted file",
+    "exportEncrypted": "Export Encrypted",
+    "importDecrypt": "Decrypt & Import",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
+  },
+  "appearance": {
+    "title": "Appearance",
+    "language": "Language",
+    "theme": "Theme",
+    "systemLanguage": "System Language",
+    "systemTheme": "System Theme",
+    "lightTheme": "Light",
+    "darkTheme": "Dark"
+  },
+  "buttons": {
+    "save": "Save"
+  },
+  "dialogs": {
+    "images": "Images"
+  },
+  "messages": {
+    "saveSuccess": "Settings saved successfully!",
+    "saveFailed": "Failed to save settings",
+    "exportSuccess": "Backup exported successfully!",
+    "exportFailed": "Failed to export backup",
+    "importSuccess": "Backup imported successfully! Reload the application to see the changes.",
+    "importFailed": "Failed to import backup",
+    "deleteLogoConfirm": "Are you sure you want to delete the logo?",
+    "backupFailed": "Failed to create backup",
+    "openFolderFailed": "Failed to open backups folder"
+  },
+  "validation": {
+    "companyNameRequired": "Company name is required",
+    "emailInvalid": "Invalid email",
+    "invoicePrefixRequired": "Invoice prefix is required",
+    "quotePrefixRequired": "Quote prefix is required"
+  }
+}

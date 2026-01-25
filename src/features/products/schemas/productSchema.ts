@@ -1,0 +1,22 @@
+import { z } from "zod";
+
+export const createProductSchema = (t: (key: string) => string) => z.object({
+  name: z.string().min(1, t("products:validation.nameRequired")),
+  description: z.string().nullable().optional(),
+  unit_price_ht: z.coerce.number().min(0, t("products:validation.pricePositive")),
+  vat_rate: z.coerce.number().min(0).max(100, t("products:validation.vatRateRange")),
+  unit: z.string().min(1, t("products:validation.unitRequired")),
+  reference: z.string().nullable().optional(),
+  is_service: z.boolean(),
+  category_id: z.string().nullable().optional(),
+});
+
+export type ProductFormData = z.output<ReturnType<typeof createProductSchema>>;
+
+export const createProductCategorySchema = (t: (key: string) => string) => z.object({
+  name: z.string().min(1, t("products:validation.categoryNameRequired")),
+  description: z.string().nullable().optional(),
+  parent_id: z.string().nullable().optional(),
+});
+
+export type ProductCategoryFormData = z.output<ReturnType<typeof createProductCategorySchema>>;

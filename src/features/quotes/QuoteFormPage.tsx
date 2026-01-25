@@ -1,0 +1,677 @@
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useForm, useFieldArray, useWatch, type Resolver } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Plus, Trash2, ArrowLeft, FileText } from "lucide-react";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
+  Select,
+  RichTextEditor,
+} from "@/components/ui";
+import { useQuote, useCreateQuote, useUpdateQuote } from "./hooks/useQuotes";
+import { useClients } from "@/features/clients";
+import { useProducts } from "@/features/products";
+import { formatCurrency, formatDateISO, calculateLineTotal } from "@/lib/utils";
+import type { QuoteStatus } from "@/types";
+
+const createLineSchema = (t: (key: string) => string) => z.object({
+  product_id: z.string().nullable().optional(),
+  description: z.string().min(1, t("validation:quote.lineDescriptionRequired")),
+  description_html: z.string().nullable().optional(),
+  quantity: z.coerce.number().min(0.01, t("validation:quote.lineQuantityPositive")),
+  unit_price_ht: z.coerce.number().min(0, t("validation:quote.linePricePositive")),
+  vat_rate: z.coerce.number().min(0).max(100),
+  group_name: z.string().nullable().optional(),
+  is_subtotal_line: z.boolean().optional(),
+});
+
+const createQuoteFormSchema = (t: (key: string) => string) => z.object({
+  client_id: z.string().min(1, t("validation:quote.clientRequired")),
+  issue_date: z.string().min(1, t("validation:quote.issueDateRequired")),
+  validity_date: z.string().min(1, t("validation:quote.validityDateRequired")),
+  notes: z.string().nullable().optional(),
+  status: z.enum(["DRAFT", "SENT", "ACCEPTED", "EXPIRED"]).optional(),
+  shipping_cost_ht: z.coerce.number().min(0).optional(),
+  shipping_vat_rate: z.coerce.number().min(0).max(100).optional(),
+  down_payment_percent: z.coerce.number().min(0).max(100).optional(),
+  down_payment_amount: z.coerce.number().min(0).optional(),
+  lines: z.array(createLineSchema(t)).min(1, t("validation:quote.linesRequired")),
+});
+
+type QuoteFormData = z.output<ReturnType<typeof createQuoteFormSchema>>;
+
+export function QuoteFormPage() {
+  const { t } = useTranslation(["quotes", "common", "validation"]);
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const isEditing = !!id;
+
+  const quoteFormSchema = useMemo(() => createQuoteFormSchema(t), [t]);
+
+  const { data: quote, isLoading: isLoadingQuote } = useQuote(id ?? "");
+  const { data: clients } = useClients();
+  const { data: products } = useProducts();
+  const createQuote = useCreateQuote();
+  const updateQuote = useUpdateQuote();
+  const [notesHtml, setNotesHtml] = useState("");
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(new Set());
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<QuoteFormData>({
+    resolver: zodResolver(quoteFormSchema) as Resolver<QuoteFormData>,
+    defaultValues: {
+      client_id: "",
+      issue_date: formatDateISO(new Date()),
+      validity_date: formatDateISO(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+      notes: "",
+      status: "DRAFT" as QuoteStatus,
+      shipping_cost_ht: 0,
+      shipping_vat_rate: 20,
+      down_payment_percent: 0,
+      down_payment_amount: 0,
+      lines: [{ description: "", quantity: 1, unit_price_ht: 0, vat_rate: 20 }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "lines",
+  });
+
+  // Use useWatch for real-time updates when fields change
+  const watchedLines = useWatch({
+    control,
+    name: "lines",
+    defaultValue: [{ description: "", quantity: 1, unit_price_ht: 0, vat_rate: 20 }],
+  });
+
+  const watchedShippingCostHt = useWatch({
+    control,
+    name: "shipping_cost_ht",
+    defaultValue: 0,
+  });
+
+  const watchedShippingVatRate = useWatch({
+    control,
+    name: "shipping_vat_rate",
+    defaultValue: 20,
+  });
+
+  const watchedDownPaymentPercent = useWatch({
+    control,
+    name: "down_payment_percent",
+    defaultValue: 0,
+  });
+
+  const watchedDownPaymentAmount = useWatch({
+    control,
+    name: "down_payment_amount",
+    defaultValue: 0,
+  });
+
+  useEffect(() => {
+    if (quote && isEditing) {
+      setValue("client_id", quote.client_id);
+      setValue("issue_date", quote.issue_date);
+      setValue("validity_date", quote.validity_date);
+      setValue("notes", quote.notes ?? "");
+      setValue("status", quote.status);
+      setValue("shipping_cost_ht", quote.shipping_cost_ht ?? 0);
+      setValue("shipping_vat_rate", quote.shipping_vat_rate ?? 20);
+      setValue("down_payment_percent", quote.down_payment_percent ?? 0);
+      setValue("down_payment_amount", quote.down_payment_amount ?? 0);
+      setNotesHtml(quote.notes_html || "");
+      setValue(
+        "lines",
+        quote.lines.map((line) => ({
+          product_id: line.product_id,
+          description: line.description,
+          description_html: line.description_html,
+          quantity: line.quantity,
+          unit_price_ht: line.unit_price_ht,
+          vat_rate: line.vat_rate,
+          group_name: line.group_name,
+          is_subtotal_line: line.is_subtotal_line === 1,
+        }))
+      );
+    }
+  }, [quote, isEditing, setValue]);
+
+  // Calculate totals reactively based on watched lines and shipping
+  const { totals, groupSubtotals } = useMemo(() => {
+    if (!watchedLines) return {
+      totals: { ht: 0, vat: 0, ttc: 0, shippingHt: 0, shippingVat: 0, shippingTtc: 0, downPayment: 0 },
+      groupSubtotals: {} as Record<string, { ht: number; vat: number; ttc: number }>
+    };
+
+    const groups: Record<string, { ht: number; vat: number; ttc: number }> = {};
+
+    const lineTotals = watchedLines.reduce(
+      (acc, line) => {
+        // Skip subtotal lines - they don't contribute to totals
+        if (line?.is_subtotal_line) return acc;
+
+        const { totalHt, totalVat, totalTtc } = calculateLineTotal(
+          line?.quantity || 0,
+          line?.unit_price_ht || 0,
+          line?.vat_rate || 0
+        );
+
+        // Track group subtotals
+        const groupName = line?.group_name || "";
+        if (groupName) {
+          if (!groups[groupName]) {
+            groups[groupName] = { ht: 0, vat: 0, ttc: 0 };
+          }
+          groups[groupName].ht += totalHt;
+          groups[groupName].vat += totalVat;
+          groups[groupName].ttc += totalTtc;
+        }
+
+        return {
+          ht: acc.ht + totalHt,
+          vat: acc.vat + totalVat,
+          ttc: acc.ttc + totalTtc,
+        };
+      },
+      { ht: 0, vat: 0, ttc: 0 }
+    );
+
+    // Calculate shipping
+    const shippingHt = watchedShippingCostHt || 0;
+    const shippingVat = shippingHt * ((watchedShippingVatRate || 0) / 100);
+    const shippingTtc = shippingHt + shippingVat;
+
+    // Calculate down payment (use fixed amount if set, otherwise calculate from percentage)
+    const subtotalTtc = lineTotals.ttc + shippingTtc;
+    const downPayment = (watchedDownPaymentAmount && watchedDownPaymentAmount > 0)
+      ? watchedDownPaymentAmount
+      : (watchedDownPaymentPercent ? subtotalTtc * (watchedDownPaymentPercent / 100) : 0);
+
+    return {
+      totals: {
+        ht: lineTotals.ht,
+        vat: lineTotals.vat,
+        ttc: lineTotals.ttc,
+        shippingHt,
+        shippingVat,
+        shippingTtc,
+        downPayment,
+      },
+      groupSubtotals: groups,
+    };
+  }, [watchedLines, watchedShippingCostHt, watchedShippingVatRate, watchedDownPaymentPercent, watchedDownPaymentAmount]);
+
+  const handleProductSelect = (index: number, productId: string) => {
+    const product = products?.find((p) => p.id === productId);
+    if (product) {
+      setValue(`lines.${index}.product_id`, productId);
+      setValue(`lines.${index}.description`, product.name);
+      setValue(`lines.${index}.unit_price_ht`, product.unit_price_ht);
+      setValue(`lines.${index}.vat_rate`, product.vat_rate);
+    }
+  };
+
+  const toggleDescriptionExpand = (index: number) => {
+    setExpandedDescriptions((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  const onSubmit = async (data: QuoteFormData) => {
+    const formData = {
+      ...data,
+      notes_html: notesHtml || null,
+    };
+    if (isEditing && id) {
+      await updateQuote.mutateAsync({
+        id,
+        ...formData,
+        status: data.status || "DRAFT",
+      });
+    } else {
+      await createQuote.mutateAsync(formData);
+    }
+    navigate("/quotes");
+  };
+
+  if (isEditing && isLoadingQuote) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+      </div>
+    );
+  }
+
+  const clientOptions = [
+    { value: "", label: t("common:labels.select") },
+    ...(clients?.map((c) => ({ value: c.id, label: c.name })) ?? []),
+  ];
+
+  const productOptions = [
+    { value: "", label: t("quotes:lines.product") + " (" + t("common:labels.optional") + ")" },
+    ...(products?.map((p) => ({ value: p.id, label: `${p.reference ? `[${p.reference}] ` : ""}${p.name}` })) ?? []),
+  ];
+
+  const statusOptions = [
+    { value: "DRAFT", label: t("quotes:status.DRAFT") },
+    { value: "SENT", label: t("quotes:status.SENT") },
+    { value: "ACCEPTED", label: t("quotes:status.ACCEPTED") },
+    { value: "EXPIRED", label: t("quotes:status.EXPIRED") },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" onClick={() => navigate("/quotes")}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          {t("common:buttons.back")}
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-(--color-text-primary)">
+            {isEditing ? t("quotes:editQuote") : t("quotes:newQuote")}
+          </h1>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("quotes:generalInfo", "Informations générales")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Select
+                label={t("quotes:fields.client") + " *"}
+                options={clientOptions}
+                {...register("client_id")}
+                error={errors.client_id?.message}
+              />
+              <Input
+                label={t("quotes:fields.issueDate") + " *"}
+                type="date"
+                {...register("issue_date")}
+                error={errors.issue_date?.message}
+              />
+              <Input
+                label={t("quotes:fields.validityDate") + " *"}
+                type="date"
+                {...register("validity_date")}
+                error={errors.validity_date?.message}
+              />
+              {isEditing && (
+                <Select
+                  label={t("quotes:fields.status")}
+                  options={statusOptions}
+                  {...register("status")}
+                />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>{t("quotes:lines.title")}</CardTitle>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() =>
+                  append({ description: "", quantity: 1, unit_price_ht: 0, vat_rate: 20 })
+                }
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {t("quotes:lines.addLine")}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {fields.map((field, index) => {
+                const line = watchedLines[index];
+                const lineTotal = calculateLineTotal(
+                  line?.quantity || 0,
+                  line?.unit_price_ht || 0,
+                  line?.vat_rate || 0
+                );
+                const isExpanded = expandedDescriptions.has(index);
+                const hasRichDescription = line?.description_html && line.description_html !== "<p></p>";
+                const isSubtotalLine = line?.is_subtotal_line;
+                const groupName = line?.group_name || "";
+
+                // Render subtotal lines differently
+                if (isSubtotalLine) {
+                  return (
+                    <div
+                      key={field.id}
+                      className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border-l-4 border-blue-400 dark:border-blue-500"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <Input
+                              label=""
+                              placeholder={t("quotes:lines.groupPlaceholder")}
+                              {...register(`lines.${index}.group_name`)}
+                              className="text-sm font-medium bg-white dark:bg-gray-800"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id={`lines.${index}.is_subtotal_line`}
+                              {...register(`lines.${index}.is_subtotal_line`)}
+                              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <label
+                              htmlFor={`lines.${index}.is_subtotal_line`}
+                              className="text-sm text-blue-700 dark:text-blue-300 whitespace-nowrap font-medium"
+                            >
+                              {t("quotes:lines.subtotalOnly")}
+                            </label>
+                          </div>
+                          {fields.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => remove(index)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm text-blue-600 dark:text-blue-400">{t("quotes:lines.groupTotal")}:</span>
+                          <span className="ml-2 font-bold text-blue-800 dark:text-blue-200">
+                            {formatCurrency(groupSubtotals[groupName]?.ttc || 0)} TTC
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                        {t("quotes:lines.subtotalHint").replace("{groupName}", groupName || '...')}
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={field.id}
+                    className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3"
+                  >
+                    <div className="grid grid-cols-12 gap-3 items-start">
+                      <div className="col-span-12 md:col-span-6 lg:col-span-3">
+                        <Select
+                          name={`lines.${index}.product_id`}
+                          label={t("quotes:lines.product")}
+                          options={productOptions}
+                          onChange={(e) => handleProductSelect(index, e.target.value)}
+                        />
+                      </div>
+                      <div className="col-span-12 md:col-span-6 lg:col-span-3">
+                        <div className="flex items-end gap-1">
+                          <div className="flex-1">
+                            <Input
+                              label={t("quotes:lines.description") + " *"}
+                              {...register(`lines.${index}.description`)}
+                              error={errors.lines?.[index]?.description?.message}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => toggleDescriptionExpand(index)}
+                            className={`p-2 mb-0.5 rounded transition-colors ${
+                              isExpanded || hasRichDescription
+                                ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300"
+                                : "text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300"
+                            }`}
+                            title={t("quotes:richDescription", "Description enrichie")}
+                          >
+                            <FileText className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="col-span-4 md:col-span-3 lg:col-span-1">
+                        <Input
+                          label={t("quotes:lines.quantity") + " *"}
+                          type="number"
+                          step="0.01"
+                          {...register(`lines.${index}.quantity`)}
+                          error={errors.lines?.[index]?.quantity?.message}
+                        />
+                      </div>
+                      <div className="col-span-4 md:col-span-3 lg:col-span-2">
+                        <Input
+                          label={t("quotes:lines.unitPriceHt") + " *"}
+                          type="number"
+                          step="0.01"
+                          {...register(`lines.${index}.unit_price_ht`)}
+                          error={errors.lines?.[index]?.unit_price_ht?.message}
+                        />
+                      </div>
+                      <div className="col-span-4 md:col-span-3 lg:col-span-1">
+                        <Input
+                          label={t("quotes:lines.vatRate")}
+                          type="number"
+                          step="0.1"
+                          {...register(`lines.${index}.vat_rate`)}
+                        />
+                      </div>
+                      <div className="col-span-6 md:col-span-2 lg:col-span-1 flex flex-col">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("quotes:lines.totalTtc")}</span>
+                        <span className="py-2 font-medium">{formatCurrency(lineTotal.totalTtc)}</span>
+                      </div>
+                      <div className="col-span-6 md:col-span-1 lg:col-span-1 flex items-end pb-2 justify-end md:justify-start">
+                        {fields.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => remove(index)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    {isExpanded && (
+                      <div className="mt-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                          {t("quotes:richDescription", "Description enrichie (formatage HTML)")}
+                        </label>
+                        <RichTextEditor
+                          content={line?.description_html || ""}
+                          onChange={(html, text) => {
+                            setValue(`lines.${index}.description_html`, html);
+                            if (text && text.trim()) {
+                              setValue(`lines.${index}.description`, text);
+                            }
+                          }}
+                          placeholder={t("quotes:richDescriptionPlaceholder", "Description détaillée avec mise en forme...")}
+                          minHeight="80px"
+                        />
+                      </div>
+                    )}
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <Input
+                          label=""
+                          placeholder={t("quotes:lines.groupPlaceholder")}
+                          {...register(`lines.${index}.group_name`)}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`lines.${index}.is_subtotal_line`}
+                          {...register(`lines.${index}.is_subtotal_line`)}
+                          className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        <label
+                          htmlFor={`lines.${index}.is_subtotal_line`}
+                          className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap"
+                        >
+                          {t("quotes:lines.isSubtotalLine")}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {errors.lines?.message && (
+                <p className="text-sm text-red-600">{errors.lines.message}</p>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <div className="w-full sm:w-72 md:w-80 lg:w-96 space-y-2">
+                {/* Group subtotals */}
+                {Object.keys(groupSubtotals).length > 0 && (
+                  <div className="mb-3 pb-3 border-b border-gray-200">
+                    <p className="text-xs font-medium text-gray-500 uppercase mb-2">{t("quotes:groupSubtotals", "Sous-totaux par groupe")}</p>
+                    {Object.entries(groupSubtotals).map(([groupName, sub]) => (
+                      <div key={groupName} className="flex justify-between text-sm py-1 bg-gray-100 px-2 rounded mb-1">
+                        <span className="text-gray-600 font-medium">{groupName}</span>
+                        <span className="text-gray-700">
+                          {formatCurrency(sub.ht)} HT / {formatCurrency(sub.ttc)} TTC
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">{t("quotes:totals.subtotalHt")}</span>
+                  <span className="font-medium">{formatCurrency(totals.ht)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">{t("quotes:totals.vatProducts")}</span>
+                  <span className="font-medium">{formatCurrency(totals.vat)}</span>
+                </div>
+                {totals.shippingHt > 0 && (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">{t("quotes:totals.shippingHt")}</span>
+                      <span className="font-medium">{formatCurrency(totals.shippingHt)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">{t("quotes:totals.shippingVat")}</span>
+                      <span className="font-medium">{formatCurrency(totals.shippingVat)}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between text-lg font-bold border-t pt-2">
+                  <span>{t("quotes:totals.totalTtc")}</span>
+                  <span>{formatCurrency(totals.ttc + totals.shippingTtc)}</span>
+                </div>
+                {totals.downPayment > 0 && (
+                  <>
+                    <div className="flex justify-between text-sm text-primary-600">
+                      <span>{t("quotes:downPayment.amountPaid")}</span>
+                      <span className="font-medium">{formatCurrency(totals.downPayment)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">{t("quotes:downPayment.remaining")}</span>
+                      <span className="font-medium">{formatCurrency(totals.ttc + totals.shippingTtc - totals.downPayment)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("quotes:shippingAndDownPayment", "Frais de port et acompte")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Input
+                label={t("quotes:shipping.costHt")}
+                type="number"
+                step="0.01"
+                {...register("shipping_cost_ht")}
+              />
+              <Input
+                label={t("quotes:shipping.vatRate")}
+                type="number"
+                step="0.1"
+                {...register("shipping_vat_rate")}
+              />
+              <Input
+                label={t("quotes:downPayment.percent")}
+                type="number"
+                step="1"
+                {...register("down_payment_percent")}
+                placeholder="Ex: 30"
+              />
+              <Input
+                label={t("quotes:downPayment.amount")}
+                type="number"
+                step="0.01"
+                {...register("down_payment_amount")}
+                placeholder="Ex: 500"
+              />
+            </div>
+            <p className="text-sm text-gray-500 mt-2">
+              {t("quotes:downPaymentHint", "Saisissez soit un pourcentage, soit un montant fixe pour l'acompte. Si les deux sont renseignés, le montant fixe sera utilisé.")}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("quotes:fields.notes")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RichTextEditor
+              content={notesHtml}
+              onChange={(html, text) => {
+                setNotesHtml(html);
+                setValue("notes", text);
+              }}
+              placeholder={t("quotes:notesPlaceholder", "Notes additionnelles (visibles sur le devis)...")}
+              minHeight="120px"
+            />
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={() => navigate("/quotes")}>
+            {t("common:buttons.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            isLoading={createQuote.isPending || updateQuote.isPending}
+          >
+            {isEditing ? t("common:buttons.save") : t("quotes:createQuote", "Créer le devis")}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
