@@ -213,5 +213,53 @@
     "errorPreview": "Erreur lors de l'ouverture de l'aperçu PDF",
     "downloadSuccess": "PDF enregistré dans {{path}}",
     "downloadError": "Échec de l'enregistrement du PDF"
+  },
+  "validation": {
+    "stockExceeded": "Stock insuffisant (disponible : {{available}}, demandé : {{total}})"
+  },
+  "import": {
+    "title": "Importer {{entity}}",
+    "selectFile": "Sélectionner un fichier",
+    "selectedFile": "Sélectionné : {{name}}",
+    "noFileSelected": "Aucun fichier sélectionné",
+    "importButton": "Importer",
+    "downloading": "Téléchargement du modèle...",
+    "downloadTemplate": "Télécharger le modèle",
+    "requiredColumns": "Colonnes requises",
+    "optionalColumns": "Colonnes optionnelles",
+    "result": "Résultat de l'importation",
+    "added": "{{count}} ajouté(s)",
+    "updated": "{{count}} mis à jour",
+    "skipped": "{{count}} ignoré(s)",
+    "errors": "Erreurs",
+    "noErrors": "Aucune erreur",
+    "supportedFormats": "Formats supportés : CSV, XLSX"
+  },
+  "bulk": {
+    "selectedCount_one": "{{count}} élément sélectionné",
+    "selectedCount_other": "{{count}} éléments sélectionnés",
+    "deleteSelected": "Supprimer la sélection",
+    "clearSelection": "Désélectionner",
+    "confirmDeleteTitle": "Supprimer les éléments sélectionnés",
+    "confirmDeleteMessage_one": "Êtes-vous sûr de vouloir supprimer {{count}} élément sélectionné ? Cette action est irréversible.",
+    "confirmDeleteMessage_other": "Êtes-vous sûr de vouloir supprimer {{count}} éléments sélectionnés ? Cette action est irréversible.",
+    "deleteCount": "Supprimer ({{count}})",
+    "deleted": "Éléments supprimés avec succès",
+    "deleteError": "Échec de la suppression des éléments sélectionnés"
+  },
+  "update": {
+    "available": "Mise à jour disponible",
+    "availableDescription": "La version {{version}} est prête à être téléchargée.",
+    "downloading": "Téléchargement de la mise à jour...",
+    "downloadingProgress": "{{progress}}% terminé",
+    "downloadingPleaseWait": "Veuillez patienter...",
+    "ready": "Mise à jour prête",
+    "readyDescription": "La mise à jour a été téléchargée. Redémarrez pour l'appliquer.",
+    "error": "Échec de la mise à jour",
+    "errorDescription": "Impossible de vérifier les mises à jour. Veuillez réessayer plus tard.",
+    "downloadInstall": "Télécharger et installer",
+    "restartNow": "Redémarrer maintenant",
+    "retry": "Réessayer",
+    "later": "Plus tard"
   }
 }

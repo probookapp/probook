@@ -84,7 +84,7 @@ export function PhonebookPage() {
         </CardHeader>
         <CardContent>
           {contactsWithClients.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               {searchQuery
                 ? t("phonebook.noResultsSearch")
                 : t("phonebook.noContacts")}
@@ -93,37 +93,37 @@ export function PhonebookPage() {
             <div className="space-y-6">
               {sortedLetters.map((letter) => (
                 <div key={letter}>
-                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-2 mb-3">
                     {letter}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {groupedContacts[letter].map((contact) => (
                       <div
                         key={contact.id}
-                        className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                        className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       >
                         <div className="flex items-start gap-3">
-                          <div className="p-2 bg-primary-100 rounded-full">
-                            <User className="h-5 w-5 text-primary-600" />
+                          <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-full">
+                            <User className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <h4 className="font-medium text-gray-900 truncate">
+                              <h4 className="font-medium text-gray-900 dark:text-gray-100 truncate">
                                 {contact.name}
                               </h4>
                               {contact.is_primary && (
-                                <span className="px-1.5 py-0.5 text-xs bg-primary-100 text-primary-700 rounded">
+                                <span className="px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded">
                                   {t("phonebook.primary")}
                                 </span>
                               )}
                             </div>
                             {contact.role && (
-                              <p className="text-sm text-gray-500">{contact.role}</p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">{contact.role}</p>
                             )}
                             {contact.client && (
                               <Link
                                 to={`/clients`}
-                                className="flex items-center gap-1 text-sm text-primary-600 hover:underline mt-1"
+                                className="flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline mt-1"
                               >
                                 <Building2 className="h-3 w-3" />
                                 {contact.client.name}
@@ -133,7 +133,7 @@ export function PhonebookPage() {
                               {contact.email && (
                                 <a
                                   href={`mailto:${contact.email}`}
-                                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-primary-600"
+                                  className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
                                 >
                                   <Mail className="h-4 w-4" />
                                   <span className="truncate">{contact.email}</span>
@@ -142,7 +142,7 @@ export function PhonebookPage() {
                               {contact.phone && (
                                 <a
                                   href={`tel:${contact.phone}`}
-                                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-primary-600"
+                                  className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
                                 >
                                   <Phone className="h-4 w-4" />
                                   {contact.phone}

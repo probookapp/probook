@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useForm, useFieldArray, type Resolver } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, type Resolver } from "react-hook-form";
 import { toast } from "@/stores/useToastStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -81,6 +81,37 @@ export function DeliveryNoteFormPage() {
     name: "lines",
   });
 
+  const watchedLines = useWatch({
+    control,
+    name: "lines",
+    defaultValue: [{ description: "", quantity: 1, unit: "unité", product_id: null }],
+  });
+
+  const getStockError = (index: number): string | null => {
+    const line = watchedLines[index];
+    if (!line?.product_id || !products) return null;
+
+    const product = products.find((p) => p.id === line.product_id);
+    if (!product || product.is_service) return null;
+
+    const available = product.quantity ?? 0;
+    const totalUsed = watchedLines.reduce((sum, l) => {
+      if (l?.product_id === line.product_id) {
+        return sum + Number(l?.quantity || 0);
+      }
+      return sum;
+    }, 0);
+
+    if (totalUsed > available) {
+      return t("common:validation.stockExceeded", { available, total: totalUsed });
+    }
+    return null;
+  };
+
+  const hasStockErrors = useMemo(() => {
+    return watchedLines.some((_, index) => getStockError(index) !== null);
+  }, [watchedLines, products]);
+
   // Load existing delivery note data when editing
   useEffect(() => {
     if (existingNote && isEdit) {
@@ -106,7 +137,7 @@ export function DeliveryNoteFormPage() {
   const handleProductSelect = (index: number, productId: string) => {
     const product = products?.find((p) => p.id === productId);
     if (product) {
-      setValue(`lines.${index}.description`, product.name);
+      setValue(`lines.${index}.description`, product.designation);
       setValue(`lines.${index}.unit`, product.unit);
     }
   };
@@ -151,7 +182,7 @@ export function DeliveryNoteFormPage() {
 
   const productOptions = [
     { value: "", label: t("delivery:selectProduct") },
-    ...(products?.map((p) => ({ value: p.id, label: `${p.name} (${p.reference || "N/A"})` })) || []),
+    ...(products?.filter((p) => p.is_service || (p.quantity ?? 0) > 0).map((p) => ({ value: p.id, label: `${p.designation}${p.reference ? ` [${p.reference}]` : ""}${!p.is_service ? ` (${p.quantity ?? 0})` : ""}` })) || []),
   ];
 
   if (isEdit && isLoadingNote) {
@@ -287,7 +318,7 @@ export function DeliveryNoteFormPage() {
                       type="number"
                       step="0.01"
                       {...register(`lines.${index}.quantity`)}
-                      error={errors.lines?.[index]?.quantity?.message}
+                      error={errors.lines?.[index]?.quantity?.message || getStockError(index) || undefined}
                     />
                     <Select
                       label={t("delivery:lines.unit")}
@@ -330,6 +361,7 @@ export function DeliveryNoteFormPage() {
           <Button
             type="submit"
             isLoading={createDeliveryNote.isPending || updateDeliveryNote.isPending}
+            disabled={hasStockErrors}
           >
             {isEdit ? t("common:buttons.save") : t("delivery:createDeliveryNote")}
           </Button>

@@ -156,3 +156,14 @@ export function useCreateInvoiceFromDeliveryNotes() {
     },
   });
 }
+
+export function useBatchDeleteInvoices() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => invoiceApi.batchDelete(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    },
+  });
+}

@@ -213,5 +213,53 @@
     "errorPreview": "خطأ في فتح معاينة PDF",
     "downloadSuccess": "تم حفظ PDF في {{path}}",
     "downloadError": "فشل في حفظ PDF"
+  },
+  "validation": {
+    "stockExceeded": "المخزون غير كافٍ (المتاح: {{available}}، المطلوب: {{total}})"
+  },
+  "import": {
+    "title": "استيراد {{entity}}",
+    "selectFile": "اختيار ملف",
+    "selectedFile": "المحدد: {{name}}",
+    "noFileSelected": "لم يتم اختيار ملف",
+    "importButton": "استيراد",
+    "downloading": "جاري تنزيل النموذج...",
+    "downloadTemplate": "تنزيل النموذج",
+    "requiredColumns": "الأعمدة المطلوبة",
+    "optionalColumns": "الأعمدة الاختيارية",
+    "result": "نتيجة الاستيراد",
+    "added": "{{count}} مضاف",
+    "updated": "{{count}} محدث",
+    "skipped": "{{count}} متجاوز",
+    "errors": "أخطاء",
+    "noErrors": "لا أخطاء",
+    "supportedFormats": "التنسيقات المدعومة: CSV، XLSX"
+  },
+  "bulk": {
+    "selectedCount_one": "تم تحديد عنصر واحد",
+    "selectedCount_other": "تم تحديد {{count}} عناصر",
+    "deleteSelected": "حذف المحدد",
+    "clearSelection": "إلغاء التحديد",
+    "confirmDeleteTitle": "حذف العناصر المحددة",
+    "confirmDeleteMessage_one": "هل أنت متأكد من حذف عنصر واحد محدد؟ لا يمكن التراجع عن هذا الإجراء.",
+    "confirmDeleteMessage_other": "هل أنت متأكد من حذف {{count}} عناصر محددة؟ لا يمكن التراجع عن هذا الإجراء.",
+    "deleteCount": "حذف ({{count}})",
+    "deleted": "تم حذف العناصر بنجاح",
+    "deleteError": "فشل في حذف العناصر المحددة"
+  },
+  "update": {
+    "available": "تحديث متاح",
+    "availableDescription": "الإصدار {{version}} جاهز للتنزيل.",
+    "downloading": "جاري تنزيل التحديث...",
+    "downloadingProgress": "{{progress}}% مكتمل",
+    "downloadingPleaseWait": "يرجى الانتظار...",
+    "ready": "التحديث جاهز",
+    "readyDescription": "تم تنزيل التحديث. أعد التشغيل لتطبيقه.",
+    "error": "فشل التحديث",
+    "errorDescription": "تعذر التحقق من التحديثات. يرجى المحاولة لاحقاً.",
+    "downloadInstall": "تنزيل وتثبيت",
+    "restartNow": "إعادة التشغيل الآن",
+    "retry": "إعادة المحاولة",
+    "later": "لاحقاً"
   }
 }

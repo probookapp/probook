@@ -23,9 +23,12 @@
   "fields": {
     "name": "Name",
     "nameRequired": "Name *",
+    "designation": "Designation",
+    "designationRequired": "Designation *",
     "description": "Description",
     "unitPriceHt": "Unit Price (excl. VAT)",
-    "unitPriceHtRequired": "Unit Price (excl. VAT) (€) *",
+    "unitPriceHtRequired": "Selling Price (excl. VAT) (€) *",
+    "purchasePriceHt": "Purchase Price (excl. VAT) (€)",
     "vatRate": "VAT Rate (%)",
     "vatRateRequired": "VAT Rate *",
     "unit": "Unit",
@@ -37,8 +40,10 @@
     "noCategory": "No category",
     "photo": "Photo",
     "type": "Type",
-    "priceHT": "Price (excl. VAT)",
-    "vat": "VAT"
+    "priceHT": "Selling Price (excl. VAT)",
+    "vat": "VAT",
+    "quantity": "Quantity",
+    "suppliers": "Supplier(s)"
   },
   "units": {
     "unit": "Unit",
@@ -79,8 +84,21 @@
     "remove": "Remove Photo",
     "maxSize": "Max size: 5 MB"
   },
+  "suppliers": {
+    "title": "Linked Suppliers",
+    "addSupplier": "Link Supplier",
+    "removeSupplier": "Unlink",
+    "selectSupplier": "Select a supplier...",
+    "purchasePrice": "Purchase Price (excl. VAT)",
+    "noSuppliers": "No linked suppliers",
+    "linked": "Supplier linked successfully",
+    "linkError": "Failed to link supplier",
+    "unlinked": "Supplier unlinked successfully",
+    "unlinkError": "Failed to unlink supplier"
+  },
   "validation": {
     "nameRequired": "Name is required",
+    "designationRequired": "Designation is required",
     "pricePositive": "Price must be positive",
     "vatRateRange": "VAT rate must be between 0 and 100",
     "unitRequired": "Unit is required",

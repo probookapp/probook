@@ -2,7 +2,14 @@ import { z } from "zod";
 
 export const clientSchema = z.object({
   name: z.string().min(1, "Le nom est requis"),
-  email: z.string().email("Email invalide").nullable().optional(),
+  email: z
+    .string()
+    .nullable()
+    .optional()
+    .refine(
+      (val) => !val || val.length === 0 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+      { message: "Email invalide" }
+    ),
   phone: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
   city: z.string().nullable().optional(),

@@ -13,7 +13,11 @@
     "yearlyRevenue": "Annual Revenue",
     "yearlyRevenueDesc": "Annual revenue",
     "pending": "Pending",
-    "pendingPayments": "Pending payments"
+    "pendingPayments": "Pending payments",
+    "totalExpenses": "Expenses",
+    "totalExpensesDesc": "Total expenses this year",
+    "profit": "Profit",
+    "profitDesc": "Revenue minus expenses"
   },
   "recentInvoices": "Recent Invoices",
   "recentQuotes": "Recent Quotes",

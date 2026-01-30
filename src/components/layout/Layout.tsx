@@ -2,6 +2,7 @@ import { type ReactNode, useState } from "react";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { ToastContainer } from "@/components/ui";
+import { UpdateNotification } from "@/components/shared/UpdateNotification";
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,6 +15,9 @@ export function Layout({ children }: LayoutProps) {
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       {/* Toast notifications */}
       <ToastContainer />
+
+      {/* Auto-update notification */}
+      <UpdateNotification />
 
       {/* Mobile sidebar overlay */}
       {isSidebarOpen && (

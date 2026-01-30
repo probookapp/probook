@@ -85,3 +85,15 @@ export function useDeleteProductPhoto() {
     },
   });
 }
+
+export function useBatchDeleteProducts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => productApi.batchDelete(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["product-supplier-summaries"] });
+    },
+  });
+}

@@ -9,6 +9,8 @@ import { InvoicesPage, InvoiceFormPage, InvoiceViewPage } from "@/features/invoi
 import { DeliveryNotesPage, DeliveryNoteFormPage, DeliveryNoteViewPage } from "@/features/delivery-notes";
 import { PhonebookPage } from "@/features/phonebook";
 import { ReportsPage } from "@/features/reports";
+import { ExpensesPage } from "@/features/expenses";
+import { SuppliersPage } from "@/features/suppliers";
 import { SettingsPage } from "@/features/settings";
 
 function App() {
@@ -19,6 +21,7 @@ function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/suppliers" element={<SuppliersPage />} />
         <Route path="/quotes" element={<QuotesPage />} />
         <Route path="/quotes/new" element={<QuoteFormPage />} />
         <Route path="/quotes/:id" element={<QuoteViewPage />} />
@@ -33,6 +36,7 @@ function App() {
         <Route path="/delivery-notes/:id/edit" element={<DeliveryNoteFormPage />} />
         <Route path="/phonebook" element={<PhonebookPage />} />
         <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </Layout>

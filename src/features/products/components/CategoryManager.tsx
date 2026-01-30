@@ -28,6 +28,7 @@ export function CategoryManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | undefined>();
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const { data: categories, isLoading } = useProductCategories();
   const createCategory = useCreateProductCategory();
@@ -45,12 +46,22 @@ export function CategoryManager() {
   };
 
   const handleSubmit = async (data: ProductCategoryFormData) => {
-    if (selectedCategory) {
-      await updateCategory.mutateAsync({ ...data, id: selectedCategory.id });
-    } else {
-      await createCategory.mutateAsync(data);
+    const input = {
+      ...data,
+      description: data.description || null,
+      parent_id: data.parent_id || null,
+    };
+
+    try {
+      if (selectedCategory) {
+        await updateCategory.mutateAsync({ ...input, id: selectedCategory.id });
+      } else {
+        await createCategory.mutateAsync(input);
+      }
+      handleCloseModal();
+    } catch (error) {
+      console.error("Failed to save category:", error);
     }
-    handleCloseModal();
   };
 
   const handleDelete = async (id: string) => {
@@ -63,8 +74,22 @@ export function CategoryManager() {
   const getChildCategories = (parentId: string) =>
     categories?.filter((c) => c.parent_id === parentId) || [];
 
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   const renderCategory = (category: ProductCategory, level: number = 0) => {
     const children = getChildCategories(category.id);
+    const hasChildren = children.length > 0;
+    const isExpanded = expandedIds.has(category.id);
     return (
       <div key={category.id}>
         <div
@@ -72,8 +97,15 @@ export function CategoryManager() {
           style={{ paddingLeft: `${level * 24 + 16}px` }}
         >
           <div className="flex items-center gap-2">
-            {children.length > 0 && (
-              <ChevronRight className="h-4 w-4 text-gray-400" />
+            {hasChildren ? (
+              <button
+                onClick={() => toggleExpand(category.id)}
+                className="p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-transform"
+              >
+                <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+              </button>
+            ) : (
+              <span className="w-5" />
             )}
             <Folder className="h-4 w-4 text-amber-500" />
             <span className="font-medium text-gray-900 dark:text-gray-100">{category.name}</span>
@@ -100,7 +132,7 @@ export function CategoryManager() {
             </button>
           </div>
         </div>
-        {children.map((child) => renderCategory(child, level + 1))}
+        {hasChildren && isExpanded && children.map((child) => renderCategory(child, level + 1))}
       </div>
     );
   };

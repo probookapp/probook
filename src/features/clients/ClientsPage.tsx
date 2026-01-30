@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Pencil, Trash2, Search, Eye, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Eye, Users, Upload } from "lucide-react";
 import {
   Button,
   Card,
@@ -18,11 +18,16 @@ import {
 } from "@/components/ui";
 import { ClientForm } from "./components/ClientForm";
 import { ClientContacts } from "./components/ClientContacts";
+import { ImportDialog } from "@/components/shared/ImportDialog";
+import { BulkActionBar } from "@/components/shared/BulkActionBar";
+import { BulkDeleteModal } from "@/components/shared/BulkDeleteModal";
+import { useSelection } from "@/hooks/useSelection";
 import {
   useClients,
   useCreateClient,
   useUpdateClient,
   useDeleteClient,
+  useBatchDeleteClients,
 } from "./hooks/useClients";
 import type { Client } from "@/types";
 import type { ClientFormData } from "./schemas/clientSchema";
@@ -35,17 +40,26 @@ export function ClientsPage() {
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const { data: clients, isLoading } = useClients();
   const createClient = useCreateClient();
   const updateClient = useUpdateClient();
   const deleteClient = useDeleteClient();
+  const batchDeleteClients = useBatchDeleteClients();
 
   const filteredClients = clients?.filter(
     (client) =>
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const selection = useSelection(filteredClients);
+
+  useEffect(() => {
+    selection.clear();
+  }, [searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleOpenModal = (client?: Client) => {
     setSelectedClient(client);
@@ -86,10 +100,16 @@ export function ClientsPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{t("title")}</h1>
           <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">{t("subtitle")}</p>
         </div>
-        <Button onClick={() => handleOpenModal()} size="sm" className="self-start sm:self-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          {t("newClient")}
-        </Button>
+        <div className="flex gap-2 self-start sm:self-auto">
+          <Button variant="secondary" onClick={() => setIsImportOpen(true)} size="sm">
+            <Upload className="h-4 w-4 mr-2" />
+            {tCommon("buttons.import")}
+          </Button>
+          <Button onClick={() => handleOpenModal()} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            {t("newClient")}
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -114,6 +134,15 @@ export function ClientsPage() {
           <Table className="min-w-150">
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <input
+                    type="checkbox"
+                    checked={selection.isAllSelected}
+                    ref={(el) => { if (el) el.indeterminate = selection.isIndeterminate; }}
+                    onChange={() => selection.toggleAll()}
+                    className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                </TableHead>
                 <TableHead>{t("fields.name")}</TableHead>
                 <TableHead>{t("fields.email")}</TableHead>
                 <TableHead>{t("fields.phone")}</TableHead>
@@ -125,6 +154,14 @@ export function ClientsPage() {
               {filteredClients && filteredClients.length > 0 ? (
                 filteredClients.map((client) => (
                   <TableRow key={client.id}>
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        checked={selection.isSelected(client.id)}
+                        onChange={() => selection.toggle(client.id)}
+                        className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                      />
+                    </TableCell>
                     <TableCell className="font-medium text-gray-900 dark:text-gray-100">{client.name}</TableCell>
                     <TableCell className="text-gray-600 dark:text-gray-400">{client.email || "-"}</TableCell>
                     <TableCell className="text-gray-600 dark:text-gray-400">{client.phone || "-"}</TableCell>
@@ -161,7 +198,7 @@ export function ClientsPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-gray-500 dark:text-gray-400 py-8">
+                  <TableCell colSpan={6} className="text-center text-gray-500 dark:text-gray-400 py-8">
                     {t("noClients")}
                   </TableCell>
                 </TableRow>
@@ -207,6 +244,34 @@ export function ClientsPage() {
           </Button>
         </div>
       </Modal>
+
+      <ImportDialog
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        title={tCommon("import.title", { entity: t("title") })}
+        entityType="clients"
+        requiredColumns={["name"]}
+        optionalColumns={["email", "phone", "address", "city", "postal_code", "country", "siret", "vat_number", "notes"]}
+      />
+
+      <BulkActionBar
+        selectedCount={selection.selectedCount}
+        onDelete={() => setBulkDeleteOpen(true)}
+        onClear={selection.clear}
+        isDeleting={batchDeleteClients.isPending}
+      />
+
+      <BulkDeleteModal
+        isOpen={bulkDeleteOpen}
+        onClose={() => setBulkDeleteOpen(false)}
+        onConfirm={async () => {
+          await batchDeleteClients.mutateAsync(Array.from(selection.selectedIds));
+          selection.clear();
+          setBulkDeleteOpen(false);
+        }}
+        count={selection.selectedCount}
+        isLoading={batchDeleteClients.isPending}
+      />
 
       {/* Client Details & Contacts Modal */}
       <Modal

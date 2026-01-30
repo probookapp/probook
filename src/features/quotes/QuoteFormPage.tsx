@@ -214,11 +214,36 @@ export function QuoteFormPage() {
     };
   }, [watchedLines, watchedShippingCostHt, watchedShippingVatRate, watchedDownPaymentPercent, watchedDownPaymentAmount]);
 
+  const getStockError = (index: number): string | null => {
+    const line = watchedLines[index];
+    if (!line?.product_id || !products) return null;
+
+    const product = products.find((p) => p.id === line.product_id);
+    if (!product || product.is_service) return null;
+
+    const available = product.quantity ?? 0;
+    const totalUsed = watchedLines.reduce((sum, l) => {
+      if (l?.product_id === line.product_id && !l?.is_subtotal_line) {
+        return sum + Number(l?.quantity || 0);
+      }
+      return sum;
+    }, 0);
+
+    if (totalUsed > available) {
+      return t("common:validation.stockExceeded", { available, total: totalUsed });
+    }
+    return null;
+  };
+
+  const hasStockErrors = useMemo(() => {
+    return watchedLines.some((_, index) => getStockError(index) !== null);
+  }, [watchedLines, products]);
+
   const handleProductSelect = (index: number, productId: string) => {
     const product = products?.find((p) => p.id === productId);
     if (product) {
       setValue(`lines.${index}.product_id`, productId);
-      setValue(`lines.${index}.description`, product.name);
+      setValue(`lines.${index}.description`, product.designation);
       setValue(`lines.${index}.unit_price_ht`, product.unit_price_ht);
       setValue(`lines.${index}.vat_rate`, product.vat_rate);
     }
@@ -268,7 +293,7 @@ export function QuoteFormPage() {
 
   const productOptions = [
     { value: "", label: t("quotes:lines.product") + " (" + t("common:labels.optional") + ")" },
-    ...(products?.map((p) => ({ value: p.id, label: `${p.reference ? `[${p.reference}] ` : ""}${p.name}` })) ?? []),
+    ...(products?.filter((p) => p.is_service || (p.quantity ?? 0) > 0).map((p) => ({ value: p.id, label: `${p.reference ? `[${p.reference}] ` : ""}${p.designation}${!p.is_service ? ` (${p.quantity ?? 0})` : ""}` })) ?? []),
   ];
 
   const statusOptions = [
@@ -459,7 +484,7 @@ export function QuoteFormPage() {
                           type="number"
                           step="0.01"
                           {...register(`lines.${index}.quantity`)}
-                          error={errors.lines?.[index]?.quantity?.message}
+                          error={errors.lines?.[index]?.quantity?.message || getStockError(index) || undefined}
                         />
                       </div>
                       <div className="col-span-4 md:col-span-3 lg:col-span-2">
@@ -667,6 +692,7 @@ export function QuoteFormPage() {
           <Button
             type="submit"
             isLoading={createQuote.isPending || updateQuote.isPending}
+            disabled={hasStockErrors}
           >
             {isEditing ? t("common:buttons.save") : t("quotes:createQuote", "Créer le devis")}
           </Button>

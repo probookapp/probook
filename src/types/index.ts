@@ -55,7 +55,7 @@ export interface UpdateProductCategoryInput extends CreateProductCategoryInput {
 // Product types
 export interface Product {
   id: string;
-  name: string;
+  designation: string;
   description: string | null;
   unit_price_ht: number;
   vat_rate: number;
@@ -65,12 +65,15 @@ export interface Product {
   // Phase 3: Category and photo
   category_id: string | null;
   photo_path: string | null;
+  // Stock management
+  quantity: number | null;
+  purchase_price_ht: number | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreateProductInput {
-  name: string;
+  designation: string;
   description?: string | null;
   unit_price_ht: number;
   vat_rate: number;
@@ -78,6 +81,8 @@ export interface CreateProductInput {
   reference?: string | null;
   is_service: boolean;
   category_id?: string | null;
+  quantity?: number | null;
+  purchase_price_ht?: number | null;
 }
 
 export interface UpdateProductInput extends CreateProductInput {
@@ -323,6 +328,91 @@ export interface UpdateAppSettingsInput {
   app_theme: string;
 }
 
+// Expense types
+export interface Expense {
+  id: string;
+  name: string;
+  amount: number;
+  date: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateExpenseInput {
+  name: string;
+  amount: number;
+  date: string;
+  notes?: string | null;
+}
+
+export interface UpdateExpenseInput extends CreateExpenseInput {
+  id: string;
+}
+
+// Supplier types
+export interface Supplier {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSupplierInput {
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  notes?: string | null;
+}
+
+export interface UpdateSupplierInput extends CreateSupplierInput {
+  id: string;
+}
+
+// Product-Supplier types
+export interface ProductSupplier {
+  id: string;
+  product_id: string;
+  supplier_id: string;
+  purchase_price_ht: number;
+  created_at: string;
+}
+
+export interface CreateProductSupplierInput {
+  product_id: string;
+  supplier_id: string;
+  purchase_price_ht: number;
+}
+
+export interface SupplierWithPrice {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  purchase_price_ht: number;
+  link_id: string;
+}
+
+export interface ProductWithPrice {
+  id: string;
+  designation: string;
+  reference: string | null;
+  unit_price_ht: number;
+  purchase_price_ht: number;
+  link_id: string;
+}
+
+export interface ProductSupplierSummary {
+  product_id: string;
+  supplier_id: string;
+  supplier_name: string;
+}
+
 // Statistics types
 export interface DashboardStats {
   total_clients: number;
@@ -331,6 +421,8 @@ export interface DashboardStats {
   revenue_this_month: number;
   revenue_this_year: number;
   pending_payments: number;
+  total_expenses: number;
+  profit: number;
   recent_invoices: Invoice[];
   recent_quotes: Quote[];
 }
@@ -512,4 +604,12 @@ export interface AlertsSummary {
   expired_quotes: Alert[];
   total_overdue_amount: number;
   total_count: number;
+}
+
+// Import types
+export interface ImportResult {
+  added: number;
+  updated: number;
+  skipped: number;
+  errors: string[];
 }

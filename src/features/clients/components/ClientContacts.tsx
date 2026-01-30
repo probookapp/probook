@@ -174,7 +174,7 @@ export function ClientContacts({ clientId }: ClientContactsProps) {
                 <button
                   onClick={() => setDeleteConfirmId(contact.id)}
                   aria-label={tCommon("buttons.delete")}
-                  className="p-1 text-gray-500 hover:text-red-600"
+                  className="p-1 text-gray-500 hover:text-red-600 dark:hover:text-red-400"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

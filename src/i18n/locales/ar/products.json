@@ -23,9 +23,12 @@
   "fields": {
     "name": "الاسم",
     "nameRequired": "الاسم *",
+    "designation": "التسمية",
+    "designationRequired": "التسمية *",
     "description": "الوصف",
     "unitPriceHt": "سعر الوحدة (بدون ضريبة)",
-    "unitPriceHtRequired": "سعر الوحدة (بدون ضريبة) (€) *",
+    "unitPriceHtRequired": "سعر البيع (بدون ضريبة) (€) *",
+    "purchasePriceHt": "سعر الشراء (بدون ضريبة) (€)",
     "vatRate": "معدل الضريبة (%)",
     "vatRateRequired": "معدل الضريبة *",
     "unit": "الوحدة",
@@ -37,8 +40,10 @@
     "noCategory": "بدون فئة",
     "photo": "الصورة",
     "type": "النوع",
-    "priceHT": "السعر (بدون ضريبة)",
-    "vat": "الضريبة"
+    "priceHT": "سعر البيع (بدون ضريبة)",
+    "vat": "الضريبة",
+    "quantity": "الكمية",
+    "suppliers": "المورد(ون)"
   },
   "units": {
     "unit": "وحدة",
@@ -79,8 +84,21 @@
     "remove": "حذف الصورة",
     "maxSize": "الحجم الأقصى: 5 ميغابايت"
   },
+  "suppliers": {
+    "title": "الموردون المرتبطون",
+    "addSupplier": "ربط مورد",
+    "removeSupplier": "إلغاء الربط",
+    "selectSupplier": "اختر مورداً...",
+    "purchasePrice": "سعر الشراء (بدون ضريبة)",
+    "noSuppliers": "لا يوجد موردون مرتبطون",
+    "linked": "تم ربط المورد بنجاح",
+    "linkError": "فشل في ربط المورد",
+    "unlinked": "تم إلغاء ربط المورد بنجاح",
+    "unlinkError": "فشل في إلغاء ربط المورد"
+  },
   "validation": {
     "nameRequired": "الاسم مطلوب",
+    "designationRequired": "التسمية مطلوبة",
     "pricePositive": "السعر يجب أن يكون موجباً",
     "vatRateRange": "معدل الضريبة يجب أن يكون بين 0 و 100",
     "unitRequired": "الوحدة مطلوبة",

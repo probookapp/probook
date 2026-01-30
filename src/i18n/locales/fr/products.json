@@ -23,9 +23,12 @@
   "fields": {
     "name": "Nom",
     "nameRequired": "Nom *",
+    "designation": "Désignation",
+    "designationRequired": "Désignation *",
     "description": "Description",
     "unitPriceHt": "Prix unitaire HT",
-    "unitPriceHtRequired": "Prix unitaire HT (€) *",
+    "unitPriceHtRequired": "Prix de vente HT (€) *",
+    "purchasePriceHt": "Prix d'achat HT (€)",
     "vatRate": "Taux TVA (%)",
     "vatRateRequired": "Taux de TVA *",
     "unit": "Unité",
@@ -37,8 +40,10 @@
     "noCategory": "Aucune catégorie",
     "photo": "Photo",
     "type": "Type",
-    "priceHT": "Prix HT",
-    "vat": "TVA"
+    "priceHT": "Prix de vente HT",
+    "vat": "TVA",
+    "quantity": "Quantité",
+    "suppliers": "Fournisseur(s)"
   },
   "units": {
     "unit": "Unité",
@@ -79,8 +84,21 @@
     "remove": "Supprimer la photo",
     "maxSize": "Taille max: 5 Mo"
   },
+  "suppliers": {
+    "title": "Fournisseurs liés",
+    "addSupplier": "Lier un fournisseur",
+    "removeSupplier": "Délier",
+    "selectSupplier": "Sélectionnez un fournisseur...",
+    "purchasePrice": "Prix d'achat HT",
+    "noSuppliers": "Aucun fournisseur lié",
+    "linked": "Fournisseur lié avec succès",
+    "linkError": "Erreur lors de la liaison du fournisseur",
+    "unlinked": "Fournisseur délié avec succès",
+    "unlinkError": "Erreur lors de la suppression du lien"
+  },
   "validation": {
     "nameRequired": "Le nom est requis",
+    "designationRequired": "La désignation est requise",
     "pricePositive": "Le prix doit être positif",
     "vatRateRange": "Le taux de TVA doit être entre 0 et 100",
     "unitRequired": "L'unité est requise",

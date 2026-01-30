@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -30,7 +30,10 @@ import {
   getInvoiceStatusVariantWithUrgency,
   getInvoiceStatusLabelWithUrgency,
 } from "@/components/ui";
-import { useInvoices, useDeleteInvoice, useMarkInvoicePaid, useDuplicateInvoice } from "./hooks/useInvoices";
+import { BulkActionBar } from "@/components/shared/BulkActionBar";
+import { BulkDeleteModal } from "@/components/shared/BulkDeleteModal";
+import { useSelection } from "@/hooks/useSelection";
+import { useInvoices, useDeleteInvoice, useMarkInvoicePaid, useDuplicateInvoice, useBatchDeleteInvoices } from "./hooks/useInvoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export function InvoicesPage() {
@@ -39,17 +42,28 @@ export function InvoicesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [markPaidId, setMarkPaidId] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const { data: invoices, isLoading } = useInvoices();
   const deleteInvoice = useDeleteInvoice();
   const markPaid = useMarkInvoicePaid();
   const duplicateInvoice = useDuplicateInvoice();
+  const batchDeleteInvoices = useBatchDeleteInvoices();
 
   const filteredInvoices = invoices?.filter(
     (invoice) =>
       invoice.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
       invoice.client?.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const selectableInvoices = useMemo(() =>
+    filteredInvoices?.filter((inv) => inv.status === "DRAFT") ?? [],
+    [filteredInvoices]
+  );
+  const selection = useSelection(selectableInvoices);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { selection.clear(); }, [searchQuery]);
 
   const handleDelete = async (id: string) => {
     await deleteInvoice.mutateAsync(id);
@@ -104,6 +118,16 @@ export function InvoicesPage() {
           <Table className="min-w-175">
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <input
+                    type="checkbox"
+                    checked={selection.isAllSelected}
+                    ref={(el) => { if (el) el.indeterminate = selection.isIndeterminate; }}
+                    onChange={() => selection.toggleAll(selectableInvoices)}
+                    disabled={selectableInvoices.length === 0}
+                    className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                </TableHead>
                 <TableHead>{t("invoices:fields.invoiceNumber")}</TableHead>
                 <TableHead>{t("invoices:fields.client")}</TableHead>
                 <TableHead>{t("invoices:fields.issueDate")}</TableHead>
@@ -117,6 +141,16 @@ export function InvoicesPage() {
               {filteredInvoices && filteredInvoices.length > 0 ? (
                 filteredInvoices.map((invoice) => (
                   <TableRow key={invoice.id}>
+                    <TableCell>
+                      {invoice.status === "DRAFT" ? (
+                        <input
+                          type="checkbox"
+                          checked={selection.isSelected(invoice.id)}
+                          onChange={() => selection.toggle(invoice.id)}
+                          className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                        />
+                      ) : null}
+                    </TableCell>
                     <TableCell className="font-mono font-medium">
                       {invoice.invoice_number}
                     </TableCell>
@@ -194,7 +228,7 @@ export function InvoicesPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                  <TableCell colSpan={8} className="text-center text-gray-500 py-8">
                     <Receipt className="h-12 w-12 mx-auto mb-2 text-gray-300" />
                     {t("invoices:noInvoices")}
                   </TableCell>
@@ -249,6 +283,24 @@ export function InvoicesPage() {
           </Button>
         </div>
       </Modal>
+
+      <BulkActionBar
+        selectedCount={selection.selectedCount}
+        onDelete={() => setBulkDeleteOpen(true)}
+        onClear={selection.clear}
+        isDeleting={batchDeleteInvoices.isPending}
+      />
+      <BulkDeleteModal
+        isOpen={bulkDeleteOpen}
+        onClose={() => setBulkDeleteOpen(false)}
+        onConfirm={async () => {
+          await batchDeleteInvoices.mutateAsync(Array.from(selection.selectedIds));
+          selection.clear();
+          setBulkDeleteOpen(false);
+        }}
+        count={selection.selectedCount}
+        isLoading={batchDeleteInvoices.isPending}
+      />
     </div>
   );
 }

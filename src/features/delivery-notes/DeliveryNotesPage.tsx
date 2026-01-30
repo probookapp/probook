@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -31,8 +31,12 @@ import {
   useDeliveryNotes,
   useDeleteDeliveryNote,
   useDuplicateDeliveryNote,
+  useBatchDeleteDeliveryNotes,
 } from "./hooks/useDeliveryNotes";
 import { useCreateInvoiceFromDeliveryNotes } from "@/features/invoices/hooks/useInvoices";
+import { BulkActionBar } from "@/components/shared/BulkActionBar";
+import { BulkDeleteModal } from "@/components/shared/BulkDeleteModal";
+import { useSelection } from "@/hooks/useSelection";
 import type { DeliveryNote, DeliveryNoteStatus } from "@/types";
 import { formatDate } from "@/lib/utils";
 
@@ -41,7 +45,7 @@ export function DeliveryNotesPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const statusConfig: Record<
     DeliveryNoteStatus,
@@ -56,12 +60,27 @@ export function DeliveryNotesPage() {
   const deleteDeliveryNote = useDeleteDeliveryNote();
   const duplicateDeliveryNote = useDuplicateDeliveryNote();
   const createInvoiceFromDNs = useCreateInvoiceFromDeliveryNotes();
+  const batchDeleteDNs = useBatchDeleteDeliveryNotes();
 
   const filteredDeliveryNotes = deliveryNotes?.filter(
     (note) =>
       note.delivery_note_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
       note.client?.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const selection = useSelection(filteredDeliveryNotes);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { selection.clear(); }, [searchQuery]);
+
+  const canCreateInvoiceFromSelection = useMemo(() => {
+    if (selection.selectedCount === 0) return false;
+    const selectedNotes = deliveryNotes?.filter((n) => selection.selectedIds.has(n.id)) ?? [];
+    const allDeliveredNoInvoice = selectedNotes.every((n) => n.status === "DELIVERED" && !n.invoice_id);
+    if (!allDeliveredNoInvoice) return false;
+    const clientIds = new Set(selectedNotes.map((n) => n.client_id));
+    return clientIds.size === 1;
+  }, [selection.selectedIds, selection.selectedCount, deliveryNotes]);
 
   const handleDelete = async (id: string) => {
     await deleteDeliveryNote.mutateAsync(id);
@@ -73,23 +92,11 @@ export function DeliveryNotesPage() {
     navigate(`/delivery-notes/${newNote.id}/edit`);
   };
 
-  const toggleSelection = (id: string) => {
-    setSelectedIds((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
-
   const handleCreateInvoiceFromSelection = async () => {
-    if (selectedIds.size === 0) return;
+    if (selection.selectedCount === 0) return;
 
     // Check if all selected delivery notes are for the same client
-    const selectedNotes = deliveryNotes?.filter((n) => selectedIds.has(n.id)) || [];
+    const selectedNotes = deliveryNotes?.filter((n) => selection.selectedIds.has(n.id)) || [];
     const clientIds = new Set(selectedNotes.map((n) => n.client_id));
 
     if (clientIds.size > 1) {
@@ -97,13 +104,10 @@ export function DeliveryNotesPage() {
       return;
     }
 
-    const invoice = await createInvoiceFromDNs.mutateAsync(Array.from(selectedIds));
-    setSelectedIds(new Set());
+    const invoice = await createInvoiceFromDNs.mutateAsync(Array.from(selection.selectedIds));
+    selection.clear();
     navigate(`/invoices/${invoice.id}`);
   };
-
-  const selectedCount = selectedIds.size;
-  const canCreateInvoice = selectedCount > 0;
 
   if (isLoading) {
     return (
@@ -121,19 +125,6 @@ export function DeliveryNotesPage() {
           <p className="text-sm sm:text-base text-(--color-text-secondary)">{t("delivery:subtitle", "Gérez vos bons de livraison")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {canCreateInvoice && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleCreateInvoiceFromSelection}
-              isLoading={createInvoiceFromDNs.isPending}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">{t("delivery:createInvoiceFromSelection", "Créer facture")}</span>
-              <span className="sm:hidden">{t("common:buttons.create")}</span>
-              ({selectedCount})
-            </Button>
-          )}
           <Button onClick={() => navigate("/delivery-notes/new")} size="sm">
             <Plus className="h-4 w-4 mr-2" />
             {t("delivery:newDeliveryNote")}
@@ -163,7 +154,15 @@ export function DeliveryNotesPage() {
           <Table className="min-w-200">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-10"></TableHead>
+                <TableHead className="w-10">
+                  <input
+                    type="checkbox"
+                    checked={selection.isAllSelected}
+                    ref={(el) => { if (el) el.indeterminate = selection.isIndeterminate; }}
+                    onChange={() => selection.toggleAll()}
+                    className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                </TableHead>
                 <TableHead>{t("delivery:fields.deliveryNoteNumber")}</TableHead>
                 <TableHead>{t("delivery:fields.client")}</TableHead>
                 <TableHead>{t("delivery:fields.issueDate")}</TableHead>
@@ -178,16 +177,12 @@ export function DeliveryNotesPage() {
                 filteredDeliveryNotes.map((note) => (
                   <TableRow key={note.id}>
                     <TableCell>
-                      {note.status === "DELIVERED" && !note.invoice_id && (
-                        <input
-                          type="checkbox"
-                          id={`select-${note.id}`}
-                          name={`select-${note.id}`}
-                          checked={selectedIds.has(note.id)}
-                          onChange={() => toggleSelection(note.id)}
-                          className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                        />
-                      )}
+                      <input
+                        type="checkbox"
+                        checked={selection.isSelected(note.id)}
+                        onChange={() => selection.toggle(note.id)}
+                        className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                      />
                     </TableCell>
                     <TableCell className="font-mono font-medium">
                       {note.delivery_note_number}
@@ -290,6 +285,36 @@ export function DeliveryNotesPage() {
           </Button>
         </div>
       </Modal>
+
+      <BulkActionBar
+        selectedCount={selection.selectedCount}
+        onDelete={() => setBulkDeleteOpen(true)}
+        onClear={selection.clear}
+        isDeleting={batchDeleteDNs.isPending}
+      >
+        {canCreateInvoiceFromSelection && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleCreateInvoiceFromSelection}
+            isLoading={createInvoiceFromDNs.isPending}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            {t("delivery:createInvoiceFromSelection")}
+          </Button>
+        )}
+      </BulkActionBar>
+      <BulkDeleteModal
+        isOpen={bulkDeleteOpen}
+        onClose={() => setBulkDeleteOpen(false)}
+        onConfirm={async () => {
+          await batchDeleteDNs.mutateAsync(Array.from(selection.selectedIds));
+          selection.clear();
+          setBulkDeleteOpen(false);
+        }}
+        count={selection.selectedCount}
+        isLoading={batchDeleteDNs.isPending}
+      />
     </div>
   );
 }

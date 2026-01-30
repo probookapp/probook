@@ -13,7 +13,11 @@
     "yearlyRevenue": "CA annuel",
     "yearlyRevenueDesc": "Chiffre d'affaires annuel",
     "pending": "En attente",
-    "pendingPayments": "Paiements en attente"
+    "pendingPayments": "Paiements en attente",
+    "totalExpenses": "Dépenses",
+    "totalExpensesDesc": "Total des dépenses cette année",
+    "profit": "Bénéfice",
+    "profitDesc": "Revenus moins dépenses"
   },
   "recentInvoices": "Dernières factures",
   "recentQuotes": "Derniers devis",

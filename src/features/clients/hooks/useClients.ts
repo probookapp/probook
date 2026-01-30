@@ -52,3 +52,14 @@ export function useDeleteClient() {
     },
   });
 }
+
+export function useBatchDeleteClients() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => clientApi.batchDelete(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    },
+  });
+}

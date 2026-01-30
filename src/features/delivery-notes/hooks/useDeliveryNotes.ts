@@ -84,3 +84,13 @@ export function useConvertDeliveryNoteToInvoice() {
     },
   });
 }
+
+export function useBatchDeleteDeliveryNotes() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => deliveryNoteApi.batchDelete(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["deliveryNotes"] });
+    },
+  });
+}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Plus, Eye, Pencil, Trash2, Search, FileText, ArrowRight, Copy } from "lucide-react";
@@ -20,7 +20,10 @@ import {
   getQuoteStatusVariant,
   getStatusLabel,
 } from "@/components/ui";
-import { useQuotes, useDeleteQuote, useConvertQuoteToInvoice, useDuplicateQuote } from "./hooks/useQuotes";
+import { BulkActionBar } from "@/components/shared/BulkActionBar";
+import { BulkDeleteModal } from "@/components/shared/BulkDeleteModal";
+import { useSelection } from "@/hooks/useSelection";
+import { useQuotes, useDeleteQuote, useConvertQuoteToInvoice, useDuplicateQuote, useBatchDeleteQuotes } from "./hooks/useQuotes";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Quote } from "@/types";
 
@@ -30,17 +33,25 @@ export function QuotesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [convertConfirm, setConvertConfirm] = useState<Quote | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const { data: quotes, isLoading } = useQuotes();
   const deleteQuote = useDeleteQuote();
   const convertToInvoice = useConvertQuoteToInvoice();
   const duplicateQuote = useDuplicateQuote();
+  const batchDeleteQuotes = useBatchDeleteQuotes();
 
   const filteredQuotes = quotes?.filter(
     (quote) =>
       quote.quote_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
       quote.client?.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const selection = useSelection(filteredQuotes);
+
+  useEffect(() => {
+    selection.clear();
+  }, [searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDelete = async (id: string) => {
     await deleteQuote.mutateAsync(id);
@@ -96,6 +107,15 @@ export function QuotesPage() {
           <Table className="min-w-175">
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <input
+                    type="checkbox"
+                    checked={selection.isAllSelected}
+                    ref={(el) => { if (el) el.indeterminate = selection.isIndeterminate; }}
+                    onChange={() => selection.toggleAll()}
+                    className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                </TableHead>
                 <TableHead>{t("quotes:fields.quoteNumber")}</TableHead>
                 <TableHead>{t("quotes:fields.client")}</TableHead>
                 <TableHead>{t("quotes:fields.issueDate")}</TableHead>
@@ -109,6 +129,14 @@ export function QuotesPage() {
               {filteredQuotes && filteredQuotes.length > 0 ? (
                 filteredQuotes.map((quote) => (
                   <TableRow key={quote.id}>
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        checked={selection.isSelected(quote.id)}
+                        onChange={() => selection.toggle(quote.id)}
+                        className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                      />
+                    </TableCell>
                     <TableCell className="font-mono font-medium">
                       {quote.quote_number}
                     </TableCell>
@@ -174,7 +202,7 @@ export function QuotesPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                  <TableCell colSpan={8} className="text-center text-gray-500 py-8">
                     <FileText className="h-12 w-12 mx-auto mb-2 text-gray-300" />
                     {t("quotes:noQuotes")}
                   </TableCell>
@@ -229,6 +257,25 @@ export function QuotesPage() {
           </Button>
         </div>
       </Modal>
+
+      <BulkActionBar
+        selectedCount={selection.selectedCount}
+        onDelete={() => setBulkDeleteOpen(true)}
+        onClear={selection.clear}
+        isDeleting={batchDeleteQuotes.isPending}
+      />
+
+      <BulkDeleteModal
+        isOpen={bulkDeleteOpen}
+        onClose={() => setBulkDeleteOpen(false)}
+        onConfirm={async () => {
+          await batchDeleteQuotes.mutateAsync(Array.from(selection.selectedIds));
+          selection.clear();
+          setBulkDeleteOpen(false);
+        }}
+        count={selection.selectedCount}
+        isLoading={batchDeleteQuotes.isPending}
+      />
     </div>
   );
 }

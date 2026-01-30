@@ -7,6 +7,8 @@ import {
   Euro,
   TrendingUp,
   Clock,
+  Wallet,
+  DollarSign,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { formatCurrency } from "@/lib/utils";
@@ -102,6 +104,18 @@ export function DashboardPage() {
           value={formatCurrency(stats?.pending_payments ?? 0)}
           icon={Clock}
           description={t("stats.pendingPayments")}
+        />
+        <StatCard
+          title={t("stats.totalExpenses")}
+          value={formatCurrency(stats?.total_expenses ?? 0)}
+          icon={Wallet}
+          description={t("stats.totalExpensesDesc")}
+        />
+        <StatCard
+          title={t("stats.profit")}
+          value={formatCurrency(stats?.profit ?? 0)}
+          icon={DollarSign}
+          description={t("stats.profitDesc")}
         />
       </div>
 

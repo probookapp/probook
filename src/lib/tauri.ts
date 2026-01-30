@@ -20,6 +20,9 @@ import type {
   CompanySettings,
   UpdateCompanySettingsInput,
   DashboardStats,
+  Expense,
+  CreateExpenseInput,
+  UpdateExpenseInput,
   DeliveryNote,
   CreateDeliveryNoteInput,
   UpdateDeliveryNoteInput,
@@ -34,6 +37,15 @@ import type {
   OutstandingPayment,
   QuoteConversionStats,
   AlertsSummary,
+  Supplier,
+  CreateSupplierInput,
+  UpdateSupplierInput,
+  SupplierWithPrice,
+  ProductWithPrice,
+  ProductSupplier,
+  CreateProductSupplierInput,
+  ProductSupplierSummary,
+  ImportResult,
 } from "@/types";
 
 // Client commands
@@ -43,6 +55,7 @@ export const clientApi = {
   create: (input: CreateClientInput) => invoke<Client>("create_client", { input }),
   update: (input: UpdateClientInput) => invoke<Client>("update_client", { input }),
   delete: (id: string) => invoke<void>("delete_client", { id }),
+  batchDelete: (ids: string[]) => invoke<number>("batch_delete_clients", { ids }),
 };
 
 // Product commands
@@ -52,6 +65,7 @@ export const productApi = {
   create: (input: CreateProductInput) => invoke<Product>("create_product", { input }),
   update: (input: UpdateProductInput) => invoke<Product>("update_product", { input }),
   delete: (id: string) => invoke<void>("delete_product", { id }),
+  batchDelete: (ids: string[]) => invoke<number>("batch_delete_products", { ids }),
   uploadPhoto: (productId: string, filePath: string) =>
     invoke<string>("upload_product_photo", { productId, filePath }),
   getPhotoBase64: (productId: string) =>
@@ -78,6 +92,7 @@ export const quoteApi = {
   create: (input: CreateQuoteInput) => invoke<Quote>("create_quote", { input }),
   update: (input: UpdateQuoteInput) => invoke<Quote>("update_quote", { input }),
   delete: (id: string) => invoke<void>("delete_quote", { id }),
+  batchDelete: (ids: string[]) => invoke<number>("batch_delete_quotes", { ids }),
   convertToInvoice: (id: string) => invoke<Invoice>("convert_quote_to_invoice", { id }),
   convertToDeliveryNote: (id: string) => invoke<DeliveryNote>("convert_quote_to_delivery_note", { id }),
   duplicate: (id: string) => invoke<Quote>("duplicate_quote", { id }),
@@ -90,6 +105,7 @@ export const invoiceApi = {
   create: (input: CreateInvoiceInput) => invoke<Invoice>("create_invoice", { input }),
   update: (input: UpdateInvoiceInput) => invoke<Invoice>("update_invoice", { input }),
   delete: (id: string) => invoke<void>("delete_invoice", { id }),
+  batchDelete: (ids: string[]) => invoke<number>("batch_delete_invoices", { ids }),
   markAsPaid: (id: string) => invoke<Invoice>("mark_invoice_paid", { id }),
   issue: (id: string) => invoke<Invoice>("issue_invoice", { id }),
   verifyIntegrity: (id: string) => invoke<boolean>("verify_invoice_integrity", { id }),
@@ -116,6 +132,36 @@ export const settingsApi = {
   uploadLogo: (filePath: string) => invoke<string>("upload_logo", { filePath }),
   getLogoBase64: () => invoke<string | null>("get_logo_base64"),
   deleteLogo: () => invoke<void>("delete_logo"),
+};
+
+// Expense commands
+export const expenseApi = {
+  getAll: () => invoke<Expense[]>("get_expenses"),
+  getById: (id: string) => invoke<Expense>("get_expense", { id }),
+  create: (input: CreateExpenseInput) => invoke<Expense>("create_expense", { input }),
+  update: (input: UpdateExpenseInput) => invoke<Expense>("update_expense", { input }),
+  delete: (id: string) => invoke<void>("delete_expense", { id }),
+  batchDelete: (ids: string[]) => invoke<number>("batch_delete_expenses", { ids }),
+};
+
+// Supplier commands
+export const supplierApi = {
+  getAll: () => invoke<Supplier[]>("get_suppliers"),
+  getById: (id: string) => invoke<Supplier>("get_supplier", { id }),
+  create: (input: CreateSupplierInput) => invoke<Supplier>("create_supplier", { input }),
+  update: (input: UpdateSupplierInput) => invoke<Supplier>("update_supplier", { input }),
+  delete: (id: string) => invoke<void>("delete_supplier", { id }),
+  batchDelete: (ids: string[]) => invoke<number>("batch_delete_suppliers", { ids }),
+};
+
+// Product-Supplier commands
+export const productSupplierApi = {
+  getAllSummaries: () => invoke<ProductSupplierSummary[]>("get_all_product_supplier_summaries"),
+  getSuppliersForProduct: (productId: string) => invoke<SupplierWithPrice[]>("get_suppliers_for_product", { productId }),
+  getProductsForSupplier: (supplierId: string) => invoke<ProductWithPrice[]>("get_products_for_supplier", { supplierId }),
+  addLink: (input: CreateProductSupplierInput) => invoke<ProductSupplier>("add_product_supplier", { input }),
+  removeLink: (linkId: string) => invoke<void>("remove_product_supplier", { linkId }),
+  updatePrice: (linkId: string, purchasePriceHt: number) => invoke<void>("update_product_supplier_price", { linkId, purchasePriceHt }),
 };
 
 // Dashboard commands
@@ -150,6 +196,7 @@ export const deliveryNoteApi = {
   update: (input: UpdateDeliveryNoteInput) =>
     invoke<DeliveryNote>("update_delivery_note", { input }),
   delete: (id: string) => invoke<void>("delete_delivery_note", { id }),
+  batchDelete: (ids: string[]) => invoke<number>("batch_delete_delivery_notes", { ids }),
   duplicate: (id: string) => invoke<DeliveryNote>("duplicate_delivery_note", { id }),
   convertToInvoice: (id: string) => invoke<Invoice>("convert_delivery_note_to_invoice", { id }),
 };
@@ -199,4 +246,11 @@ export const reportApi = {
 export const alertsApi = {
   getSummary: () => invoke<AlertsSummary>("get_alerts_summary"),
   markQuoteExpired: (quoteId: string) => invoke<Quote>("mark_quote_expired", { quoteId }),
+};
+
+// Import commands
+export const importApi = {
+  importClients: (filePath: string) => invoke<ImportResult>("import_clients", { filePath }),
+  importProducts: (filePath: string) => invoke<ImportResult>("import_products", { filePath }),
+  importSuppliers: (filePath: string) => invoke<ImportResult>("import_suppliers", { filePath }),
 };

@@ -44,11 +44,12 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema) as Resolver<ProductFormData>,
     defaultValues: {
-      name: product?.name ?? "",
+      designation: product?.designation ?? "",
       description: product?.description ?? "",
       unit_price_ht: product?.unit_price_ht ?? 0,
       vat_rate: product?.vat_rate ?? 20,
@@ -56,8 +57,12 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
       reference: product?.reference ?? "",
       is_service: product?.is_service ?? false,
       category_id: product?.category_id ?? "",
+      quantity: product?.quantity ?? 0,
+      purchase_price_ht: product?.purchase_price_ht ?? 0,
     },
   });
+
+  const isService = watch("is_service");
 
   const categoryOptions = [
     { value: "", label: t("fields.noCategory") },
@@ -68,10 +73,10 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
-          label={t("fields.nameRequired")}
+          label={t("fields.designationRequired")}
           autoComplete="off"
-          {...register("name")}
-          error={errors.name?.message}
+          {...register("designation")}
+          error={errors.designation?.message}
         />
         <Input
           label={t("fields.reference")}
@@ -95,27 +100,47 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
           {...register("unit_price_ht")}
           error={errors.unit_price_ht?.message}
         />
+        <Input
+          label={t("fields.purchasePriceHt")}
+          type="number"
+          step="0.01"
+          {...register("purchase_price_ht")}
+          error={errors.purchase_price_ht?.message}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Select
           label={t("fields.vatRateRequired")}
           options={vatRateOptions}
           {...register("vat_rate")}
           error={errors.vat_rate?.message}
         />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Select
           label={t("fields.unitRequired")}
           options={unitOptions}
           {...register("unit")}
           error={errors.unit?.message}
         />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Select
           label={t("fields.category")}
           options={categoryOptions}
           {...register("category_id")}
           error={errors.category_id?.message}
         />
+        {!isService && (
+          <Input
+            label={t("fields.quantity")}
+            type="number"
+            step="1"
+            min="0"
+            {...register("quantity")}
+            error={errors.quantity?.message}
+          />
+        )}
       </div>
 
       <div className="flex items-center gap-2">

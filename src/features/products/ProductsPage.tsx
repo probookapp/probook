@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Pencil, Trash2, Search, Package, Briefcase, Folder, Tags } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, Briefcase, Tags, Upload, Folder, Truck } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Button,
   Card,
@@ -17,16 +18,23 @@ import {
   Input,
   Badge,
 } from "@/components/ui";
+import { BulkActionBar } from "@/components/shared/BulkActionBar";
+import { BulkDeleteModal } from "@/components/shared/BulkDeleteModal";
+import { useSelection } from "@/hooks/useSelection";
 import { ProductForm } from "./components/ProductForm";
+import { ProductSuppliers } from "./components/ProductSuppliers";
 import { CategoryManager } from "./components/CategoryManager";
+import { ImportDialog } from "@/components/shared/ImportDialog";
 import {
   useProducts,
   useCreateProduct,
   useUpdateProduct,
   useDeleteProduct,
+  useBatchDeleteProducts,
 } from "./hooks/useProducts";
 import { useProductCategories } from "./hooks/useProductCategories";
 import { formatCurrency } from "@/lib/utils";
+import { productSupplierApi } from "@/lib/tauri";
 import type { Product } from "@/types";
 import type { ProductFormData } from "./schemas/productSchema";
 
@@ -41,25 +49,48 @@ export function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [supplierProductId, setSupplierProductId] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const { data: products, isLoading } = useProducts();
   const { data: categories } = useProductCategories();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
+  const batchDeleteProducts = useBatchDeleteProducts();
 
   const getCategoryName = (categoryId: string | null) => {
     if (!categoryId || !categories) return null;
-    return categories.find((c) => c.id === categoryId)?.name || null;
+    const cat = categories.find((c) => c.id === categoryId);
+    return cat?.name || null;
   };
+
+  const { data: supplierSummaries } = useQuery({
+    queryKey: ["product-supplier-summaries"],
+    queryFn: productSupplierApi.getAllSummaries,
+  });
+
+  const suppliersByProduct = useMemo(() => {
+    const map: Record<string, { supplier_id: string; supplier_name: string }[]> = {};
+    for (const s of supplierSummaries ?? []) {
+      if (!map[s.product_id]) map[s.product_id] = [];
+      map[s.product_id].push({ supplier_id: s.supplier_id, supplier_name: s.supplier_name });
+    }
+    return map;
+  }, [supplierSummaries]);
 
   const filteredProducts = products?.filter((product) => {
     const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.designation.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.reference?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = !categoryFilter || product.category_id === categoryFilter;
     return matchesSearch && matchesCategory;
   });
+
+  const selection = useSelection(filteredProducts);
+
+  useEffect(() => { selection.clear(); }, [searchQuery, categoryFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleOpenModal = (product?: Product) => {
     setSelectedProduct(product);
@@ -109,10 +140,16 @@ export function ProductsPage() {
           <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">{t("subtitle")}</p>
         </div>
         {activeTab === "products" && (
-          <Button onClick={() => handleOpenModal()} size="sm" className="self-start sm:self-auto">
-            <Plus className="h-4 w-4 mr-2" />
-            {t("newProduct")}
-          </Button>
+          <div className="flex gap-2 self-start sm:self-auto">
+            <Button variant="secondary" onClick={() => setIsImportOpen(true)} size="sm">
+              <Upload className="h-4 w-4 mr-2" />
+              {tCommon("buttons.import")}
+            </Button>
+            <Button onClick={() => handleOpenModal()} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              {t("newProduct")}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -187,13 +224,17 @@ export function ProductsPage() {
             <Table className="min-w-200">
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <input type="checkbox" checked={selection.isAllSelected} ref={(el) => { if (el) el.indeterminate = selection.isIndeterminate; }} onChange={() => selection.toggleAll()} className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
+                  </TableHead>
                   <TableHead>{t("fields.type")}</TableHead>
                   <TableHead>{t("fields.reference")}</TableHead>
-                  <TableHead>{t("fields.name")}</TableHead>
+                  <TableHead>{t("fields.designation")}</TableHead>
                   <TableHead>{t("fields.category")}</TableHead>
+                  <TableHead>{t("fields.suppliers")}</TableHead>
+                  <TableHead>{t("fields.purchasePriceHt")}</TableHead>
                   <TableHead>{t("fields.priceHT")}</TableHead>
-                  <TableHead>{t("fields.vat")}</TableHead>
-                  <TableHead>{t("fields.unit")}</TableHead>
+                  <TableHead>{t("fields.quantity")}</TableHead>
                   <TableHead className="w-24">{tCommon("buttons.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -201,6 +242,9 @@ export function ProductsPage() {
                 {filteredProducts && filteredProducts.length > 0 ? (
                   filteredProducts.map((product) => (
                     <TableRow key={product.id}>
+                      <TableCell>
+                        <input type="checkbox" checked={selection.isSelected(product.id)} onChange={() => selection.toggle(product.id)} className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
+                      </TableCell>
                       <TableCell>
                         {product.is_service ? (
                           <Badge variant="info">
@@ -217,22 +261,53 @@ export function ProductsPage() {
                       <TableCell className="font-mono text-sm text-gray-600 dark:text-gray-400">
                         {product.reference || "-"}
                       </TableCell>
-                      <TableCell className="font-medium text-gray-900 dark:text-gray-100">{product.name}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium text-gray-900 dark:text-gray-100">{product.designation}</TableCell>
+                      <TableCell className="text-gray-600 dark:text-gray-400">
                         {getCategoryName(product.category_id) ? (
-                          <span className="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
-                            <Folder className="h-3 w-3 text-amber-500" />
+                          <span className="inline-flex items-center gap-1">
+                            <Folder className="h-3 w-3" />
                             {getCategoryName(product.category_id)}
                           </span>
                         ) : (
                           <span className="text-gray-400 dark:text-gray-500">-</span>
                         )}
                       </TableCell>
+                      <TableCell className="text-gray-600 dark:text-gray-400">
+                        {suppliersByProduct[product.id]?.length ? (
+                          <div className="flex flex-wrap gap-1">
+                            {suppliersByProduct[product.id].map((s) => (
+                              <Badge key={s.supplier_id} variant="default" className="text-xs">
+                                {s.supplier_name}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 dark:text-gray-500">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-gray-600 dark:text-gray-400">
+                        {product.purchase_price_ht != null ? formatCurrency(product.purchase_price_ht) : "-"}
+                      </TableCell>
                       <TableCell className="text-gray-600 dark:text-gray-400">{formatCurrency(product.unit_price_ht)}</TableCell>
-                      <TableCell className="text-gray-600 dark:text-gray-400">{product.vat_rate}%</TableCell>
-                      <TableCell className="text-gray-600 dark:text-gray-400">{product.unit}</TableCell>
+                      <TableCell>
+                        {product.is_service ? (
+                          <span className="text-gray-400 dark:text-gray-500">-</span>
+                        ) : (
+                          <Badge variant={(product.quantity ?? 0) > 0 ? "success" : "danger"}>
+                            {product.quantity ?? 0}
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setSupplierProductId(product.id)}
+                            aria-label={t("fields.suppliers")}
+                            title={t("fields.suppliers")}
+                            className="p-1 text-gray-500 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+                          >
+                            <Truck className="h-4 w-4" />
+                          </button>
                           <button
                             onClick={() => handleOpenModal(product)}
                             aria-label={tCommon("buttons.edit")}
@@ -253,7 +328,7 @@ export function ProductsPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-gray-500 dark:text-gray-400 py-8">
+                    <TableCell colSpan={10} className="text-center text-gray-500 dark:text-gray-400 py-8">
                       {t("noProducts")}
                     </TableCell>
                   </TableRow>
@@ -263,6 +338,15 @@ export function ProductsPage() {
           </CardContent>
         </Card>
       )}
+
+      <ImportDialog
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        title={tCommon("import.title", { entity: t("title") })}
+        entityType="products"
+        requiredColumns={["designation", "unit_price_ht"]}
+        optionalColumns={["description", "vat_rate", "unit", "reference", "is_service", "quantity", "purchase_price_ht"]}
+      />
 
       <Modal
         isOpen={isModalOpen}
@@ -300,6 +384,35 @@ export function ProductsPage() {
           </Button>
         </div>
       </Modal>
+
+      <Modal
+        isOpen={!!supplierProductId}
+        onClose={() => setSupplierProductId(null)}
+        title={t("suppliers.title")}
+        size="lg"
+      >
+        {supplierProductId && (
+          <ProductSuppliers productId={supplierProductId} />
+        )}
+      </Modal>
+
+      <BulkActionBar
+        selectedCount={selection.selectedCount}
+        onDelete={() => setBulkDeleteOpen(true)}
+        onClear={selection.clear}
+        isDeleting={batchDeleteProducts.isPending}
+      />
+      <BulkDeleteModal
+        isOpen={bulkDeleteOpen}
+        onClose={() => setBulkDeleteOpen(false)}
+        onConfirm={async () => {
+          await batchDeleteProducts.mutateAsync(Array.from(selection.selectedIds));
+          selection.clear();
+          setBulkDeleteOpen(false);
+        }}
+        count={selection.selectedCount}
+        isLoading={batchDeleteProducts.isPending}
+      />
     </div>
   );
 }

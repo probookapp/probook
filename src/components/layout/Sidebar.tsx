@@ -10,6 +10,8 @@ import {
   BookUser,
   BarChart3,
   Settings,
+  Wallet,
+  Factory,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,11 +27,13 @@ export function Sidebar({ onClose }: SidebarProps) {
     { name: t("dashboard"), href: "/", icon: LayoutDashboard },
     { name: t("clients"), href: "/clients", icon: Users },
     { name: t("products"), href: "/products", icon: Package },
+    { name: t("suppliers"), href: "/suppliers", icon: Factory },
     { name: t("quotes"), href: "/quotes", icon: FileText },
     { name: t("invoices"), href: "/invoices", icon: Receipt },
     { name: t("deliveryNotes"), href: "/delivery-notes", icon: Truck },
     { name: t("phonebook"), href: "/phonebook", icon: BookUser },
     { name: t("reports"), href: "/reports", icon: BarChart3 },
+    { name: t("expenses"), href: "/expenses", icon: Wallet },
     { name: t("settings"), href: "/settings", icon: Settings },
   ];
 

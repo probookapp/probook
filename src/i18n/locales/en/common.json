@@ -213,5 +213,53 @@
     "errorPreview": "Error opening PDF preview",
     "downloadSuccess": "PDF saved to {{path}}",
     "downloadError": "Failed to save PDF"
+  },
+  "validation": {
+    "stockExceeded": "Insufficient stock (available: {{available}}, requested: {{total}})"
+  },
+  "import": {
+    "title": "Import {{entity}}",
+    "selectFile": "Select File",
+    "selectedFile": "Selected: {{name}}",
+    "noFileSelected": "No file selected",
+    "importButton": "Import",
+    "downloading": "Downloading template...",
+    "downloadTemplate": "Download Template",
+    "requiredColumns": "Required columns",
+    "optionalColumns": "Optional columns",
+    "result": "Import Result",
+    "added": "{{count}} added",
+    "updated": "{{count}} updated",
+    "skipped": "{{count}} skipped",
+    "errors": "Errors",
+    "noErrors": "No errors",
+    "supportedFormats": "Supported formats: CSV, XLSX"
+  },
+  "bulk": {
+    "selectedCount_one": "{{count}} item selected",
+    "selectedCount_other": "{{count}} items selected",
+    "deleteSelected": "Delete selected",
+    "clearSelection": "Clear",
+    "confirmDeleteTitle": "Delete selected items",
+    "confirmDeleteMessage_one": "Are you sure you want to delete {{count}} selected item? This action cannot be undone.",
+    "confirmDeleteMessage_other": "Are you sure you want to delete {{count}} selected items? This action cannot be undone.",
+    "deleteCount": "Delete ({{count}})",
+    "deleted": "Items deleted successfully",
+    "deleteError": "Failed to delete selected items"
+  },
+  "update": {
+    "available": "Update available",
+    "availableDescription": "Version {{version}} is ready to download.",
+    "downloading": "Downloading update...",
+    "downloadingProgress": "{{progress}}% complete",
+    "downloadingPleaseWait": "Please wait...",
+    "ready": "Update ready",
+    "readyDescription": "The update has been downloaded. Restart to apply.",
+    "error": "Update failed",
+    "errorDescription": "Could not check for updates. Please try again later.",
+    "downloadInstall": "Download & install",
+    "restartNow": "Restart now",
+    "retry": "Retry",
+    "later": "Later"
   }
 }

@@ -89,3 +89,14 @@ export function useConvertQuoteToDeliveryNote() {
     },
   });
 }
+
+export function useBatchDeleteQuotes() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => quoteApi.batchDelete(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    },
+  });
+}
