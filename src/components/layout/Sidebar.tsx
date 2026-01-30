@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { getVersion } from "@tauri-apps/api/app";
 import {
   LayoutDashboard,
   Users,
@@ -22,6 +24,11 @@ interface SidebarProps {
 
 export function Sidebar({ onClose }: SidebarProps) {
   const { t } = useTranslation("navigation");
+  const [version, setVersion] = useState("");
+
+  useEffect(() => {
+    getVersion().then(setVersion);
+  }, []);
 
   const navigation = [
     { name: t("dashboard"), href: "/", icon: LayoutDashboard },
@@ -72,7 +79,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         ))}
       </nav>
       <div className="p-4 border-t border-gray-800">
-        <p className="text-xs text-gray-500">Version 1.0.0</p>
+        <p className="text-xs text-gray-500">Version {version}</p>
       </div>
     </aside>
   );
