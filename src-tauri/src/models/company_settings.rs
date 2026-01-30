@@ -71,6 +71,8 @@ pub struct DashboardStats {
     pub revenue_this_month: f64,
     pub revenue_this_year: f64,
     pub pending_payments: f64,
+    pub total_expenses: f64,
+    pub profit: f64,
     pub recent_invoices: Vec<super::Invoice>,
     pub recent_quotes: Vec<super::Quote>,
 }

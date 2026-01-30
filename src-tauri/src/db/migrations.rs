@@ -524,5 +524,85 @@ pub async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
         .await
         .ok();
 
+    // Phase N: Product model changes - rename name to designation, add quantity and purchase_price_ht
+    sqlx::query("ALTER TABLE products RENAME COLUMN name TO designation")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("ALTER TABLE products ADD COLUMN quantity INTEGER DEFAULT 0")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("ALTER TABLE products ADD COLUMN purchase_price_ht REAL DEFAULT 0")
+        .execute(pool)
+        .await
+        .ok();
+
+    // Phase N: Suppliers table
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS suppliers (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            email TEXT,
+            phone TEXT,
+            address TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+        "#,
+    )
+    .execute(pool)
+    .await
+    .ok();
+
+    // Phase N: Product-Supplier join table
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS product_suppliers (
+            id TEXT PRIMARY KEY,
+            product_id TEXT NOT NULL,
+            supplier_id TEXT NOT NULL,
+            purchase_price_ht REAL NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+            FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
+            UNIQUE(product_id, supplier_id)
+        )
+        "#,
+    )
+    .execute(pool)
+    .await
+    .ok();
+
+    // Phase N: Indexes for suppliers and product_suppliers
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_product_suppliers_product_id ON product_suppliers(product_id)")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_product_suppliers_supplier_id ON product_suppliers(supplier_id)")
+        .execute(pool)
+        .await
+        .ok();
+
+    // Phase N: Expenses table
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS expenses (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            amount REAL NOT NULL DEFAULT 0,
+            date TEXT NOT NULL,
+            notes TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+        "#,
+    )
+    .execute(pool)
+    .await
+    .ok();
+
     Ok(())
 }

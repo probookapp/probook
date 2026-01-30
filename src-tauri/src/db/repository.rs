@@ -106,9 +106,23 @@ pub async fn delete_client(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Erro
     Ok(())
 }
 
+pub async fn batch_delete_clients(pool: &SqlitePool, ids: Vec<String>) -> Result<u64, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let mut count: u64 = 0;
+    for id in &ids {
+        sqlx::query("DELETE FROM clients WHERE id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        count += 1;
+    }
+    tx.commit().await?;
+    Ok(count)
+}
+
 // Product Repository
 pub async fn get_all_products(pool: &SqlitePool) -> Result<Vec<Product>, sqlx::Error> {
-    sqlx::query_as::<_, Product>("SELECT * FROM products ORDER BY name")
+    sqlx::query_as::<_, Product>("SELECT * FROM products ORDER BY designation")
         .fetch_all(pool)
         .await
 }
@@ -124,12 +138,12 @@ pub async fn create_product(pool: &SqlitePool, input: CreateProductInput) -> Res
     let product = Product::new(input);
     sqlx::query(
         r#"
-        INSERT INTO products (id, name, description, unit_price_ht, vat_rate, unit, reference, is_service, category_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO products (id, designation, description, unit_price_ht, vat_rate, unit, reference, is_service, category_id, quantity, purchase_price_ht, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         "#,
     )
     .bind(&product.id)
-    .bind(&product.name)
+    .bind(&product.designation)
     .bind(&product.description)
     .bind(&product.unit_price_ht)
     .bind(&product.vat_rate)
@@ -137,6 +151,8 @@ pub async fn create_product(pool: &SqlitePool, input: CreateProductInput) -> Res
     .bind(&product.reference)
     .bind(&product.is_service)
     .bind(&product.category_id)
+    .bind(&product.quantity)
+    .bind(&product.purchase_price_ht)
     .bind(&product.created_at)
     .bind(&product.updated_at)
     .execute(pool)
@@ -149,11 +165,11 @@ pub async fn update_product(pool: &SqlitePool, input: UpdateProductInput) -> Res
     let now = Utc::now();
     sqlx::query(
         r#"
-        UPDATE products SET name = ?, description = ?, unit_price_ht = ?, vat_rate = ?, unit = ?, reference = ?, is_service = ?, category_id = ?, updated_at = ?
+        UPDATE products SET designation = ?, description = ?, unit_price_ht = ?, vat_rate = ?, unit = ?, reference = ?, is_service = ?, category_id = ?, quantity = ?, purchase_price_ht = ?, updated_at = ?
         WHERE id = ?
         "#,
     )
-    .bind(&input.name)
+    .bind(&input.designation)
     .bind(&input.description)
     .bind(&input.unit_price_ht)
     .bind(&input.vat_rate)
@@ -161,6 +177,8 @@ pub async fn update_product(pool: &SqlitePool, input: UpdateProductInput) -> Res
     .bind(&input.reference)
     .bind(&input.is_service)
     .bind(&input.category_id)
+    .bind(&input.quantity)
+    .bind(&input.purchase_price_ht)
     .bind(&now)
     .bind(&input.id)
     .execute(pool)
@@ -174,6 +192,36 @@ pub async fn delete_product(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Err
         .bind(id)
         .execute(pool)
         .await?;
+    Ok(())
+}
+
+pub async fn batch_delete_products(pool: &SqlitePool, ids: Vec<String>) -> Result<u64, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let mut count: u64 = 0;
+    for id in &ids {
+        sqlx::query("DELETE FROM products WHERE id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        count += 1;
+    }
+    tx.commit().await?;
+    Ok(count)
+}
+
+// Decrease product stock by quantity (only for non-service products)
+pub async fn decrease_product_stock(pool: &SqlitePool, product_id: &str, quantity: f64) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        UPDATE products SET quantity = MAX(0, COALESCE(quantity, 0) - ?), updated_at = ?
+        WHERE id = ? AND is_service = 0
+        "#,
+    )
+    .bind(quantity as i32)
+    .bind(Utc::now())
+    .bind(product_id)
+    .execute(pool)
+    .await?;
     Ok(())
 }
 
@@ -417,6 +465,20 @@ pub async fn delete_quote(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Error
     Ok(())
 }
 
+pub async fn batch_delete_quotes(pool: &SqlitePool, ids: Vec<String>) -> Result<u64, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let mut count: u64 = 0;
+    for id in &ids {
+        sqlx::query("DELETE FROM quotes WHERE id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        count += 1;
+    }
+    tx.commit().await?;
+    Ok(count)
+}
+
 // Invoice Repository (similar structure to quotes)
 pub async fn get_all_invoices(pool: &SqlitePool) -> Result<Vec<Invoice>, sqlx::Error> {
     let rows = sqlx::query_as::<_, InvoiceRow>("SELECT * FROM invoices ORDER BY created_at DESC")
@@ -516,6 +578,10 @@ async fn get_invoice_lines(pool: &SqlitePool, invoice_id: &str) -> Result<Vec<In
 }
 
 pub async fn create_invoice(pool: &SqlitePool, input: CreateInvoiceInput) -> Result<Invoice, sqlx::Error> {
+    create_invoice_internal(pool, input, true).await
+}
+
+async fn create_invoice_internal(pool: &SqlitePool, input: CreateInvoiceInput, decrease_stock: bool) -> Result<Invoice, sqlx::Error> {
     let settings = get_company_settings(pool).await?;
     let invoice_number = format!("{}{}-{:04}", settings.invoice_prefix, chrono::Utc::now().format("%Y"), settings.next_invoice_number);
 
@@ -572,6 +638,15 @@ pub async fn create_invoice(pool: &SqlitePool, input: CreateInvoiceInput) -> Res
         .bind(line.position)
         .execute(pool)
         .await?;
+    }
+
+    // Decrease stock for product lines (skip when converting from delivery notes to avoid double-deduction)
+    if decrease_stock {
+        for line in &lines {
+            if let Some(ref product_id) = line.product_id {
+                decrease_product_stock(pool, product_id, line.quantity).await?;
+            }
+        }
     }
 
     // Increment invoice number
@@ -650,6 +725,29 @@ pub async fn delete_invoice(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Err
         .execute(pool)
         .await?;
     Ok(())
+}
+
+pub async fn batch_delete_invoices(pool: &SqlitePool, ids: Vec<String>) -> Result<u64, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let mut count: u64 = 0;
+    for id in &ids {
+        let row: (String,) = sqlx::query_as("SELECT status FROM invoices WHERE id = ?")
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await?;
+        if row.0 != "DRAFT" {
+            return Err(sqlx::Error::Protocol(
+                format!("Cannot delete non-DRAFT invoice {}", id),
+            ));
+        }
+        sqlx::query("DELETE FROM invoices WHERE id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        count += 1;
+    }
+    tx.commit().await?;
+    Ok(count)
 }
 
 pub async fn mark_invoice_paid(pool: &SqlitePool, id: &str) -> Result<Invoice, sqlx::Error> {
@@ -869,6 +967,14 @@ pub async fn get_dashboard_stats(pool: &SqlitePool) -> Result<DashboardStats, sq
     .fetch_one(pool)
     .await?;
 
+    let total_expenses: f64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(amount), 0.0) FROM expenses WHERE strftime('%Y', date) = strftime('%Y', 'now')"
+    )
+    .fetch_one(pool)
+    .await?;
+
+    let profit = revenue_this_year - total_expenses;
+
     let recent_invoices = get_all_invoices(pool).await?.into_iter().take(5).collect();
     let recent_quotes = get_all_quotes(pool).await?.into_iter().take(5).collect();
 
@@ -879,6 +985,8 @@ pub async fn get_dashboard_stats(pool: &SqlitePool) -> Result<DashboardStats, sq
         revenue_this_month,
         revenue_this_year,
         pending_payments,
+        total_expenses,
+        profit,
         recent_invoices,
         recent_quotes,
     })
@@ -1076,7 +1184,10 @@ pub async fn clear_all_data(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     sqlx::query("DELETE FROM invoices").execute(pool).await?;
     sqlx::query("DELETE FROM quote_lines").execute(pool).await?;
     sqlx::query("DELETE FROM quotes").execute(pool).await?;
+    sqlx::query("DELETE FROM expenses").execute(pool).await?;
+    sqlx::query("DELETE FROM product_suppliers").execute(pool).await?;
     sqlx::query("DELETE FROM products").execute(pool).await?;
+    sqlx::query("DELETE FROM suppliers").execute(pool).await?;
     sqlx::query("DELETE FROM clients").execute(pool).await?;
     Ok(())
 }
@@ -1109,18 +1220,21 @@ pub async fn restore_client(pool: &SqlitePool, client: Client) -> Result<(), sql
 pub async fn restore_product(pool: &SqlitePool, product: Product) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
-        INSERT INTO products (id, name, description, unit_price_ht, vat_rate, unit, reference, is_service, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO products (id, designation, description, unit_price_ht, vat_rate, unit, reference, is_service, category_id, quantity, purchase_price_ht, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         "#,
     )
     .bind(&product.id)
-    .bind(&product.name)
+    .bind(&product.designation)
     .bind(&product.description)
     .bind(&product.unit_price_ht)
     .bind(&product.vat_rate)
     .bind(&product.unit)
     .bind(&product.reference)
     .bind(&product.is_service)
+    .bind(&product.category_id)
+    .bind(&product.quantity)
+    .bind(&product.purchase_price_ht)
     .bind(&product.created_at)
     .bind(&product.updated_at)
     .execute(pool)
@@ -1487,6 +1601,13 @@ pub async fn create_delivery_note(pool: &SqlitePool, input: CreateDeliveryNoteIn
         .await?;
     }
 
+    // Decrease stock for product lines
+    for line in &lines {
+        if let Some(ref product_id) = line.product_id {
+            decrease_product_stock(pool, product_id, line.quantity).await?;
+        }
+    }
+
     // Increment delivery note number
     sqlx::query("UPDATE company_settings SET next_delivery_note_number = COALESCE(next_delivery_note_number, 1) + 1 WHERE id = 'default'")
         .execute(pool)
@@ -1556,6 +1677,20 @@ pub async fn delete_delivery_note(pool: &SqlitePool, id: &str) -> Result<(), sql
         .execute(pool)
         .await?;
     Ok(())
+}
+
+pub async fn batch_delete_delivery_notes(pool: &SqlitePool, ids: Vec<String>) -> Result<u64, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let mut count: u64 = 0;
+    for id in &ids {
+        sqlx::query("DELETE FROM delivery_notes WHERE id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        count += 1;
+    }
+    tx.commit().await?;
+    Ok(count)
 }
 
 pub async fn duplicate_delivery_note(pool: &SqlitePool, delivery_note_id: &str) -> Result<DeliveryNote, sqlx::Error> {
@@ -1711,7 +1846,8 @@ pub async fn convert_delivery_note_to_invoice(pool: &SqlitePool, delivery_note_i
         lines: invoice_lines,
     };
 
-    create_invoice(pool, invoice_input).await
+    // Don't decrease stock - already decreased when delivery note was created
+    create_invoice_internal(pool, invoice_input, false).await
 }
 
 // Create Invoice from Multiple Delivery Notes
@@ -1775,7 +1911,8 @@ pub async fn create_invoice_from_delivery_notes(pool: &SqlitePool, delivery_note
         lines: all_lines,
     };
 
-    create_invoice(pool, invoice_input).await
+    // Don't decrease stock - already decreased when delivery notes were created
+    create_invoice_internal(pool, invoice_input, false).await
 }
 
 // Client Contact Repository
@@ -2105,7 +2242,7 @@ pub async fn get_product_sales(pool: &SqlitePool, start_date: Option<chrono::Nai
         r#"
         SELECT
             COALESCE(il.product_id, 'custom') as product_id,
-            COALESCE(p.name, il.description) as product_name,
+            COALESCE(p.designation, il.description) as product_name,
             COALESCE(SUM(il.quantity), 0) as quantity_sold,
             COALESCE(SUM(il.total_ht), 0) as revenue_ht,
             COALESCE(SUM(il.total_ttc), 0) as revenue_ttc
@@ -2114,7 +2251,7 @@ pub async fn get_product_sales(pool: &SqlitePool, start_date: Option<chrono::Nai
         LEFT JOIN products p ON il.product_id = p.id
         WHERE i.status IN ('ISSUED', 'PAID')
         AND i.issue_date >= ? AND i.issue_date <= ?
-        GROUP BY il.product_id, COALESCE(p.name, il.description)
+        GROUP BY il.product_id, COALESCE(p.designation, il.description)
         ORDER BY revenue_ttc DESC
         "#
     )
@@ -2361,4 +2498,338 @@ pub async fn mark_quote_expired(pool: &SqlitePool, quote_id: &str) -> Result<Quo
         .await?;
 
     get_quote_by_id(pool, quote_id).await
+}
+
+// Expense Repository
+pub async fn get_all_expenses(pool: &SqlitePool) -> Result<Vec<Expense>, sqlx::Error> {
+    sqlx::query_as::<_, Expense>("SELECT * FROM expenses ORDER BY date DESC")
+        .fetch_all(pool)
+        .await
+}
+
+pub async fn get_expense_by_id(pool: &SqlitePool, id: &str) -> Result<Expense, sqlx::Error> {
+    sqlx::query_as::<_, Expense>("SELECT * FROM expenses WHERE id = ?")
+        .bind(id)
+        .fetch_one(pool)
+        .await
+}
+
+pub async fn create_expense(pool: &SqlitePool, input: CreateExpenseInput) -> Result<Expense, sqlx::Error> {
+    let expense = Expense::new(input);
+    sqlx::query(
+        r#"
+        INSERT INTO expenses (id, name, amount, date, notes, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        "#,
+    )
+    .bind(&expense.id)
+    .bind(&expense.name)
+    .bind(expense.amount)
+    .bind(&expense.date)
+    .bind(&expense.notes)
+    .bind(&expense.created_at)
+    .bind(&expense.updated_at)
+    .execute(pool)
+    .await?;
+
+    Ok(expense)
+}
+
+pub async fn update_expense(pool: &SqlitePool, input: UpdateExpenseInput) -> Result<Expense, sqlx::Error> {
+    let now = Utc::now();
+    sqlx::query(
+        r#"
+        UPDATE expenses SET name = ?, amount = ?, date = ?, notes = ?, updated_at = ?
+        WHERE id = ?
+        "#,
+    )
+    .bind(&input.name)
+    .bind(input.amount)
+    .bind(&input.date)
+    .bind(&input.notes)
+    .bind(&now)
+    .bind(&input.id)
+    .execute(pool)
+    .await?;
+
+    get_expense_by_id(pool, &input.id).await
+}
+
+pub async fn delete_expense(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM expenses WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+pub async fn batch_delete_expenses(pool: &SqlitePool, ids: Vec<String>) -> Result<u64, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let mut count: u64 = 0;
+    for id in &ids {
+        sqlx::query("DELETE FROM expenses WHERE id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        count += 1;
+    }
+    tx.commit().await?;
+    Ok(count)
+}
+
+pub async fn restore_expense(pool: &SqlitePool, expense: Expense) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        INSERT INTO expenses (id, name, amount, date, notes, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        "#,
+    )
+    .bind(&expense.id)
+    .bind(&expense.name)
+    .bind(expense.amount)
+    .bind(&expense.date)
+    .bind(&expense.notes)
+    .bind(&expense.created_at)
+    .bind(&expense.updated_at)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+// Supplier Repository
+pub async fn get_all_suppliers(pool: &SqlitePool) -> Result<Vec<Supplier>, sqlx::Error> {
+    sqlx::query_as::<_, Supplier>("SELECT * FROM suppliers ORDER BY name")
+        .fetch_all(pool)
+        .await
+}
+
+pub async fn get_supplier_by_id(pool: &SqlitePool, id: &str) -> Result<Supplier, sqlx::Error> {
+    sqlx::query_as::<_, Supplier>("SELECT * FROM suppliers WHERE id = ?")
+        .bind(id)
+        .fetch_one(pool)
+        .await
+}
+
+pub async fn create_supplier(pool: &SqlitePool, input: CreateSupplierInput) -> Result<Supplier, sqlx::Error> {
+    let supplier = Supplier::new(input);
+    sqlx::query(
+        r#"
+        INSERT INTO suppliers (id, name, email, phone, address, notes, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        "#,
+    )
+    .bind(&supplier.id)
+    .bind(&supplier.name)
+    .bind(&supplier.email)
+    .bind(&supplier.phone)
+    .bind(&supplier.address)
+    .bind(&supplier.notes)
+    .bind(&supplier.created_at)
+    .bind(&supplier.updated_at)
+    .execute(pool)
+    .await?;
+
+    Ok(supplier)
+}
+
+pub async fn update_supplier(pool: &SqlitePool, input: UpdateSupplierInput) -> Result<Supplier, sqlx::Error> {
+    let now = Utc::now();
+    sqlx::query(
+        r#"
+        UPDATE suppliers SET name = ?, email = ?, phone = ?, address = ?, notes = ?, updated_at = ?
+        WHERE id = ?
+        "#,
+    )
+    .bind(&input.name)
+    .bind(&input.email)
+    .bind(&input.phone)
+    .bind(&input.address)
+    .bind(&input.notes)
+    .bind(&now)
+    .bind(&input.id)
+    .execute(pool)
+    .await?;
+
+    get_supplier_by_id(pool, &input.id).await
+}
+
+pub async fn delete_supplier(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM suppliers WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+pub async fn batch_delete_suppliers(pool: &SqlitePool, ids: Vec<String>) -> Result<u64, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let mut count: u64 = 0;
+    for id in &ids {
+        sqlx::query("DELETE FROM suppliers WHERE id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        count += 1;
+    }
+    tx.commit().await?;
+    Ok(count)
+}
+
+pub async fn restore_supplier(pool: &SqlitePool, supplier: Supplier) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        INSERT INTO suppliers (id, name, email, phone, address, notes, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        "#,
+    )
+    .bind(&supplier.id)
+    .bind(&supplier.name)
+    .bind(&supplier.email)
+    .bind(&supplier.phone)
+    .bind(&supplier.address)
+    .bind(&supplier.notes)
+    .bind(&supplier.created_at)
+    .bind(&supplier.updated_at)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+// Product-Supplier Link Repository
+pub async fn get_all_product_supplier_summaries(pool: &SqlitePool) -> Result<Vec<ProductSupplierSummary>, sqlx::Error> {
+    sqlx::query_as::<_, ProductSupplierSummary>(
+        r#"
+        SELECT ps.product_id, ps.supplier_id, s.name as supplier_name
+        FROM product_suppliers ps
+        JOIN suppliers s ON ps.supplier_id = s.id
+        ORDER BY s.name
+        "#,
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_suppliers_for_product(pool: &SqlitePool, product_id: &str) -> Result<Vec<SupplierWithPrice>, sqlx::Error> {
+    sqlx::query_as::<_, SupplierWithPrice>(
+        r#"
+        SELECT s.id, s.name, s.email, s.phone, ps.purchase_price_ht, ps.id as link_id
+        FROM product_suppliers ps
+        JOIN suppliers s ON ps.supplier_id = s.id
+        WHERE ps.product_id = ?
+        ORDER BY s.name
+        "#,
+    )
+    .bind(product_id)
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_products_for_supplier(pool: &SqlitePool, supplier_id: &str) -> Result<Vec<ProductWithPrice>, sqlx::Error> {
+    sqlx::query_as::<_, ProductWithPrice>(
+        r#"
+        SELECT p.id, p.designation, p.reference, p.unit_price_ht, ps.purchase_price_ht, ps.id as link_id
+        FROM product_suppliers ps
+        JOIN products p ON ps.product_id = p.id
+        WHERE ps.supplier_id = ?
+        ORDER BY p.designation
+        "#,
+    )
+    .bind(supplier_id)
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn add_product_supplier(pool: &SqlitePool, input: CreateProductSupplierInput) -> Result<ProductSupplier, sqlx::Error> {
+    let link = ProductSupplier::new(input);
+    sqlx::query(
+        r#"
+        INSERT INTO product_suppliers (id, product_id, supplier_id, purchase_price_ht, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        "#,
+    )
+    .bind(&link.id)
+    .bind(&link.product_id)
+    .bind(&link.supplier_id)
+    .bind(link.purchase_price_ht)
+    .bind(&link.created_at)
+    .execute(pool)
+    .await?;
+
+    // Recalculate product purchase price (set to cheapest supplier)
+    recalculate_product_purchase_price(pool, &link.product_id).await?;
+
+    Ok(link)
+}
+
+pub async fn remove_product_supplier(pool: &SqlitePool, link_id: &str) -> Result<(), sqlx::Error> {
+    // Get the product_id before deleting
+    let link = sqlx::query_as::<_, ProductSupplier>("SELECT * FROM product_suppliers WHERE id = ?")
+        .bind(link_id)
+        .fetch_one(pool)
+        .await?;
+
+    sqlx::query("DELETE FROM product_suppliers WHERE id = ?")
+        .bind(link_id)
+        .execute(pool)
+        .await?;
+
+    // Recalculate product purchase price
+    recalculate_product_purchase_price(pool, &link.product_id).await?;
+
+    Ok(())
+}
+
+pub async fn update_product_supplier_price(pool: &SqlitePool, link_id: &str, purchase_price_ht: f64) -> Result<(), sqlx::Error> {
+    let link = sqlx::query_as::<_, ProductSupplier>("SELECT * FROM product_suppliers WHERE id = ?")
+        .bind(link_id)
+        .fetch_one(pool)
+        .await?;
+
+    sqlx::query("UPDATE product_suppliers SET purchase_price_ht = ? WHERE id = ?")
+        .bind(purchase_price_ht)
+        .bind(link_id)
+        .execute(pool)
+        .await?;
+
+    // Recalculate product purchase price
+    recalculate_product_purchase_price(pool, &link.product_id).await?;
+
+    Ok(())
+}
+
+async fn recalculate_product_purchase_price(pool: &SqlitePool, product_id: &str) -> Result<(), sqlx::Error> {
+    let min_price: Option<f64> = sqlx::query_scalar(
+        "SELECT MIN(purchase_price_ht) FROM product_suppliers WHERE product_id = ?"
+    )
+    .bind(product_id)
+    .fetch_one(pool)
+    .await?;
+
+    if let Some(price) = min_price {
+        sqlx::query("UPDATE products SET purchase_price_ht = ?, updated_at = ? WHERE id = ?")
+            .bind(price)
+            .bind(Utc::now())
+            .bind(product_id)
+            .execute(pool)
+            .await?;
+    }
+
+    Ok(())
+}
+
+pub async fn restore_product_supplier(pool: &SqlitePool, ps: ProductSupplier) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        INSERT INTO product_suppliers (id, product_id, supplier_id, purchase_price_ht, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        "#,
+    )
+    .bind(&ps.id)
+    .bind(&ps.product_id)
+    .bind(&ps.supplier_id)
+    .bind(ps.purchase_price_ht)
+    .bind(&ps.created_at)
+    .execute(pool)
+    .await?;
+    Ok(())
 }

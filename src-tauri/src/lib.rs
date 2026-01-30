@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod db;
 pub mod models;
+pub mod services;
 
 use commands::AppState;
 use tauri::Manager;
@@ -10,6 +11,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let handle = app.handle().clone();
             tauri::async_runtime::block_on(async move {
@@ -25,18 +28,21 @@ pub fn run() {
             commands::create_client,
             commands::update_client,
             commands::delete_client,
+            commands::batch_delete_clients,
             // Product commands
             commands::get_products,
             commands::get_product,
             commands::create_product,
             commands::update_product,
             commands::delete_product,
+            commands::batch_delete_products,
             // Quote commands
             commands::get_quotes,
             commands::get_quote,
             commands::create_quote,
             commands::update_quote,
             commands::delete_quote,
+            commands::batch_delete_quotes,
             commands::convert_quote_to_invoice,
             commands::duplicate_quote,
             // Invoice commands
@@ -45,6 +51,7 @@ pub fn run() {
             commands::create_invoice,
             commands::update_invoice,
             commands::delete_invoice,
+            commands::batch_delete_invoices,
             commands::mark_invoice_paid,
             commands::issue_invoice,
             commands::verify_invoice_integrity,
@@ -60,6 +67,27 @@ pub fn run() {
             commands::upload_logo,
             commands::get_logo_base64,
             commands::delete_logo,
+            // Expense commands
+            commands::get_expenses,
+            commands::get_expense,
+            commands::create_expense,
+            commands::update_expense,
+            commands::delete_expense,
+            commands::batch_delete_expenses,
+            // Supplier commands
+            commands::get_suppliers,
+            commands::get_supplier,
+            commands::create_supplier,
+            commands::update_supplier,
+            commands::delete_supplier,
+            commands::batch_delete_suppliers,
+            // Product-Supplier link commands
+            commands::get_all_product_supplier_summaries,
+            commands::get_suppliers_for_product,
+            commands::get_products_for_supplier,
+            commands::add_product_supplier,
+            commands::remove_product_supplier,
+            commands::update_product_supplier_price,
             // Dashboard commands
             commands::get_dashboard_stats,
             // Backup commands
@@ -85,6 +113,7 @@ pub fn run() {
             commands::create_delivery_note,
             commands::update_delivery_note,
             commands::delete_delivery_note,
+            commands::batch_delete_delivery_notes,
             commands::duplicate_delivery_note,
             commands::convert_quote_to_delivery_note,
             commands::convert_invoice_to_delivery_note,
@@ -115,6 +144,10 @@ pub fn run() {
             // Alerts commands
             commands::get_alerts_summary,
             commands::mark_quote_expired,
+            // Import commands
+            commands::import_clients,
+            commands::import_products,
+            commands::import_suppliers,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
