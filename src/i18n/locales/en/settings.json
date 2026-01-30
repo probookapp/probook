@@ -77,7 +77,9 @@
     "systemLanguage": "System Language",
     "systemTheme": "System Theme",
     "lightTheme": "Light",
-    "darkTheme": "Dark"
+    "darkTheme": "Dark",
+    "autoUpdate": "Automatic updates",
+    "autoUpdateDescription": "Automatically download and install updates when available."
   },
   "buttons": {
     "save": "Save"

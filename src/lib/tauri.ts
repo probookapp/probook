@@ -127,8 +127,8 @@ export const settingsApi = {
   get: () => invoke<CompanySettings>("get_company_settings"),
   update: (input: UpdateCompanySettingsInput) =>
     invoke<CompanySettings>("update_company_settings", { input }),
-  updateAppSettings: (appLanguage: string, appTheme: string) =>
-    invoke<CompanySettings>("update_app_settings", { appLanguage, appTheme }),
+  updateAppSettings: (appLanguage: string, appTheme: string, autoUpdateEnabled: boolean) =>
+    invoke<CompanySettings>("update_app_settings", { appLanguage, appTheme, autoUpdateEnabled }),
   uploadLogo: (filePath: string) => invoke<string>("upload_logo", { filePath }),
   getLogoBase64: () => invoke<string | null>("get_logo_base64"),
   deleteLogo: () => invoke<void>("delete_logo"),

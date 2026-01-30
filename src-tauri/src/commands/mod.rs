@@ -774,9 +774,10 @@ pub async fn import_backup(file_path: String, password: String, state: State<'_,
 pub async fn update_app_settings(
     app_language: String,
     app_theme: String,
+    auto_update_enabled: bool,
     state: State<'_, AppState>,
 ) -> Result<CompanySettings, String> {
-    repository::update_app_settings(&state.pool, &app_language, &app_theme)
+    repository::update_app_settings(&state.pool, &app_language, &app_theme, auto_update_enabled)
         .await
         .map_err(|e| e.to_string())
 }

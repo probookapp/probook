@@ -604,5 +604,11 @@ pub async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     .await
     .ok();
 
+    // Auto-update setting
+    sqlx::query("ALTER TABLE company_settings ADD COLUMN auto_update_enabled INTEGER DEFAULT 1")
+        .execute(pool)
+        .await
+        .ok();
+
     Ok(())
 }

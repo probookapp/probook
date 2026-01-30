@@ -301,6 +301,8 @@ export interface CompanySettings {
   // Phase 9: Internationalization and theming
   app_language: string | null;
   app_theme: string | null;
+  // Auto-update
+  auto_update_enabled: boolean;
   updated_at: string;
 }
 
@@ -326,6 +328,7 @@ export interface UpdateCompanySettingsInput {
 export interface UpdateAppSettingsInput {
   app_language: string;
   app_theme: string;
+  auto_update_enabled: boolean;
 }
 
 // Expense types

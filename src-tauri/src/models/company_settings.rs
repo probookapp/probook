@@ -34,6 +34,8 @@ pub struct CompanySettings {
     // Phase 9: Internationalization and theming
     pub app_language: Option<String>,
     pub app_theme: Option<String>,
+    // Auto-update
+    pub auto_update_enabled: Option<i32>,
     pub updated_at: DateTime<Utc>,
 }
 
@@ -61,6 +63,7 @@ pub struct UpdateCompanySettingsInput {
 pub struct UpdateAppSettingsInput {
     pub app_language: String,
     pub app_theme: String,
+    pub auto_update_enabled: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

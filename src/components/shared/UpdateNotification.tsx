@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Download, RefreshCw, X, CheckCircle2, AlertCircle } from "lucide-react";
+import { Download, RefreshCw, X, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui";
 import { useAppUpdate } from "@/hooks/useAppUpdate";
 
@@ -11,6 +11,7 @@ export function UpdateNotification() {
     error,
     downloadProgress,
     contentLength,
+    autoMode,
     checkForUpdate,
     downloadAndInstall,
     installAndRestart,
@@ -35,6 +36,8 @@ export function UpdateNotification() {
               <AlertCircle className="h-5 w-5 text-red-500" />
             ) : status === "ready" ? (
               <CheckCircle2 className="h-5 w-5 text-green-500" />
+            ) : status === "downloading" && autoMode ? (
+              <Loader2 className="h-5 w-5 text-primary-600 dark:text-primary-400 animate-spin" />
             ) : (
               <Download className="h-5 w-5 text-primary-600 dark:text-primary-400" />
             )}
@@ -44,7 +47,7 @@ export function UpdateNotification() {
           <div className="flex-1 min-w-0">
             <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
               {status === "available" && t("update.available")}
-              {status === "downloading" && t("update.downloading")}
+              {status === "downloading" && (autoMode ? t("update.autoUpdating") : t("update.downloading"))}
               {status === "ready" && t("update.ready")}
               {status === "error" && t("update.error")}
             </h4>
@@ -53,9 +56,13 @@ export function UpdateNotification() {
               {status === "available" &&
                 t("update.availableDescription", { version })}
               {status === "downloading" &&
-                (contentLength > 0
-                  ? t("update.downloadingProgress", { progress: progressPercent })
-                  : t("update.downloadingPleaseWait"))}
+                (autoMode
+                  ? (contentLength > 0
+                    ? t("update.autoUpdatingProgress", { progress: progressPercent })
+                    : t("update.autoUpdatingPleaseWait"))
+                  : (contentLength > 0
+                    ? t("update.downloadingProgress", { progress: progressPercent })
+                    : t("update.downloadingPleaseWait")))}
               {status === "ready" && t("update.readyDescription")}
               {status === "error" && (error || t("update.errorDescription"))}
             </p>
@@ -70,36 +77,51 @@ export function UpdateNotification() {
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex items-center gap-2 mt-3">
-              {status === "available" && (
-                <Button size="sm" onClick={downloadAndInstall}>
-                  <Download className="h-3.5 w-3.5 mr-1.5" />
-                  {t("update.downloadInstall")}
-                </Button>
-              )}
-              {status === "ready" && (
-                <Button size="sm" onClick={installAndRestart}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                  {t("update.restartNow")}
-                </Button>
-              )}
-              {status === "error" && (
+            {/* Actions - only show manual buttons when NOT in auto mode */}
+            {!autoMode && (
+              <div className="flex items-center gap-2 mt-3">
+                {status === "available" && (
+                  <Button size="sm" onClick={downloadAndInstall}>
+                    <Download className="h-3.5 w-3.5 mr-1.5" />
+                    {t("update.downloadInstall")}
+                  </Button>
+                )}
+                {status === "ready" && (
+                  <Button size="sm" onClick={installAndRestart}>
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                    {t("update.restartNow")}
+                  </Button>
+                )}
+                {status === "error" && (
+                  <Button size="sm" variant="secondary" onClick={checkForUpdate}>
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                    {t("update.retry")}
+                  </Button>
+                )}
+                {status !== "downloading" && (
+                  <Button size="sm" variant="secondary" onClick={dismiss}>
+                    {t("update.later")}
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* In auto mode with error, show retry */}
+            {autoMode && status === "error" && (
+              <div className="flex items-center gap-2 mt-3">
                 <Button size="sm" variant="secondary" onClick={checkForUpdate}>
                   <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
                   {t("update.retry")}
                 </Button>
-              )}
-              {status !== "downloading" && (
                 <Button size="sm" variant="secondary" onClick={dismiss}>
                   {t("update.later")}
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
-          {/* Close button */}
-          {status !== "downloading" && (
+          {/* Close button - not shown during auto-mode download or manual download */}
+          {status !== "downloading" && !autoMode && (
             <button
               onClick={dismiss}
               className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"

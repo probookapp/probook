@@ -260,6 +260,9 @@
     "downloadInstall": "تنزيل وتثبيت",
     "restartNow": "إعادة التشغيل الآن",
     "retry": "إعادة المحاولة",
-    "later": "لاحقاً"
+    "later": "لاحقاً",
+    "autoUpdating": "جاري تثبيت التحديث...",
+    "autoUpdatingProgress": "جاري التحديث... {{progress}}% مكتمل",
+    "autoUpdatingPleaseWait": "جاري التحديث... يرجى الانتظار."
   }
 }

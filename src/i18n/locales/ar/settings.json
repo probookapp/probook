@@ -77,7 +77,9 @@
     "systemLanguage": "لغة النظام",
     "systemTheme": "سمة النظام",
     "lightTheme": "فاتح",
-    "darkTheme": "داكن"
+    "darkTheme": "داكن",
+    "autoUpdate": "التحديثات التلقائية",
+    "autoUpdateDescription": "تنزيل وتثبيت التحديثات تلقائياً عند توفرها."
   },
   "buttons": {
     "save": "حفظ"

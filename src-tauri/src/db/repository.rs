@@ -915,19 +915,23 @@ pub async fn update_app_settings(
     pool: &SqlitePool,
     app_language: &str,
     app_theme: &str,
+    auto_update_enabled: bool,
 ) -> Result<CompanySettings, sqlx::Error> {
     let now = Utc::now();
+    let auto_update_int: i32 = if auto_update_enabled { 1 } else { 0 };
     sqlx::query(
         r#"
         UPDATE company_settings SET
             app_language = ?,
             app_theme = ?,
+            auto_update_enabled = ?,
             updated_at = ?
         WHERE id = 'default'
         "#,
     )
     .bind(app_language)
     .bind(app_theme)
+    .bind(auto_update_int)
     .bind(&now)
     .execute(pool)
     .await?;

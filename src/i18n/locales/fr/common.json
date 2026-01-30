@@ -260,6 +260,9 @@
     "downloadInstall": "Télécharger et installer",
     "restartNow": "Redémarrer maintenant",
     "retry": "Réessayer",
-    "later": "Plus tard"
+    "later": "Plus tard",
+    "autoUpdating": "Installation de la mise à jour...",
+    "autoUpdatingProgress": "Mise à jour... {{progress}}% terminé",
+    "autoUpdatingPleaseWait": "Mise à jour en cours... Veuillez patienter."
   }
 }

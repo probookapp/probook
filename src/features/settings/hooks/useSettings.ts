@@ -24,8 +24,8 @@ export function useUpdateAppSettings() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ appLanguage, appTheme }: { appLanguage: string; appTheme: string }) =>
-      settingsApi.updateAppSettings(appLanguage, appTheme),
+    mutationFn: ({ appLanguage, appTheme, autoUpdateEnabled }: { appLanguage: string; appTheme: string; autoUpdateEnabled: boolean }) =>
+      settingsApi.updateAppSettings(appLanguage, appTheme, autoUpdateEnabled),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company-settings"] });
     },
