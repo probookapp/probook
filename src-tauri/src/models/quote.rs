@@ -87,7 +87,7 @@ pub struct QuoteLine {
     pub position: i32,
     // Phase 2: Subtotals
     pub group_name: Option<String>,
-    pub is_subtotal_line: Option<i32>,
+    pub is_subtotal_line: Option<bool>,
     // Phase 7: Rich text
     pub description_html: Option<String>,
 }
@@ -154,7 +154,7 @@ impl QuoteLine {
             total_ttc,
             position,
             group_name: input.group_name,
-            is_subtotal_line: input.is_subtotal_line.map(|b| if b { 1 } else { 0 }),
+            is_subtotal_line: input.is_subtotal_line,
         }
     }
 }

@@ -11,5 +11,7 @@
   "reports": "التقارير",
   "settings": "الإعدادات",
   "logout": "تسجيل الخروج",
-  "closeSidebar": "إغلاق القائمة"
+  "closeSidebar": "إغلاق القائمة",
+  "admin": "مسؤول",
+  "employee": "موظف"
 }

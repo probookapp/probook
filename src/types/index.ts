@@ -303,6 +303,8 @@ export interface CompanySettings {
   app_theme: string | null;
   // Auto-update
   auto_update_enabled: boolean;
+  // Currency
+  currency: string | null;
   updated_at: string;
 }
 
@@ -323,6 +325,7 @@ export interface UpdateCompanySettingsInput {
   quote_prefix: string;
   legal_mentions?: string | null;
   bank_details?: string | null;
+  currency?: string | null;
 }
 
 export interface UpdateAppSettingsInput {
@@ -615,4 +618,90 @@ export interface ImportResult {
   updated: number;
   skipped: number;
   errors: string[];
+}
+
+// Auth types
+export type UserRole = 'admin' | 'employee';
+
+export type PermissionKey =
+  | 'dashboard'
+  | 'clients'
+  | 'products'
+  | 'suppliers'
+  | 'quotes'
+  | 'invoices'
+  | 'delivery_notes'
+  | 'phonebook'
+  | 'reports'
+  | 'expenses'
+  | 'settings';
+
+export const ALL_PERMISSIONS: PermissionKey[] = [
+  'dashboard',
+  'clients',
+  'products',
+  'suppliers',
+  'quotes',
+  'invoices',
+  'delivery_notes',
+  'phonebook',
+  'reports',
+  'expenses',
+  'settings',
+];
+
+export interface UserInfo {
+  id: string;
+  username: string;
+  display_name: string;
+  role: UserRole;
+  is_active: boolean;
+  permissions: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoginInput {
+  username: string;
+  password: string;
+}
+
+export interface SetupInput {
+  username: string;
+  display_name: string;
+  password: string;
+}
+
+export interface CreateUserInput {
+  username: string;
+  display_name: string;
+  password: string;
+  role: string;
+  permissions: string[];
+}
+
+export interface UpdateUserInput {
+  id: string;
+  username: string;
+  display_name: string;
+  password?: string | null;
+  role: string;
+  is_active: boolean;
+  permissions: string[];
+}
+
+// Database config types
+export interface DatabaseConfig {
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
+}
+
+export interface DatabaseConfigSafe {
+  host: string;
+  port: number;
+  database: string;
+  username: string;
 }

@@ -73,7 +73,7 @@ pub struct InvoiceRow {
     pub shipping_vat_rate: Option<f64>,
     pub down_payment_percent: Option<f64>,
     pub down_payment_amount: Option<f64>,
-    pub is_down_payment_invoice: Option<i32>,
+    pub is_down_payment_invoice: Option<bool>,
     pub parent_quote_id: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -95,7 +95,7 @@ pub struct InvoiceLine {
     pub position: i32,
     // Phase 2: Subtotals
     pub group_name: Option<String>,
-    pub is_subtotal_line: Option<i32>,
+    pub is_subtotal_line: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -161,7 +161,7 @@ impl InvoiceLine {
             total_ttc,
             position,
             group_name: input.group_name,
-            is_subtotal_line: input.is_subtotal_line.map(|b| if b { 1 } else { 0 }),
+            is_subtotal_line: input.is_subtotal_line,
         }
     }
 }

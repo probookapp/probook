@@ -2,8 +2,10 @@ import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
-import { Save, Upload, Download, AlertCircle, Image, Trash2, Clock, Sun, Moon, Monitor, Globe, HardDrive, FolderOpen, RefreshCw, Lock, Eye, EyeOff } from "lucide-react";
+import { Save, Upload, Download, AlertCircle, Image, Trash2, Clock, Sun, Moon, Monitor, Globe, HardDrive, FolderOpen, RefreshCw, Lock, Eye, EyeOff, Users } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { UserManagement } from "./components/UserManagement";
 import {
   Button,
   Card,
@@ -48,6 +50,7 @@ const createSettingsSchema = (t: (key: string) => string) => z.object({
   quote_prefix: z.string().min(1, t("validation.quotePrefixRequired")),
   legal_mentions: z.string().nullable().optional(),
   bank_details: z.string().nullable().optional(),
+  currency: z.string().optional().nullable(),
 });
 
 type SettingsFormData = z.output<ReturnType<typeof createSettingsSchema>>;
@@ -57,6 +60,17 @@ const vatRateOptions = [
   { value: "5.5", label: "5.5%" },
   { value: "10", label: "10%" },
   { value: "20", label: "20%" },
+];
+
+const currencyOptions = [
+  { value: "EUR", label: "EUR - Euro (\u20AC)" },
+  { value: "USD", label: "USD - US Dollar ($)" },
+  { value: "GBP", label: "GBP - British Pound (\u00A3)" },
+  { value: "DZD", label: "DZD - Dinar alg\u00E9rien (\u062F.\u062C)" },
+  { value: "MAD", label: "MAD - Dirham marocain (\u062F.\u0645.)" },
+  { value: "TND", label: "TND - Dinar tunisien (\u062F.\u062A)" },
+  { value: "CAD", label: "CAD - Dollar canadien (CA$)" },
+  { value: "CHF", label: "CHF - Franc suisse (CHF)" },
 ];
 
 export function SettingsPage() {
@@ -86,7 +100,8 @@ export function SettingsPage() {
   const [passwordError, setPasswordError] = useState("");
 
   // Theme and language settings
-  const { language, theme, setLanguage, setTheme } = useSettingsStore();
+  const { language, theme, setLanguage, setTheme, setCurrency } = useSettingsStore();
+  const { currentUser } = useAuthStore();
 
   const autoUpdateEnabled = settings?.auto_update_enabled ?? true;
 
@@ -152,6 +167,7 @@ export function SettingsPage() {
       quote_prefix: "DE-",
       legal_mentions: "",
       bank_details: "",
+      currency: "EUR",
     },
   });
 
@@ -174,12 +190,16 @@ export function SettingsPage() {
         quote_prefix: settings.quote_prefix,
         legal_mentions: settings.legal_mentions ?? "",
         bank_details: settings.bank_details ?? "",
+        currency: settings.currency ?? "EUR",
       });
     }
   }, [settings, reset]);
 
   const onSubmit = async (data: SettingsFormData) => {
     await updateSettings.mutateAsync(data);
+    if (data.currency) {
+      setCurrency(data.currency);
+    }
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
   };
@@ -296,6 +316,21 @@ export function SettingsPage() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t("title")}</h1>
         <p className="text-gray-500 dark:text-gray-400">{t("subtitle")}</p>
       </div>
+
+      {/* User Management (Admin only) */}
+      {currentUser?.role === 'admin' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              {t("userManagement.title", { ns: "auth" })}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <UserManagement />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Appearance Settings */}
       <Card>
@@ -570,6 +605,11 @@ export function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Select
+                label={t("billing.currency")}
+                options={currencyOptions}
+                {...register("currency")}
+              />
               <Select
                 label={t("billing.defaultVatRate")}
                 options={vatRateOptions}

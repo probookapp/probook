@@ -11,5 +11,7 @@
   "reports": "Reports",
   "settings": "Settings",
   "logout": "Logout",
-  "closeSidebar": "Close sidebar"
+  "closeSidebar": "Close sidebar",
+  "admin": "Admin",
+  "employee": "Employee"
 }

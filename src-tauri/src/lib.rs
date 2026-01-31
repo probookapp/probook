@@ -17,8 +17,17 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
             tauri::async_runtime::block_on(async move {
-                let pool = db::init_database(&handle).await.expect("Failed to initialize database");
-                handle.manage(AppState { pool });
+                match db::init_database(&handle).await {
+                    Ok(Some(pool)) => {
+                        handle.manage(AppState { pool, current_user_id: std::sync::Mutex::new(None) });
+                    }
+                    Ok(None) => {
+                        // No DB config file — frontend will show Database Setup page
+                    }
+                    Err(e) => {
+                        eprintln!("Database connection failed: {}. Frontend will show setup page.", e);
+                    }
+                }
             });
             Ok(())
         })
@@ -149,6 +158,22 @@ pub fn run() {
             commands::import_clients,
             commands::import_products,
             commands::import_suppliers,
+            // Auth commands
+            commands::check_setup_required,
+            commands::setup_admin,
+            commands::login,
+            commands::logout,
+            commands::get_current_user,
+            commands::get_users,
+            commands::create_user_account,
+            commands::update_user_account,
+            commands::delete_user_account,
+            commands::change_own_password,
+            // Database setup commands
+            commands::check_db_configured,
+            commands::test_db_connection,
+            commands::save_db_config,
+            commands::get_db_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

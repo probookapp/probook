@@ -16,6 +16,7 @@ import frValidation from './locales/fr/validation.json';
 import frPdf from './locales/fr/pdf.json';
 import frExpenses from './locales/fr/expenses.json';
 import frSuppliers from './locales/fr/suppliers.json';
+import frAuth from './locales/fr/auth.json';
 
 // English translations
 import enCommon from './locales/en/common.json';
@@ -32,6 +33,7 @@ import enValidation from './locales/en/validation.json';
 import enPdf from './locales/en/pdf.json';
 import enExpenses from './locales/en/expenses.json';
 import enSuppliers from './locales/en/suppliers.json';
+import enAuth from './locales/en/auth.json';
 
 // Arabic translations
 import arCommon from './locales/ar/common.json';
@@ -48,6 +50,7 @@ import arValidation from './locales/ar/validation.json';
 import arPdf from './locales/ar/pdf.json';
 import arExpenses from './locales/ar/expenses.json';
 import arSuppliers from './locales/ar/suppliers.json';
+import arAuth from './locales/ar/auth.json';
 
 const resources = {
   fr: {
@@ -65,6 +68,7 @@ const resources = {
     pdf: frPdf,
     expenses: frExpenses,
     suppliers: frSuppliers,
+    auth: frAuth,
   },
   en: {
     common: enCommon,
@@ -81,6 +85,7 @@ const resources = {
     pdf: enPdf,
     expenses: enExpenses,
     suppliers: enSuppliers,
+    auth: enAuth,
   },
   ar: {
     common: arCommon,
@@ -97,6 +102,7 @@ const resources = {
     pdf: arPdf,
     expenses: arExpenses,
     suppliers: arSuppliers,
+    auth: arAuth,
   },
 };
 
@@ -122,6 +128,7 @@ i18n
       'pdf',
       'expenses',
       'suppliers',
+      'auth',
     ],
     interpolation: {
       escapeValue: false,

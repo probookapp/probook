@@ -2,20 +2,24 @@ use aes_gcm::{
     aead::{Aead, KeyInit, OsRng},
     Aes256Gcm, Nonce,
 };
-use argon2::Argon2;
+use argon2::{Argon2, PasswordHasher, PasswordVerifier};
+use argon2::password_hash::SaltString;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use rand::RngCore;
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
 
 use crate::db::repository;
+use crate::db::{self, connection::{DbConfig, DbConfigSafe}};
 use crate::models::*;
 use crate::services::import::{self, ImportResult};
 
 pub struct AppState {
-    pub pool: SqlitePool,
+    pub pool: PgPool,
+    pub current_user_id: Mutex<Option<String>>,
 }
 
 // Client Commands
@@ -636,6 +640,14 @@ pub async fn export_backup(file_path: String, password: String, state: State<'_,
         }
     }
 
+    // Gather users and permissions for backup
+    let users = repository::get_all_users_for_backup(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let user_permissions = repository::get_all_user_permissions_for_backup(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
     let backup = BackupData {
         version: "2.0".to_string(),
         created_at: chrono::Utc::now().to_rfc3339(),
@@ -648,6 +660,8 @@ pub async fn export_backup(file_path: String, password: String, state: State<'_,
         expenses,
         suppliers,
         product_suppliers,
+        users,
+        user_permissions,
     };
 
     // Serialize to JSON
@@ -762,6 +776,20 @@ pub async fn import_backup(file_path: String, password: String, state: State<'_,
             .map_err(|e| e.to_string())?;
     }
 
+    // Restore users
+    for user in backup.users {
+        repository::restore_user(&state.pool, user)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
+    // Restore user permissions
+    for perm in backup.user_permissions {
+        repository::restore_user_permission(&state.pool, perm)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
     // Restore settings
     repository::restore_settings(&state.pool, backup.settings)
         .await
@@ -861,6 +889,14 @@ pub async fn create_local_backup(
         }
     }
 
+    // Gather users and permissions for backup
+    let users_backup = repository::get_all_users_for_backup(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let user_permissions_backup = repository::get_all_user_permissions_for_backup(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
     let backup = BackupData {
         version: "1.0".to_string(),
         created_at: chrono::Utc::now().to_rfc3339(),
@@ -873,6 +909,8 @@ pub async fn create_local_backup(
         expenses,
         suppliers,
         product_suppliers: product_suppliers_local,
+        users: users_backup,
+        user_permissions: user_permissions_backup,
     };
 
     // Serialize to JSON and write to file (local backups are unencrypted)
@@ -1645,4 +1683,307 @@ pub async fn import_suppliers(file_path: String, state: State<'_, AppState>) -> 
     }
 
     Ok(result)
+}
+
+// Auth helper: hash a password with argon2
+fn hash_password(password: &str) -> Result<String, String> {
+    let salt = SaltString::generate(&mut rand::thread_rng());
+    let argon2 = Argon2::default();
+    let hash = argon2
+        .hash_password(password.as_bytes(), &salt)
+        .map_err(|e| format!("Failed to hash password: {}", e))?;
+    Ok(hash.to_string())
+}
+
+// Auth helper: verify a password against a hash
+fn verify_password(password: &str, hash: &str) -> Result<bool, String> {
+    let parsed_hash = argon2::PasswordHash::new(hash)
+        .map_err(|e| format!("Invalid password hash: {}", e))?;
+    Ok(Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_ok())
+}
+
+// Auth helper: require admin role from current session
+async fn require_admin(state: &State<'_, AppState>) -> Result<User, String> {
+    let user_id = {
+        let lock = state.current_user_id.lock().map_err(|e| e.to_string())?;
+        lock.clone().ok_or_else(|| "Not authenticated".to_string())?
+    };
+    let user = repository::get_user_by_id(&state.pool, &user_id)
+        .await
+        .map_err(|_| "User not found".to_string())?;
+    if user.role != "admin" {
+        return Err("Admin access required".to_string());
+    }
+    Ok(user)
+}
+
+// Auth Commands
+#[tauri::command]
+pub async fn check_setup_required(state: State<'_, AppState>) -> Result<bool, String> {
+    let exists = repository::check_any_users_exist(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(!exists)
+}
+
+#[tauri::command]
+pub async fn setup_admin(input: SetupInput, state: State<'_, AppState>) -> Result<UserInfo, String> {
+    let exists = repository::check_any_users_exist(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    if exists {
+        return Err("Setup already completed".to_string());
+    }
+
+    if input.password.len() < 4 {
+        return Err("Password must be at least 4 characters".to_string());
+    }
+
+    let id = uuid::Uuid::new_v4().to_string();
+    let password_hash = hash_password(&input.password)?;
+
+    repository::create_user(&state.pool, &id, &input.username, &input.display_name, &password_hash, "admin")
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let all_perms: Vec<String> = ALL_PERMISSIONS.iter().map(|s| s.to_string()).collect();
+    repository::set_user_permissions(&state.pool, &id, &all_perms)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    {
+        let mut lock = state.current_user_id.lock().map_err(|e| e.to_string())?;
+        *lock = Some(id.clone());
+    }
+
+    let user = repository::get_user_by_id(&state.pool, &id)
+        .await
+        .map_err(|e| e.to_string())?;
+    repository::build_user_info(&state.pool, &user)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn login(input: LoginInput, state: State<'_, AppState>) -> Result<UserInfo, String> {
+    let user = repository::get_user_by_username(&state.pool, &input.username)
+        .await
+        .map_err(|_| "Invalid username or password".to_string())?;
+
+    if !user.is_active {
+        return Err("Account is disabled".to_string());
+    }
+
+    let valid = verify_password(&input.password, &user.password_hash)?;
+    if !valid {
+        return Err("Invalid username or password".to_string());
+    }
+
+    {
+        let mut lock = state.current_user_id.lock().map_err(|e| e.to_string())?;
+        *lock = Some(user.id.clone());
+    }
+
+    repository::build_user_info(&state.pool, &user)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn logout(state: State<'_, AppState>) -> Result<(), String> {
+    let mut lock = state.current_user_id.lock().map_err(|e| e.to_string())?;
+    *lock = None;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_current_user(state: State<'_, AppState>) -> Result<Option<UserInfo>, String> {
+    let user_id = {
+        let lock = state.current_user_id.lock().map_err(|e| e.to_string())?;
+        lock.clone()
+    };
+
+    match user_id {
+        Some(id) => {
+            let user = repository::get_user_by_id(&state.pool, &id)
+                .await
+                .map_err(|e| e.to_string())?;
+            let info = repository::build_user_info(&state.pool, &user)
+                .await
+                .map_err(|e| e.to_string())?;
+            Ok(Some(info))
+        }
+        None => Ok(None),
+    }
+}
+
+#[tauri::command]
+pub async fn get_users(state: State<'_, AppState>) -> Result<Vec<UserInfo>, String> {
+    require_admin(&state).await?;
+    let users = repository::get_all_users(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let mut result = Vec::new();
+    for user in &users {
+        let info = repository::build_user_info(&state.pool, user)
+            .await
+            .map_err(|e| e.to_string())?;
+        result.push(info);
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+pub async fn create_user_account(input: CreateUserInput, state: State<'_, AppState>) -> Result<UserInfo, String> {
+    require_admin(&state).await?;
+
+    if input.password.len() < 4 {
+        return Err("Password must be at least 4 characters".to_string());
+    }
+
+    let id = uuid::Uuid::new_v4().to_string();
+    let password_hash = hash_password(&input.password)?;
+
+    repository::create_user(&state.pool, &id, &input.username, &input.display_name, &password_hash, &input.role)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    repository::set_user_permissions(&state.pool, &id, &input.permissions)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let user = repository::get_user_by_id(&state.pool, &id)
+        .await
+        .map_err(|e| e.to_string())?;
+    repository::build_user_info(&state.pool, &user)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn update_user_account(input: UpdateUserInput, state: State<'_, AppState>) -> Result<UserInfo, String> {
+    require_admin(&state).await?;
+
+    repository::update_user(&state.pool, &input.id, &input.username, &input.display_name, &input.role, input.is_active)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if let Some(ref password) = input.password {
+        if !password.is_empty() {
+            if password.len() < 4 {
+                return Err("Password must be at least 4 characters".to_string());
+            }
+            let password_hash = hash_password(password)?;
+            repository::update_user_password(&state.pool, &input.id, &password_hash)
+                .await
+                .map_err(|e| e.to_string())?;
+        }
+    }
+
+    repository::set_user_permissions(&state.pool, &input.id, &input.permissions)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let user = repository::get_user_by_id(&state.pool, &input.id)
+        .await
+        .map_err(|e| e.to_string())?;
+    repository::build_user_info(&state.pool, &user)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn delete_user_account(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    let admin = require_admin(&state).await?;
+
+    if admin.id == id {
+        return Err("Cannot delete your own account".to_string());
+    }
+
+    let target_user = repository::get_user_by_id(&state.pool, &id)
+        .await
+        .map_err(|e| e.to_string())?;
+    if target_user.role == "admin" {
+        let admin_count = repository::count_admin_users(&state.pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        if admin_count <= 1 {
+            return Err("Cannot delete the last admin account".to_string());
+        }
+    }
+
+    repository::delete_user(&state.pool, &id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn change_own_password(current_password: String, new_password: String, state: State<'_, AppState>) -> Result<(), String> {
+    let user_id = {
+        let lock = state.current_user_id.lock().map_err(|e| e.to_string())?;
+        lock.clone().ok_or_else(|| "Not authenticated".to_string())?
+    };
+
+    let user = repository::get_user_by_id(&state.pool, &user_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let valid = verify_password(&current_password, &user.password_hash)?;
+    if !valid {
+        return Err("Current password is incorrect".to_string());
+    }
+
+    if new_password.len() < 4 {
+        return Err("New password must be at least 4 characters".to_string());
+    }
+
+    let new_hash = hash_password(&new_password)?;
+    repository::update_user_password(&state.pool, &user_id, &new_hash)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// Database setup commands
+#[tauri::command]
+pub async fn check_db_configured(app: AppHandle) -> Result<bool, String> {
+    let config = db::connection::load_db_config(&app).map_err(|e| e.to_string())?;
+    Ok(config.is_some())
+}
+
+#[tauri::command]
+pub async fn test_db_connection(config: DbConfig) -> Result<(), String> {
+    let pool = db::connection::connect_to_postgres(&config)
+        .await
+        .map_err(|e| format!("Connection failed: {}", e))?;
+    pool.close().await;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn save_db_config(config: DbConfig, app: AppHandle) -> Result<(), String> {
+    // Save config to file
+    db::connection::save_db_config_to_file(&app, &config).map_err(|e| e.to_string())?;
+
+    // Connect and run migrations
+    let pool = db::connection::connect_to_postgres(&config)
+        .await
+        .map_err(|e| format!("Connection failed: {}", e))?;
+
+    db::migrations::run_migrations(&pool)
+        .await
+        .map_err(|e| format!("Migration failed: {}", e))?;
+
+    // Manage AppState with the new pool
+    app.manage(AppState {
+        pool,
+        current_user_id: Mutex::new(None),
+    });
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_db_config(app: AppHandle) -> Result<Option<DbConfigSafe>, String> {
+    let config = db::connection::load_db_config(&app).map_err(|e| e.to_string())?;
+    Ok(config.map(|c| c.to_safe()))
 }

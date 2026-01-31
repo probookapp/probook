@@ -13,6 +13,7 @@ pub mod quote;
 pub mod reminder;
 pub mod report;
 pub mod supplier;
+pub mod user;
 
 pub use backup::*;
 pub use client::*;
@@ -29,3 +30,4 @@ pub use quote::*;
 pub use reminder::*;
 pub use report::*;
 pub use supplier::*;
+pub use user::*;

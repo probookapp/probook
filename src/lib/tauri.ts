@@ -46,6 +46,13 @@ import type {
   CreateProductSupplierInput,
   ProductSupplierSummary,
   ImportResult,
+  UserInfo,
+  LoginInput,
+  SetupInput,
+  CreateUserInput,
+  UpdateUserInput,
+  DatabaseConfig,
+  DatabaseConfigSafe,
 } from "@/types";
 
 // Client commands
@@ -253,4 +260,27 @@ export const importApi = {
   importClients: (filePath: string) => invoke<ImportResult>("import_clients", { filePath }),
   importProducts: (filePath: string) => invoke<ImportResult>("import_products", { filePath }),
   importSuppliers: (filePath: string) => invoke<ImportResult>("import_suppliers", { filePath }),
+};
+
+// Database commands
+export const dbApi = {
+  checkConfigured: () => invoke<boolean>("check_db_configured"),
+  testConnection: (config: DatabaseConfig) => invoke<void>("test_db_connection", { config }),
+  saveConfig: (config: DatabaseConfig) => invoke<void>("save_db_config", { config }),
+  getConfig: () => invoke<DatabaseConfigSafe | null>("get_db_config"),
+};
+
+// Auth commands
+export const authApi = {
+  checkSetupRequired: () => invoke<boolean>("check_setup_required"),
+  setupAdmin: (input: SetupInput) => invoke<UserInfo>("setup_admin", { input }),
+  login: (input: LoginInput) => invoke<UserInfo>("login", { input }),
+  logout: () => invoke<void>("logout"),
+  getCurrentUser: () => invoke<UserInfo | null>("get_current_user"),
+  getUsers: () => invoke<UserInfo[]>("get_users"),
+  createUser: (input: CreateUserInput) => invoke<UserInfo>("create_user_account", { input }),
+  updateUser: (input: UpdateUserInput) => invoke<UserInfo>("update_user_account", { input }),
+  deleteUser: (id: string) => invoke<void>("delete_user_account", { id }),
+  changeOwnPassword: (currentPassword: string, newPassword: string) =>
+    invoke<void>("change_own_password", { currentPassword, newPassword }),
 };

@@ -11,5 +11,7 @@
   "reports": "Rapports",
   "settings": "Paramètres",
   "logout": "Déconnexion",
-  "closeSidebar": "Fermer le menu"
+  "closeSidebar": "Fermer le menu",
+  "admin": "Administrateur",
+  "employee": "Employé"
 }

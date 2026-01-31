@@ -1,6 +1,9 @@
 import { Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ProtectedRoute } from "@/components/shared/ProtectedRoute";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { LoginPage, SetupPage, DatabaseSetupPage } from "@/features/auth";
 import { DashboardPage } from "@/features/dashboard";
 import { ClientsPage } from "@/features/clients";
 import { ProductsPage } from "@/features/products";
@@ -14,30 +17,52 @@ import { SuppliersPage } from "@/features/suppliers";
 import { SettingsPage } from "@/features/settings";
 
 function App() {
+  const { isLoading, needsDbSetup, needsSetup, isAuthenticated } = useAuthStore();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+      </div>
+    );
+  }
+
+  if (needsDbSetup) {
+    return <DatabaseSetupPage />;
+  }
+
+  if (needsSetup) {
+    return <SetupPage />;
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
   return (
     <ErrorBoundary>
       <Layout>
         <Routes>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/clients" element={<ClientsPage />} />
-        <Route path="/products" element={<ProductsPage />} />
-        <Route path="/suppliers" element={<SuppliersPage />} />
-        <Route path="/quotes" element={<QuotesPage />} />
-        <Route path="/quotes/new" element={<QuoteFormPage />} />
-        <Route path="/quotes/:id" element={<QuoteViewPage />} />
-        <Route path="/quotes/:id/edit" element={<QuoteFormPage />} />
-        <Route path="/invoices" element={<InvoicesPage />} />
-        <Route path="/invoices/new" element={<InvoiceFormPage />} />
-        <Route path="/invoices/:id" element={<InvoiceViewPage />} />
-        <Route path="/invoices/:id/edit" element={<InvoiceFormPage />} />
-        <Route path="/delivery-notes" element={<DeliveryNotesPage />} />
-        <Route path="/delivery-notes/new" element={<DeliveryNoteFormPage />} />
-        <Route path="/delivery-notes/:id" element={<DeliveryNoteViewPage />} />
-        <Route path="/delivery-notes/:id/edit" element={<DeliveryNoteFormPage />} />
-        <Route path="/phonebook" element={<PhonebookPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/expenses" element={<ExpensesPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/clients" element={<ProtectedRoute permission="clients"><ClientsPage /></ProtectedRoute>} />
+          <Route path="/products" element={<ProtectedRoute permission="products"><ProductsPage /></ProtectedRoute>} />
+          <Route path="/suppliers" element={<ProtectedRoute permission="suppliers"><SuppliersPage /></ProtectedRoute>} />
+          <Route path="/quotes" element={<ProtectedRoute permission="quotes"><QuotesPage /></ProtectedRoute>} />
+          <Route path="/quotes/new" element={<ProtectedRoute permission="quotes"><QuoteFormPage /></ProtectedRoute>} />
+          <Route path="/quotes/:id" element={<ProtectedRoute permission="quotes"><QuoteViewPage /></ProtectedRoute>} />
+          <Route path="/quotes/:id/edit" element={<ProtectedRoute permission="quotes"><QuoteFormPage /></ProtectedRoute>} />
+          <Route path="/invoices" element={<ProtectedRoute permission="invoices"><InvoicesPage /></ProtectedRoute>} />
+          <Route path="/invoices/new" element={<ProtectedRoute permission="invoices"><InvoiceFormPage /></ProtectedRoute>} />
+          <Route path="/invoices/:id" element={<ProtectedRoute permission="invoices"><InvoiceViewPage /></ProtectedRoute>} />
+          <Route path="/invoices/:id/edit" element={<ProtectedRoute permission="invoices"><InvoiceFormPage /></ProtectedRoute>} />
+          <Route path="/delivery-notes" element={<ProtectedRoute permission="delivery_notes"><DeliveryNotesPage /></ProtectedRoute>} />
+          <Route path="/delivery-notes/new" element={<ProtectedRoute permission="delivery_notes"><DeliveryNoteFormPage /></ProtectedRoute>} />
+          <Route path="/delivery-notes/:id" element={<ProtectedRoute permission="delivery_notes"><DeliveryNoteViewPage /></ProtectedRoute>} />
+          <Route path="/delivery-notes/:id/edit" element={<ProtectedRoute permission="delivery_notes"><DeliveryNoteFormPage /></ProtectedRoute>} />
+          <Route path="/phonebook" element={<ProtectedRoute permission="phonebook"><PhonebookPage /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute permission="reports"><ReportsPage /></ProtectedRoute>} />
+          <Route path="/expenses" element={<ProtectedRoute permission="expenses"><ExpensesPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute permission="settings"><SettingsPage /></ProtectedRoute>} />
         </Routes>
       </Layout>
     </ErrorBoundary>

@@ -30,12 +30,14 @@ pub struct CompanySettings {
     pub backup_schedule: Option<String>,
     pub last_backup_date: Option<String>,
     pub cloud_provider: Option<String>,
-    pub auto_backup_enabled: Option<i32>,
+    pub auto_backup_enabled: Option<bool>,
     // Phase 9: Internationalization and theming
     pub app_language: Option<String>,
     pub app_theme: Option<String>,
     // Auto-update
-    pub auto_update_enabled: Option<i32>,
+    pub auto_update_enabled: Option<bool>,
+    // Currency
+    pub currency: Option<String>,
     pub updated_at: DateTime<Utc>,
 }
 
@@ -57,6 +59,7 @@ pub struct UpdateCompanySettingsInput {
     pub quote_prefix: String,
     pub legal_mentions: Option<String>,
     pub bank_details: Option<String>,
+    pub currency: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

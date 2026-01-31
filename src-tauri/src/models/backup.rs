@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Client, Product, Quote, Invoice, Payment, CompanySettings, Expense, Supplier, ProductSupplier};
+use super::{Client, Product, Quote, Invoice, Payment, CompanySettings, Expense, Supplier, ProductSupplier, UserBackup, UserPermissionBackup};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackupData {
@@ -18,4 +18,8 @@ pub struct BackupData {
     pub suppliers: Vec<Supplier>,
     #[serde(default)]
     pub product_suppliers: Vec<ProductSupplier>,
+    #[serde(default)]
+    pub users: Vec<UserBackup>,
+    #[serde(default)]
+    pub user_permissions: Vec<UserPermissionBackup>,
 }
