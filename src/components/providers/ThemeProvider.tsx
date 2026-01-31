@@ -22,7 +22,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     if (settings && !isInitialized) {
       initializeFromBackend(
         settings.app_language as AppLanguage | null,
-        settings.app_theme as AppTheme | null
+        settings.app_theme as AppTheme | null,
+        settings.currency
       );
     }
   }, [settings, isInitialized, initializeFromBackend]);

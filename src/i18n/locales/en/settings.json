@@ -32,7 +32,8 @@
     "defaultVatRate": "Default VAT Rate",
     "defaultPaymentTerms": "Payment Terms (days)",
     "invoicePrefix": "Invoice Prefix",
-    "quotePrefix": "Quote Prefix"
+    "quotePrefix": "Quote Prefix",
+    "currency": "Currency"
   },
   "legal": {
     "title": "Legal Information",

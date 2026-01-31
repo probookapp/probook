@@ -6,7 +6,8 @@ import {
   Image,
 } from "@react-pdf/renderer";
 import { styles } from "./styles";
-import { numberToFrenchWords } from "@/lib/utils";
+import { numberToFrenchWords, CURRENCY_WORDS } from "@/lib/utils";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 import { renderHtmlToPdf } from "./htmlToPdf";
 import i18n from "@/i18n";
 import type { Quote, CompanySettings } from "@/types";
@@ -21,9 +22,10 @@ interface QuotePDFProps {
 }
 
 const formatCurrency = (amount: number): string => {
+  const currency = useSettingsStore.getState().currency || "EUR";
   return new Intl.NumberFormat(i18n.language, {
     style: "currency",
-    currency: "EUR",
+    currency,
   }).format(amount);
 };
 
@@ -302,12 +304,18 @@ export function QuotePDF({ quote, company, logoBase64 }: QuotePDFProps) {
             })()}
             <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#e5e7eb" }}>
               <Text style={{ fontSize: 8, color: "#6b7280", fontStyle: "italic" }}>
-                {t("quote.amountInWords")}: {numberToFrenchWords(
-                  quote.total_ttc +
-                  (quote.shipping_cost_ht > 0
-                    ? quote.shipping_cost_ht + quote.shipping_cost_ht * (quote.shipping_vat_rate / 100)
-                    : 0)
-                )}
+                {t("quote.amountInWords")}: {(() => {
+                  const curr = useSettingsStore.getState().currency || "EUR";
+                  const words = CURRENCY_WORDS[curr] || { main: curr.toLowerCase(), sub: "centime" };
+                  return numberToFrenchWords(
+                    quote.total_ttc +
+                    (quote.shipping_cost_ht > 0
+                      ? quote.shipping_cost_ht + quote.shipping_cost_ht * (quote.shipping_vat_rate / 100)
+                      : 0),
+                    words.main,
+                    words.sub
+                  );
+                })()}
               </Text>
             </View>
           </View>

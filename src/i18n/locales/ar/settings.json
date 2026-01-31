@@ -32,7 +32,8 @@
     "defaultVatRate": "معدل الضريبة الافتراضي",
     "defaultPaymentTerms": "مدة الدفع (أيام)",
     "invoicePrefix": "بادئة الفاتورة",
-    "quotePrefix": "بادئة عرض السعر"
+    "quotePrefix": "بادئة عرض السعر",
+    "currency": "العملة"
   },
   "legal": {
     "title": "المعلومات القانونية",

@@ -14,13 +14,17 @@ interface SettingsState {
   theme: AppTheme;
   resolvedTheme: ResolvedTheme;
 
+  // Currency
+  currency: string;
+
   // Loading state
   isInitialized: boolean;
 
   // Actions
   setLanguage: (language: AppLanguage) => void;
   setTheme: (theme: AppTheme) => void;
-  initializeFromBackend: (language: AppLanguage | null, theme: AppTheme | null) => void;
+  setCurrency: (currency: string) => void;
+  initializeFromBackend: (language: AppLanguage | null, theme: AppTheme | null, currency?: string | null) => void;
 }
 
 const getSystemLanguage = (): ResolvedLanguage => {
@@ -57,6 +61,7 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
   resolvedLanguage: 'en',
   theme: 'light',
   resolvedTheme: 'light',
+  currency: 'EUR',
   isInitialized: false,
 
   setLanguage: (language) => {
@@ -70,7 +75,11 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
     applyThemeToDOM(theme, resolved);
   },
 
-  initializeFromBackend: (language, theme) => {
+  setCurrency: (currency) => {
+    set({ currency });
+  },
+
+  initializeFromBackend: (language, theme, currency) => {
     const newLanguage = language || 'en';
     const newTheme = theme || 'light';
     const resolvedLanguage = newLanguage === 'system' ? getSystemLanguage() : newLanguage;
@@ -79,6 +88,7 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
     set({
       language: newLanguage,
       theme: newTheme,
+      currency: currency || 'EUR',
       resolvedLanguage,
       resolvedTheme,
       isInitialized: true,

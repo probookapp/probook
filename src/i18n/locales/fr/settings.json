@@ -32,7 +32,8 @@
     "defaultVatRate": "Taux de TVA par défaut",
     "defaultPaymentTerms": "Délai de paiement (jours)",
     "invoicePrefix": "Préfixe de facture",
-    "quotePrefix": "Préfixe de devis"
+    "quotePrefix": "Préfixe de devis",
+    "currency": "Devise"
   },
   "legal": {
     "title": "Informations légales",

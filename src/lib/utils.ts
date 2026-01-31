@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import i18n from "@/i18n";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -19,9 +20,10 @@ function getLocale(): string {
 }
 
 export function formatCurrency(amount: number): string {
+  const currency = useSettingsStore.getState().currency || "EUR";
   return new Intl.NumberFormat(getLocale(), {
     style: "currency",
-    currency: "EUR",
+    currency,
   }).format(amount);
 }
 
@@ -163,26 +165,41 @@ function convertThousands(n: number): string {
   return result;
 }
 
-export function numberToFrenchWords(amount: number): string {
-  const euros = Math.floor(amount);
-  const cents = Math.round((amount - euros) * 100);
+export const CURRENCY_WORDS: Record<string, { main: string; sub: string }> = {
+  EUR: { main: "euro", sub: "centime" },
+  USD: { main: "dollar", sub: "cent" },
+  GBP: { main: "livre sterling", sub: "penny" },
+  DZD: { main: "dinar", sub: "centime" },
+  MAD: { main: "dirham", sub: "centime" },
+  TND: { main: "dinar", sub: "millime" },
+  CAD: { main: "dollar canadien", sub: "cent" },
+  CHF: { main: "franc", sub: "centime" },
+};
+
+export function numberToFrenchWords(
+  amount: number,
+  mainUnit: string = "euro",
+  subUnit: string = "centime"
+): string {
+  const whole = Math.floor(amount);
+  const fractional = Math.round((amount - whole) * 100);
 
   let result = '';
 
-  if (euros === 0) {
-    result = 'zéro euro';
-  } else if (euros === 1) {
-    result = 'un euro';
+  if (whole === 0) {
+    result = `zéro ${mainUnit}`;
+  } else if (whole === 1) {
+    result = `un ${mainUnit}`;
   } else {
-    result = convertThousands(euros) + ' euros';
+    result = convertThousands(whole) + ' ' + mainUnit + 's';
   }
 
-  if (cents > 0) {
+  if (fractional > 0) {
     result += ' et ';
-    if (cents === 1) {
-      result += 'un centime';
+    if (fractional === 1) {
+      result += `un ${subUnit}`;
     } else {
-      result += convertThousands(cents) + ' centimes';
+      result += convertThousands(fractional) + ' ' + subUnit + 's';
     }
   }
 
