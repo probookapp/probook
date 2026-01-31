@@ -67,7 +67,21 @@ pub async fn connect_to_postgres(config: &DbConfig) -> Result<PgPool, Box<dyn st
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&config.connection_url())
-        .await?;
+        .await
+        .map_err(|e| {
+            let msg = e.to_string();
+            // sqlx can't decode non-UTF-8 PG error messages on Windows when
+            // lc_messages uses a non-UTF-8 locale. Surface a clear message instead.
+            if msg.contains("non-UTF-8") {
+                format!(
+                    "Authentication failed. Check your username, password, and database name. \
+                     (Host: {}:{}, Database: {})",
+                    config.host, config.port, config.database
+                )
+            } else {
+                msg
+            }
+        })?;
     Ok(pool)
 }
 
