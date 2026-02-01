@@ -43,7 +43,7 @@ function App() {
     <ErrorBoundary>
       <Layout>
         <Routes>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/" element={<ProtectedRoute permission="dashboard"><DashboardPage /></ProtectedRoute>} />
           <Route path="/clients" element={<ProtectedRoute permission="clients"><ClientsPage /></ProtectedRoute>} />
           <Route path="/products" element={<ProtectedRoute permission="products"><ProductsPage /></ProtectedRoute>} />
           <Route path="/suppliers" element={<ProtectedRoute permission="suppliers"><SuppliersPage /></ProtectedRoute>} />
