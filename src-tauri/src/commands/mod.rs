@@ -648,6 +648,20 @@ pub async fn export_backup(file_path: String, password: String, state: State<'_,
         .await
         .map_err(|e| e.to_string())?;
 
+    // Gather delivery notes, contacts, reminders, categories
+    let delivery_notes = repository::get_all_delivery_notes(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let client_contacts = repository::get_all_client_contacts(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let reminders = repository::get_all_reminders(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let product_categories = repository::get_all_product_categories(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
     let backup = BackupData {
         version: "2.0".to_string(),
         created_at: chrono::Utc::now().to_rfc3339(),
@@ -662,6 +676,10 @@ pub async fn export_backup(file_path: String, password: String, state: State<'_,
         product_suppliers,
         users,
         user_permissions,
+        delivery_notes,
+        client_contacts,
+        reminders,
+        product_categories,
     };
 
     // Serialize to JSON
@@ -727,9 +745,33 @@ pub async fn import_backup(file_path: String, password: String, state: State<'_,
             .map_err(|e| e.to_string())?;
     }
 
+    // Restore product categories (before products, parents before children)
+    let categories = backup.product_categories;
+    let parents_first: Vec<_> = categories.iter().filter(|c| c.parent_id.is_none()).cloned().collect();
+    let children: Vec<_> = categories.iter().filter(|c| c.parent_id.is_some()).cloned().collect();
+    for category in parents_first.into_iter().chain(children.into_iter()) {
+        repository::restore_product_category(&state.pool, category)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
     // Restore products
     for product in backup.products {
         repository::restore_product(&state.pool, product)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
+    // Restore suppliers
+    for supplier in backup.suppliers {
+        repository::restore_supplier(&state.pool, supplier)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
+    // Restore product-supplier links
+    for ps in backup.product_suppliers {
+        repository::restore_product_supplier(&state.pool, ps)
             .await
             .map_err(|e| e.to_string())?;
     }
@@ -755,23 +797,16 @@ pub async fn import_backup(file_path: String, password: String, state: State<'_,
             .map_err(|e| e.to_string())?;
     }
 
+    // Restore delivery notes
+    for dn in backup.delivery_notes {
+        repository::restore_delivery_note(&state.pool, dn)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
     // Restore expenses
     for expense in backup.expenses {
         repository::restore_expense(&state.pool, expense)
-            .await
-            .map_err(|e| e.to_string())?;
-    }
-
-    // Restore suppliers
-    for supplier in backup.suppliers {
-        repository::restore_supplier(&state.pool, supplier)
-            .await
-            .map_err(|e| e.to_string())?;
-    }
-
-    // Restore product-supplier links
-    for ps in backup.product_suppliers {
-        repository::restore_product_supplier(&state.pool, ps)
             .await
             .map_err(|e| e.to_string())?;
     }
@@ -786,6 +821,20 @@ pub async fn import_backup(file_path: String, password: String, state: State<'_,
     // Restore user permissions
     for perm in backup.user_permissions {
         repository::restore_user_permission(&state.pool, perm)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
+    // Restore client contacts
+    for contact in backup.client_contacts {
+        repository::restore_client_contact(&state.pool, contact)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
+    // Restore reminders
+    for reminder in backup.reminders {
+        repository::restore_reminder(&state.pool, reminder)
             .await
             .map_err(|e| e.to_string())?;
     }
@@ -897,6 +946,20 @@ pub async fn create_local_backup(
         .await
         .map_err(|e| e.to_string())?;
 
+    // Gather delivery notes, contacts, reminders, categories
+    let delivery_notes = repository::get_all_delivery_notes(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let client_contacts = repository::get_all_client_contacts(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let reminders = repository::get_all_reminders(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let product_categories = repository::get_all_product_categories(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
     let backup = BackupData {
         version: "1.0".to_string(),
         created_at: chrono::Utc::now().to_rfc3339(),
@@ -911,6 +974,10 @@ pub async fn create_local_backup(
         product_suppliers: product_suppliers_local,
         users: users_backup,
         user_permissions: user_permissions_backup,
+        delivery_notes,
+        client_contacts,
+        reminders,
+        product_categories,
     };
 
     // Serialize to JSON and write to file (local backups are unencrypted)
@@ -944,7 +1011,7 @@ fn cleanup_old_backups(backups_dir: &PathBuf, keep_count: usize) -> Result<(), S
         .filter_map(|entry| entry.ok())
         .filter(|entry| {
             entry.path().extension()
-                .map(|ext| ext == "enc")
+                .map(|ext| ext == "enc" || ext == "json")
                 .unwrap_or(false)
         })
         .collect();
@@ -974,7 +1041,7 @@ pub async fn get_backup_list(app_handle: AppHandle) -> Result<Vec<BackupInfo>, S
         .filter_map(|entry| entry.ok())
         .filter(|entry| {
             entry.path().extension()
-                .map(|ext| ext == "enc")
+                .map(|ext| ext == "enc" || ext == "json")
                 .unwrap_or(false)
         })
         .filter_map(|entry| {
@@ -1035,8 +1102,8 @@ pub async fn open_backups_folder(app_handle: AppHandle) -> Result<(), String> {
 pub async fn delete_backup(path: String) -> Result<(), String> {
     let backup_path = PathBuf::from(&path);
 
-    // Safety check: only delete .enc files
-    if backup_path.extension().map(|ext| ext != "enc").unwrap_or(true) {
+    // Safety check: only delete backup files
+    if backup_path.extension().map(|ext| ext != "enc" && ext != "json").unwrap_or(true) {
         return Err("Can only delete backup files".to_string());
     }
 

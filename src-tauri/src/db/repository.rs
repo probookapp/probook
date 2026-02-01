@@ -99,6 +99,24 @@ pub async fn update_client(pool: &PgPool, input: UpdateClientInput) -> Result<Cl
 }
 
 pub async fn delete_client(pool: &PgPool, id: &str) -> Result<(), sqlx::Error> {
+    // Check for dependent records (client_id is NOT NULL on these tables)
+    let quote_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM quotes WHERE client_id = $1")
+        .bind(id).fetch_one(pool).await?;
+    let invoice_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM invoices WHERE client_id = $1")
+        .bind(id).fetch_one(pool).await?;
+    let dn_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM delivery_notes WHERE client_id = $1")
+        .bind(id).fetch_one(pool).await?;
+
+    if quote_count > 0 || invoice_count > 0 || dn_count > 0 {
+        return Err(sqlx::Error::Protocol(format!(
+            "Cannot delete client: {} quotes, {} invoices, {} delivery notes reference it",
+            quote_count, invoice_count, dn_count
+        )));
+    }
+
+    // Delete related contacts first
+    sqlx::query("DELETE FROM client_contacts WHERE client_id = $1")
+        .bind(id).execute(pool).await?;
     sqlx::query("DELETE FROM clients WHERE id = $1")
         .bind(id)
         .execute(pool)
@@ -110,6 +128,23 @@ pub async fn batch_delete_clients(pool: &PgPool, ids: Vec<String>) -> Result<u64
     let mut tx = pool.begin().await?;
     let mut count: u64 = 0;
     for id in &ids {
+        // Check for dependent records
+        let quote_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM quotes WHERE client_id = $1")
+            .bind(id).fetch_one(&mut *tx).await?;
+        let invoice_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM invoices WHERE client_id = $1")
+            .bind(id).fetch_one(&mut *tx).await?;
+        let dn_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM delivery_notes WHERE client_id = $1")
+            .bind(id).fetch_one(&mut *tx).await?;
+
+        if quote_count > 0 || invoice_count > 0 || dn_count > 0 {
+            return Err(sqlx::Error::Protocol(format!(
+                "Cannot delete client: {} quotes, {} invoices, {} delivery notes reference it",
+                quote_count, invoice_count, dn_count
+            )));
+        }
+
+        sqlx::query("DELETE FROM client_contacts WHERE client_id = $1")
+            .bind(id).execute(&mut *tx).await?;
         sqlx::query("DELETE FROM clients WHERE id = $1")
             .bind(id)
             .execute(&mut *tx)
@@ -188,6 +223,15 @@ pub async fn update_product(pool: &PgPool, input: UpdateProductInput) -> Result<
 }
 
 pub async fn delete_product(pool: &PgPool, id: &str) -> Result<(), sqlx::Error> {
+    // Nullify product_id on referencing line items (product_id is nullable)
+    sqlx::query("UPDATE quote_lines SET product_id = NULL WHERE product_id = $1")
+        .bind(id).execute(pool).await?;
+    sqlx::query("UPDATE invoice_lines SET product_id = NULL WHERE product_id = $1")
+        .bind(id).execute(pool).await?;
+    sqlx::query("UPDATE delivery_note_lines SET product_id = NULL WHERE product_id = $1")
+        .bind(id).execute(pool).await?;
+    sqlx::query("DELETE FROM product_suppliers WHERE product_id = $1")
+        .bind(id).execute(pool).await?;
     sqlx::query("DELETE FROM products WHERE id = $1")
         .bind(id)
         .execute(pool)
@@ -199,6 +243,14 @@ pub async fn batch_delete_products(pool: &PgPool, ids: Vec<String>) -> Result<u6
     let mut tx = pool.begin().await?;
     let mut count: u64 = 0;
     for id in &ids {
+        sqlx::query("UPDATE quote_lines SET product_id = NULL WHERE product_id = $1")
+            .bind(id).execute(&mut *tx).await?;
+        sqlx::query("UPDATE invoice_lines SET product_id = NULL WHERE product_id = $1")
+            .bind(id).execute(&mut *tx).await?;
+        sqlx::query("UPDATE delivery_note_lines SET product_id = NULL WHERE product_id = $1")
+            .bind(id).execute(&mut *tx).await?;
+        sqlx::query("DELETE FROM product_suppliers WHERE product_id = $1")
+            .bind(id).execute(&mut *tx).await?;
         sqlx::query("DELETE FROM products WHERE id = $1")
             .bind(id)
             .execute(&mut *tx)
@@ -210,17 +262,17 @@ pub async fn batch_delete_products(pool: &PgPool, ids: Vec<String>) -> Result<u6
 }
 
 // Decrease product stock by quantity (only for non-service products)
-pub async fn decrease_product_stock(pool: &PgPool, product_id: &str, quantity: f64) -> Result<(), sqlx::Error> {
+pub async fn decrease_product_stock<'e, E: sqlx::PgExecutor<'e>>(executor: E, product_id: &str, quantity: f64) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
         UPDATE products SET quantity = GREATEST(0, COALESCE(quantity, 0) - $1), updated_at = $2
         WHERE id = $3 AND is_service = false
         "#,
     )
-    .bind(quantity as i32)
+    .bind(quantity.round() as i32)
     .bind(Utc::now())
     .bind(product_id)
-    .execute(pool)
+    .execute(executor)
     .await?;
     Ok(())
 }
@@ -328,10 +380,12 @@ pub async fn create_quote(pool: &PgPool, input: CreateQuoteInput) -> Result<Quot
     let total_vat: f64 = lines.iter().map(|l| l.total_vat).sum();
     let total_ttc: f64 = lines.iter().map(|l| l.total_ttc).sum();
 
+    let mut tx = pool.begin().await?;
+
     sqlx::query(
         r#"
-        INSERT INTO quotes (id, quote_number, client_id, status, issue_date, validity_date, total_ht, total_vat, total_ttc, notes, created_at, updated_at)
-        VALUES ($1, $2, $3, 'DRAFT', $4, $5, $6, $7, $8, $9, $10, $11)
+        INSERT INTO quotes (id, quote_number, client_id, status, issue_date, validity_date, total_ht, total_vat, total_ttc, notes, notes_html, shipping_cost_ht, shipping_vat_rate, down_payment_percent, down_payment_amount, created_at, updated_at)
+        VALUES ($1, $2, $3, 'DRAFT', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         "#,
     )
     .bind(&id)
@@ -343,23 +397,29 @@ pub async fn create_quote(pool: &PgPool, input: CreateQuoteInput) -> Result<Quot
     .bind(total_vat)
     .bind(total_ttc)
     .bind(&input.notes)
+    .bind(&input.notes_html)
+    .bind(&input.shipping_cost_ht)
+    .bind(&input.shipping_vat_rate)
+    .bind(&input.down_payment_percent)
+    .bind(&input.down_payment_amount)
     .bind(&now)
     .bind(&now)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
 
     // Insert lines
     for line in &lines {
         sqlx::query(
             r#"
-            INSERT INTO quote_lines (id, quote_id, product_id, description, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO quote_lines (id, quote_id, product_id, description, description_html, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position, group_name, is_subtotal_line)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             "#,
         )
         .bind(&line.id)
         .bind(&line.quote_id)
         .bind(&line.product_id)
         .bind(&line.description)
+        .bind(&line.description_html)
         .bind(line.quantity)
         .bind(line.unit_price_ht)
         .bind(line.vat_rate)
@@ -367,14 +427,18 @@ pub async fn create_quote(pool: &PgPool, input: CreateQuoteInput) -> Result<Quot
         .bind(line.total_vat)
         .bind(line.total_ttc)
         .bind(line.position)
-        .execute(pool)
+        .bind(&line.group_name)
+        .bind(line.is_subtotal_line)
+        .execute(&mut *tx)
         .await?;
     }
 
     // Increment quote number
     sqlx::query("UPDATE company_settings SET next_quote_number = next_quote_number + 1 WHERE id = 'default'")
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
+
+    tx.commit().await?;
 
     get_quote_by_id(pool, &id).await
 }
@@ -397,12 +461,6 @@ pub async fn update_quote(pool: &PgPool, input: UpdateQuoteInput, logo_snapshot:
         current_quote.logo_snapshot
     };
 
-    // Delete existing lines
-    sqlx::query("DELETE FROM quote_lines WHERE quote_id = $1")
-        .bind(&input.id)
-        .execute(pool)
-        .await?;
-
     // Calculate totals
     let lines: Vec<QuoteLine> = input.lines.iter().enumerate()
         .map(|(i, l)| QuoteLine::new(&input.id, l.clone(), i as i32))
@@ -411,10 +469,18 @@ pub async fn update_quote(pool: &PgPool, input: UpdateQuoteInput, logo_snapshot:
     let total_vat: f64 = lines.iter().map(|l| l.total_vat).sum();
     let total_ttc: f64 = lines.iter().map(|l| l.total_ttc).sum();
 
+    let mut tx = pool.begin().await?;
+
+    // Delete existing lines
+    sqlx::query("DELETE FROM quote_lines WHERE quote_id = $1")
+        .bind(&input.id)
+        .execute(&mut *tx)
+        .await?;
+
     sqlx::query(
         r#"
-        UPDATE quotes SET client_id = $1, status = $2, issue_date = $3, validity_date = $4, total_ht = $5, total_vat = $6, total_ttc = $7, notes = $8, logo_snapshot = $9, updated_at = $10
-        WHERE id = $11
+        UPDATE quotes SET client_id = $1, status = $2, issue_date = $3, validity_date = $4, total_ht = $5, total_vat = $6, total_ttc = $7, notes = $8, notes_html = $9, logo_snapshot = $10, shipping_cost_ht = $11, shipping_vat_rate = $12, down_payment_percent = $13, down_payment_amount = $14, updated_at = $15
+        WHERE id = $16
         "#,
     )
     .bind(&input.client_id)
@@ -425,24 +491,30 @@ pub async fn update_quote(pool: &PgPool, input: UpdateQuoteInput, logo_snapshot:
     .bind(total_vat)
     .bind(total_ttc)
     .bind(&input.notes)
+    .bind(&input.notes_html)
     .bind(&final_logo_snapshot)
+    .bind(&input.shipping_cost_ht)
+    .bind(&input.shipping_vat_rate)
+    .bind(&input.down_payment_percent)
+    .bind(&input.down_payment_amount)
     .bind(&now)
     .bind(&input.id)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
 
     // Insert new lines
     for line in &lines {
         sqlx::query(
             r#"
-            INSERT INTO quote_lines (id, quote_id, product_id, description, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO quote_lines (id, quote_id, product_id, description, description_html, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position, group_name, is_subtotal_line)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             "#,
         )
         .bind(&line.id)
         .bind(&line.quote_id)
         .bind(&line.product_id)
         .bind(&line.description)
+        .bind(&line.description_html)
         .bind(line.quantity)
         .bind(line.unit_price_ht)
         .bind(line.vat_rate)
@@ -450,14 +522,24 @@ pub async fn update_quote(pool: &PgPool, input: UpdateQuoteInput, logo_snapshot:
         .bind(line.total_vat)
         .bind(line.total_ttc)
         .bind(line.position)
-        .execute(pool)
+        .bind(&line.group_name)
+        .bind(line.is_subtotal_line)
+        .execute(&mut *tx)
         .await?;
     }
+
+    tx.commit().await?;
 
     get_quote_by_id(pool, &input.id).await
 }
 
 pub async fn delete_quote(pool: &PgPool, id: &str) -> Result<(), sqlx::Error> {
+    // Nullify quote_id on referencing records (quote_id is nullable)
+    sqlx::query("UPDATE invoices SET quote_id = NULL WHERE quote_id = $1")
+        .bind(id).execute(pool).await?;
+    sqlx::query("UPDATE delivery_notes SET quote_id = NULL WHERE quote_id = $1")
+        .bind(id).execute(pool).await?;
+    // quote_lines are CASCADE deleted via FK
     sqlx::query("DELETE FROM quotes WHERE id = $1")
         .bind(id)
         .execute(pool)
@@ -469,6 +551,10 @@ pub async fn batch_delete_quotes(pool: &PgPool, ids: Vec<String>) -> Result<u64,
     let mut tx = pool.begin().await?;
     let mut count: u64 = 0;
     for id in &ids {
+        sqlx::query("UPDATE invoices SET quote_id = NULL WHERE quote_id = $1")
+            .bind(id).execute(&mut *tx).await?;
+        sqlx::query("UPDATE delivery_notes SET quote_id = NULL WHERE quote_id = $1")
+            .bind(id).execute(&mut *tx).await?;
         sqlx::query("DELETE FROM quotes WHERE id = $1")
             .bind(id)
             .execute(&mut *tx)
@@ -596,10 +682,12 @@ async fn create_invoice_internal(pool: &PgPool, input: CreateInvoiceInput, decre
     let total_vat: f64 = lines.iter().map(|l| l.total_vat).sum();
     let total_ttc: f64 = lines.iter().map(|l| l.total_ttc).sum();
 
+    let mut tx = pool.begin().await?;
+
     sqlx::query(
         r#"
-        INSERT INTO invoices (id, invoice_number, client_id, quote_id, status, issue_date, due_date, total_ht, total_vat, total_ttc, notes, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, 'DRAFT', $5, $6, $7, $8, $9, $10, $11, $12)
+        INSERT INTO invoices (id, invoice_number, client_id, quote_id, status, issue_date, due_date, total_ht, total_vat, total_ttc, notes, notes_html, shipping_cost_ht, shipping_vat_rate, down_payment_percent, down_payment_amount, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, 'DRAFT', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
         "#,
     )
     .bind(&id)
@@ -612,23 +700,29 @@ async fn create_invoice_internal(pool: &PgPool, input: CreateInvoiceInput, decre
     .bind(total_vat)
     .bind(total_ttc)
     .bind(&input.notes)
+    .bind(&input.notes_html)
+    .bind(&input.shipping_cost_ht)
+    .bind(&input.shipping_vat_rate)
+    .bind(&input.down_payment_percent)
+    .bind(&input.down_payment_amount)
     .bind(&now)
     .bind(&now)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
 
     // Insert lines
     for line in &lines {
         sqlx::query(
             r#"
-            INSERT INTO invoice_lines (id, invoice_id, product_id, description, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO invoice_lines (id, invoice_id, product_id, description, description_html, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position, group_name, is_subtotal_line)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             "#,
         )
         .bind(&line.id)
         .bind(&line.invoice_id)
         .bind(&line.product_id)
         .bind(&line.description)
+        .bind(&line.description_html)
         .bind(line.quantity)
         .bind(line.unit_price_ht)
         .bind(line.vat_rate)
@@ -636,7 +730,9 @@ async fn create_invoice_internal(pool: &PgPool, input: CreateInvoiceInput, decre
         .bind(line.total_vat)
         .bind(line.total_ttc)
         .bind(line.position)
-        .execute(pool)
+        .bind(&line.group_name)
+        .bind(line.is_subtotal_line)
+        .execute(&mut *tx)
         .await?;
     }
 
@@ -644,27 +740,23 @@ async fn create_invoice_internal(pool: &PgPool, input: CreateInvoiceInput, decre
     if decrease_stock {
         for line in &lines {
             if let Some(ref product_id) = line.product_id {
-                decrease_product_stock(pool, product_id, line.quantity).await?;
+                decrease_product_stock(&mut *tx, product_id, line.quantity).await?;
             }
         }
     }
 
     // Increment invoice number
     sqlx::query("UPDATE company_settings SET next_invoice_number = next_invoice_number + 1 WHERE id = 'default'")
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
+
+    tx.commit().await?;
 
     get_invoice_by_id(pool, &id).await
 }
 
 pub async fn update_invoice(pool: &PgPool, input: UpdateInvoiceInput) -> Result<Invoice, sqlx::Error> {
     let now = Utc::now();
-
-    // Delete existing lines
-    sqlx::query("DELETE FROM invoice_lines WHERE invoice_id = $1")
-        .bind(&input.id)
-        .execute(pool)
-        .await?;
 
     // Calculate totals
     let lines: Vec<InvoiceLine> = input.lines.iter().enumerate()
@@ -674,10 +766,18 @@ pub async fn update_invoice(pool: &PgPool, input: UpdateInvoiceInput) -> Result<
     let total_vat: f64 = lines.iter().map(|l| l.total_vat).sum();
     let total_ttc: f64 = lines.iter().map(|l| l.total_ttc).sum();
 
+    let mut tx = pool.begin().await?;
+
+    // Delete existing lines
+    sqlx::query("DELETE FROM invoice_lines WHERE invoice_id = $1")
+        .bind(&input.id)
+        .execute(&mut *tx)
+        .await?;
+
     sqlx::query(
         r#"
-        UPDATE invoices SET client_id = $1, status = $2, issue_date = $3, due_date = $4, total_ht = $5, total_vat = $6, total_ttc = $7, notes = $8, updated_at = $9
-        WHERE id = $10
+        UPDATE invoices SET client_id = $1, status = $2, issue_date = $3, due_date = $4, total_ht = $5, total_vat = $6, total_ttc = $7, notes = $8, notes_html = $9, shipping_cost_ht = $10, shipping_vat_rate = $11, down_payment_percent = $12, down_payment_amount = $13, updated_at = $14
+        WHERE id = $15
         "#,
     )
     .bind(&input.client_id)
@@ -688,23 +788,29 @@ pub async fn update_invoice(pool: &PgPool, input: UpdateInvoiceInput) -> Result<
     .bind(total_vat)
     .bind(total_ttc)
     .bind(&input.notes)
+    .bind(&input.notes_html)
+    .bind(&input.shipping_cost_ht)
+    .bind(&input.shipping_vat_rate)
+    .bind(&input.down_payment_percent)
+    .bind(&input.down_payment_amount)
     .bind(&now)
     .bind(&input.id)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
 
     // Insert new lines
     for line in &lines {
         sqlx::query(
             r#"
-            INSERT INTO invoice_lines (id, invoice_id, product_id, description, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO invoice_lines (id, invoice_id, product_id, description, description_html, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position, group_name, is_subtotal_line)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             "#,
         )
         .bind(&line.id)
         .bind(&line.invoice_id)
         .bind(&line.product_id)
         .bind(&line.description)
+        .bind(&line.description_html)
         .bind(line.quantity)
         .bind(line.unit_price_ht)
         .bind(line.vat_rate)
@@ -712,14 +818,22 @@ pub async fn update_invoice(pool: &PgPool, input: UpdateInvoiceInput) -> Result<
         .bind(line.total_vat)
         .bind(line.total_ttc)
         .bind(line.position)
-        .execute(pool)
+        .bind(&line.group_name)
+        .bind(line.is_subtotal_line)
+        .execute(&mut *tx)
         .await?;
     }
+
+    tx.commit().await?;
 
     get_invoice_by_id(pool, &input.id).await
 }
 
 pub async fn delete_invoice(pool: &PgPool, id: &str) -> Result<(), sqlx::Error> {
+    // Nullify invoice_id on referencing delivery notes (invoice_id is nullable)
+    sqlx::query("UPDATE delivery_notes SET invoice_id = NULL WHERE invoice_id = $1")
+        .bind(id).execute(pool).await?;
+    // invoice_lines and payments are CASCADE deleted via FK
     sqlx::query("DELETE FROM invoices WHERE id = $1")
         .bind(id)
         .execute(pool)
@@ -740,6 +854,8 @@ pub async fn batch_delete_invoices(pool: &PgPool, ids: Vec<String>) -> Result<u6
                 format!("Cannot delete non-DRAFT invoice {}", id),
             ));
         }
+        sqlx::query("UPDATE delivery_notes SET invoice_id = NULL WHERE invoice_id = $1")
+            .bind(id).execute(&mut *tx).await?;
         sqlx::query("DELETE FROM invoices WHERE id = $1")
             .bind(id)
             .execute(&mut *tx)
@@ -979,8 +1095,52 @@ pub async fn get_dashboard_stats(pool: &PgPool) -> Result<DashboardStats, sqlx::
 
     let profit = revenue_this_year - total_expenses;
 
-    let recent_invoices = get_all_invoices(pool).await?.into_iter().take(5).collect();
-    let recent_quotes = get_all_quotes(pool).await?.into_iter().take(5).collect();
+    let recent_invoice_rows = sqlx::query_as::<_, InvoiceRow>("SELECT * FROM invoices ORDER BY created_at DESC LIMIT 5")
+        .fetch_all(pool)
+        .await?;
+    let mut recent_invoices = Vec::new();
+    for row in recent_invoice_rows {
+        let client = get_client_by_id(pool, &row.client_id).await.ok();
+        let lines = get_invoice_lines(pool, &row.id).await?;
+        let payments = get_payments_by_invoice(pool, &row.id).await?;
+        let status = match row.status.as_str() {
+            "ISSUED" => InvoiceStatus::ISSUED,
+            "PAID" => InvoiceStatus::PAID,
+            _ => InvoiceStatus::DRAFT,
+        };
+        recent_invoices.push(Invoice {
+            id: row.id, invoice_number: row.invoice_number, client_id: row.client_id, client, quote_id: row.quote_id,
+            status, issue_date: row.issue_date, due_date: row.due_date, total_ht: row.total_ht, total_vat: row.total_vat,
+            total_ttc: row.total_ttc, notes: row.notes, notes_html: row.notes_html, integrity_hash: row.integrity_hash,
+            logo_snapshot: row.logo_snapshot, shipping_cost_ht: row.shipping_cost_ht.unwrap_or(0.0),
+            shipping_vat_rate: row.shipping_vat_rate.unwrap_or(20.0), down_payment_percent: row.down_payment_percent.unwrap_or(0.0),
+            down_payment_amount: row.down_payment_amount.unwrap_or(0.0), is_down_payment_invoice: row.is_down_payment_invoice.unwrap_or(false),
+            parent_quote_id: row.parent_quote_id, lines, payments, created_at: row.created_at, updated_at: row.updated_at,
+        });
+    }
+
+    let recent_quote_rows = sqlx::query_as::<_, QuoteRow>("SELECT * FROM quotes ORDER BY created_at DESC LIMIT 5")
+        .fetch_all(pool)
+        .await?;
+    let mut recent_quotes = Vec::new();
+    for row in recent_quote_rows {
+        let client = get_client_by_id(pool, &row.client_id).await.ok();
+        let lines = get_quote_lines(pool, &row.id).await?;
+        let status = match row.status.as_str() {
+            "SENT" => QuoteStatus::SENT,
+            "ACCEPTED" => QuoteStatus::ACCEPTED,
+            "EXPIRED" => QuoteStatus::EXPIRED,
+            _ => QuoteStatus::DRAFT,
+        };
+        recent_quotes.push(Quote {
+            id: row.id, quote_number: row.quote_number, client_id: row.client_id, client, status,
+            issue_date: row.issue_date, validity_date: row.validity_date, total_ht: row.total_ht,
+            total_vat: row.total_vat, total_ttc: row.total_ttc, notes: row.notes, notes_html: row.notes_html,
+            logo_snapshot: row.logo_snapshot, shipping_cost_ht: row.shipping_cost_ht.unwrap_or(0.0),
+            shipping_vat_rate: row.shipping_vat_rate.unwrap_or(20.0), down_payment_percent: row.down_payment_percent.unwrap_or(0.0),
+            down_payment_amount: row.down_payment_amount.unwrap_or(0.0), lines, created_at: row.created_at, updated_at: row.updated_at,
+        });
+    }
 
     Ok(DashboardStats {
         total_clients,
@@ -1013,10 +1173,12 @@ pub async fn duplicate_quote(pool: &PgPool, quote_id: &str) -> Result<Quote, sql
     let today = chrono::Utc::now().date_naive();
     let validity = today + chrono::Duration::days(30);
 
+    let mut tx = pool.begin().await?;
+
     sqlx::query(
         r#"
-        INSERT INTO quotes (id, quote_number, client_id, status, issue_date, validity_date, total_ht, total_vat, total_ttc, notes, created_at, updated_at)
-        VALUES ($1, $2, $3, 'DRAFT', $4, $5, $6, $7, $8, $9, $10, $11)
+        INSERT INTO quotes (id, quote_number, client_id, status, issue_date, validity_date, total_ht, total_vat, total_ttc, notes, notes_html, shipping_cost_ht, shipping_vat_rate, down_payment_percent, down_payment_amount, created_at, updated_at)
+        VALUES ($1, $2, $3, 'DRAFT', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         "#,
     )
     .bind(&id)
@@ -1028,9 +1190,14 @@ pub async fn duplicate_quote(pool: &PgPool, quote_id: &str) -> Result<Quote, sql
     .bind(original.total_vat)
     .bind(original.total_ttc)
     .bind(&original.notes)
+    .bind(&original.notes_html)
+    .bind(original.shipping_cost_ht)
+    .bind(original.shipping_vat_rate)
+    .bind(original.down_payment_percent)
+    .bind(original.down_payment_amount)
     .bind(&now)
     .bind(&now)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
 
     // Copy lines with new IDs
@@ -1038,14 +1205,15 @@ pub async fn duplicate_quote(pool: &PgPool, quote_id: &str) -> Result<Quote, sql
         let line_id = Uuid::new_v4().to_string();
         sqlx::query(
             r#"
-            INSERT INTO quote_lines (id, quote_id, product_id, description, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO quote_lines (id, quote_id, product_id, description, description_html, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position, group_name, is_subtotal_line)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             "#,
         )
         .bind(&line_id)
         .bind(&id)
         .bind(&line.product_id)
         .bind(&line.description)
+        .bind(&line.description_html)
         .bind(line.quantity)
         .bind(line.unit_price_ht)
         .bind(line.vat_rate)
@@ -1053,14 +1221,18 @@ pub async fn duplicate_quote(pool: &PgPool, quote_id: &str) -> Result<Quote, sql
         .bind(line.total_vat)
         .bind(line.total_ttc)
         .bind(i as i32)
-        .execute(pool)
+        .bind(&line.group_name)
+        .bind(line.is_subtotal_line)
+        .execute(&mut *tx)
         .await?;
     }
 
     // Increment quote number
     sqlx::query("UPDATE company_settings SET next_quote_number = next_quote_number + 1 WHERE id = 'default'")
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
+
+    tx.commit().await?;
 
     get_quote_by_id(pool, &id).await
 }
@@ -1082,10 +1254,12 @@ pub async fn duplicate_invoice(pool: &PgPool, invoice_id: &str) -> Result<Invoic
     let today = chrono::Utc::now().date_naive();
     let due_date = today + chrono::Duration::days(settings.default_payment_terms as i64);
 
+    let mut tx = pool.begin().await?;
+
     sqlx::query(
         r#"
-        INSERT INTO invoices (id, invoice_number, client_id, quote_id, status, issue_date, due_date, total_ht, total_vat, total_ttc, notes, created_at, updated_at)
-        VALUES ($1, $2, $3, NULL, 'DRAFT', $4, $5, $6, $7, $8, $9, $10, $11)
+        INSERT INTO invoices (id, invoice_number, client_id, quote_id, status, issue_date, due_date, total_ht, total_vat, total_ttc, notes, notes_html, shipping_cost_ht, shipping_vat_rate, down_payment_percent, down_payment_amount, created_at, updated_at)
+        VALUES ($1, $2, $3, NULL, 'DRAFT', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         "#,
     )
     .bind(&id)
@@ -1097,9 +1271,14 @@ pub async fn duplicate_invoice(pool: &PgPool, invoice_id: &str) -> Result<Invoic
     .bind(original.total_vat)
     .bind(original.total_ttc)
     .bind(&original.notes)
+    .bind(&original.notes_html)
+    .bind(original.shipping_cost_ht)
+    .bind(original.shipping_vat_rate)
+    .bind(original.down_payment_percent)
+    .bind(original.down_payment_amount)
     .bind(&now)
     .bind(&now)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
 
     // Copy lines with new IDs
@@ -1107,14 +1286,15 @@ pub async fn duplicate_invoice(pool: &PgPool, invoice_id: &str) -> Result<Invoic
         let line_id = Uuid::new_v4().to_string();
         sqlx::query(
             r#"
-            INSERT INTO invoice_lines (id, invoice_id, product_id, description, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO invoice_lines (id, invoice_id, product_id, description, description_html, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position, group_name, is_subtotal_line)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             "#,
         )
         .bind(&line_id)
         .bind(&id)
         .bind(&line.product_id)
         .bind(&line.description)
+        .bind(&line.description_html)
         .bind(line.quantity)
         .bind(line.unit_price_ht)
         .bind(line.vat_rate)
@@ -1122,14 +1302,18 @@ pub async fn duplicate_invoice(pool: &PgPool, invoice_id: &str) -> Result<Invoic
         .bind(line.total_vat)
         .bind(line.total_ttc)
         .bind(i as i32)
-        .execute(pool)
+        .bind(&line.group_name)
+        .bind(line.is_subtotal_line)
+        .execute(&mut *tx)
         .await?;
     }
 
     // Increment invoice number
     sqlx::query("UPDATE company_settings SET next_invoice_number = next_invoice_number + 1 WHERE id = 'default'")
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
+
+    tx.commit().await?;
 
     get_invoice_by_id(pool, &id).await
 }
@@ -1183,6 +1367,10 @@ pub async fn update_logo_path(pool: &PgPool, logo_path: &str) -> Result<(), sqlx
 
 // Backup Restore Functions
 pub async fn clear_all_data(pool: &PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM reminders").execute(pool).await?;
+    sqlx::query("DELETE FROM delivery_note_lines").execute(pool).await?;
+    sqlx::query("DELETE FROM delivery_notes").execute(pool).await?;
+    sqlx::query("DELETE FROM client_contacts").execute(pool).await?;
     sqlx::query("DELETE FROM payments").execute(pool).await?;
     sqlx::query("DELETE FROM invoice_lines").execute(pool).await?;
     sqlx::query("DELETE FROM invoices").execute(pool).await?;
@@ -1190,6 +1378,7 @@ pub async fn clear_all_data(pool: &PgPool) -> Result<(), sqlx::Error> {
     sqlx::query("DELETE FROM quotes").execute(pool).await?;
     sqlx::query("DELETE FROM expenses").execute(pool).await?;
     sqlx::query("DELETE FROM product_suppliers").execute(pool).await?;
+    sqlx::query("DELETE FROM product_categories").execute(pool).await?;
     sqlx::query("DELETE FROM products").execute(pool).await?;
     sqlx::query("DELETE FROM suppliers").execute(pool).await?;
     sqlx::query("DELETE FROM clients").execute(pool).await?;
@@ -1226,8 +1415,8 @@ pub async fn restore_client(pool: &PgPool, client: Client) -> Result<(), sqlx::E
 pub async fn restore_product(pool: &PgPool, product: Product) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
-        INSERT INTO products (id, designation, description, unit_price_ht, vat_rate, unit, reference, is_service, category_id, quantity, purchase_price_ht, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        INSERT INTO products (id, designation, description, unit_price_ht, vat_rate, unit, reference, is_service, category_id, quantity, purchase_price_ht, photo_path, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         "#,
     )
     .bind(&product.id)
@@ -1241,6 +1430,7 @@ pub async fn restore_product(pool: &PgPool, product: Product) -> Result<(), sqlx
     .bind(&product.category_id)
     .bind(&product.quantity)
     .bind(&product.purchase_price_ht)
+    .bind(&product.photo_path)
     .bind(&product.created_at)
     .bind(&product.updated_at)
     .execute(pool)
@@ -1251,8 +1441,8 @@ pub async fn restore_product(pool: &PgPool, product: Product) -> Result<(), sqlx
 pub async fn restore_quote(pool: &PgPool, quote: Quote) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
-        INSERT INTO quotes (id, quote_number, client_id, status, issue_date, validity_date, total_ht, total_vat, total_ttc, notes, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        INSERT INTO quotes (id, quote_number, client_id, status, issue_date, validity_date, total_ht, total_vat, total_ttc, notes, notes_html, logo_snapshot, shipping_cost_ht, shipping_vat_rate, down_payment_percent, down_payment_amount, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
         "#,
     )
     .bind(&quote.id)
@@ -1265,6 +1455,12 @@ pub async fn restore_quote(pool: &PgPool, quote: Quote) -> Result<(), sqlx::Erro
     .bind(quote.total_vat)
     .bind(quote.total_ttc)
     .bind(&quote.notes)
+    .bind(&quote.notes_html)
+    .bind(&quote.logo_snapshot)
+    .bind(quote.shipping_cost_ht)
+    .bind(quote.shipping_vat_rate)
+    .bind(quote.down_payment_percent)
+    .bind(quote.down_payment_amount)
     .bind(&quote.created_at)
     .bind(&quote.updated_at)
     .execute(pool)
@@ -1274,14 +1470,15 @@ pub async fn restore_quote(pool: &PgPool, quote: Quote) -> Result<(), sqlx::Erro
     for line in quote.lines {
         sqlx::query(
             r#"
-            INSERT INTO quote_lines (id, quote_id, product_id, description, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO quote_lines (id, quote_id, product_id, description, description_html, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position, group_name, is_subtotal_line)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             "#,
         )
         .bind(&line.id)
         .bind(&line.quote_id)
         .bind(&line.product_id)
         .bind(&line.description)
+        .bind(&line.description_html)
         .bind(line.quantity)
         .bind(line.unit_price_ht)
         .bind(line.vat_rate)
@@ -1289,6 +1486,8 @@ pub async fn restore_quote(pool: &PgPool, quote: Quote) -> Result<(), sqlx::Erro
         .bind(line.total_vat)
         .bind(line.total_ttc)
         .bind(line.position)
+        .bind(&line.group_name)
+        .bind(line.is_subtotal_line)
         .execute(pool)
         .await?;
     }
@@ -1298,8 +1497,8 @@ pub async fn restore_quote(pool: &PgPool, quote: Quote) -> Result<(), sqlx::Erro
 pub async fn restore_invoice(pool: &PgPool, invoice: Invoice) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
-        INSERT INTO invoices (id, invoice_number, client_id, quote_id, status, issue_date, due_date, total_ht, total_vat, total_ttc, notes, integrity_hash, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        INSERT INTO invoices (id, invoice_number, client_id, quote_id, status, issue_date, due_date, total_ht, total_vat, total_ttc, notes, notes_html, integrity_hash, logo_snapshot, shipping_cost_ht, shipping_vat_rate, down_payment_percent, down_payment_amount, is_down_payment_invoice, parent_quote_id, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
         "#,
     )
     .bind(&invoice.id)
@@ -1313,7 +1512,15 @@ pub async fn restore_invoice(pool: &PgPool, invoice: Invoice) -> Result<(), sqlx
     .bind(invoice.total_vat)
     .bind(invoice.total_ttc)
     .bind(&invoice.notes)
+    .bind(&invoice.notes_html)
     .bind(&invoice.integrity_hash)
+    .bind(&invoice.logo_snapshot)
+    .bind(invoice.shipping_cost_ht)
+    .bind(invoice.shipping_vat_rate)
+    .bind(invoice.down_payment_percent)
+    .bind(invoice.down_payment_amount)
+    .bind(invoice.is_down_payment_invoice)
+    .bind(&invoice.parent_quote_id)
     .bind(&invoice.created_at)
     .bind(&invoice.updated_at)
     .execute(pool)
@@ -1323,14 +1530,15 @@ pub async fn restore_invoice(pool: &PgPool, invoice: Invoice) -> Result<(), sqlx
     for line in invoice.lines {
         sqlx::query(
             r#"
-            INSERT INTO invoice_lines (id, invoice_id, product_id, description, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO invoice_lines (id, invoice_id, product_id, description, description_html, quantity, unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, position, group_name, is_subtotal_line)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             "#,
         )
         .bind(&line.id)
         .bind(&line.invoice_id)
         .bind(&line.product_id)
         .bind(&line.description)
+        .bind(&line.description_html)
         .bind(line.quantity)
         .bind(line.unit_price_ht)
         .bind(line.vat_rate)
@@ -1338,6 +1546,8 @@ pub async fn restore_invoice(pool: &PgPool, invoice: Invoice) -> Result<(), sqlx
         .bind(line.total_vat)
         .bind(line.total_ttc)
         .bind(line.position)
+        .bind(&line.group_name)
+        .bind(line.is_subtotal_line)
         .execute(pool)
         .await?;
     }
@@ -1372,7 +1582,10 @@ pub async fn restore_settings(pool: &PgPool, settings: CompanySettings) -> Resul
             phone = $6, email = $7, website = $8, siret = $9, vat_number = $10, logo_path = $11,
             default_vat_rate = $12, default_payment_terms = $13, invoice_prefix = $14, quote_prefix = $15,
             next_invoice_number = $16, next_quote_number = $17, legal_mentions = $18, bank_details = $19,
-            currency = $20, updated_at = $21
+            delivery_note_prefix = $20, next_delivery_note_number = $21,
+            backup_schedule = $22, last_backup_date = $23, cloud_provider = $24, auto_backup_enabled = $25,
+            app_language = $26, app_theme = $27, auto_update_enabled = $28,
+            currency = $29, updated_at = $30
         WHERE id = 'default'
         "#,
     )
@@ -1395,6 +1608,15 @@ pub async fn restore_settings(pool: &PgPool, settings: CompanySettings) -> Resul
     .bind(settings.next_quote_number)
     .bind(&settings.legal_mentions)
     .bind(&settings.bank_details)
+    .bind(&settings.delivery_note_prefix)
+    .bind(&settings.next_delivery_note_number)
+    .bind(&settings.backup_schedule)
+    .bind(&settings.last_backup_date)
+    .bind(&settings.cloud_provider)
+    .bind(&settings.auto_backup_enabled)
+    .bind(&settings.app_language)
+    .bind(&settings.app_theme)
+    .bind(&settings.auto_update_enabled)
     .bind(&settings.currency)
     .bind(&settings.updated_at)
     .execute(pool)
@@ -1456,7 +1678,13 @@ pub async fn update_product_category(pool: &PgPool, input: UpdateProductCategory
 }
 
 pub async fn delete_product_category(pool: &PgPool, id: &str) -> Result<(), sqlx::Error> {
-    // First, unset category_id for all products in this category
+    // Re-parent child categories to avoid FK violation on parent_id
+    sqlx::query("UPDATE product_categories SET parent_id = NULL WHERE parent_id = $1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+    // Unset category_id for all products in this category
     sqlx::query("UPDATE products SET category_id = NULL WHERE category_id = $1")
         .bind(id)
         .execute(pool)
@@ -1569,6 +1797,8 @@ pub async fn create_delivery_note(pool: &PgPool, input: CreateDeliveryNoteInput)
         .map(|(i, l)| DeliveryNoteLine::new(&id, l.clone(), i as i32))
         .collect();
 
+    let mut tx = pool.begin().await?;
+
     sqlx::query(
         r#"
         INSERT INTO delivery_notes (id, delivery_note_number, client_id, quote_id, invoice_id, status, issue_date, delivery_date, delivery_address, notes, created_at, updated_at)
@@ -1586,7 +1816,7 @@ pub async fn create_delivery_note(pool: &PgPool, input: CreateDeliveryNoteInput)
     .bind(&input.notes)
     .bind(&now)
     .bind(&now)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
 
     // Insert lines
@@ -1605,21 +1835,23 @@ pub async fn create_delivery_note(pool: &PgPool, input: CreateDeliveryNoteInput)
         .bind(&line.unit)
         .bind(line.position)
         .bind(&line.created_at)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
     }
 
     // Decrease stock for product lines
     for line in &lines {
         if let Some(ref product_id) = line.product_id {
-            decrease_product_stock(pool, product_id, line.quantity).await?;
+            decrease_product_stock(&mut *tx, product_id, line.quantity).await?;
         }
     }
 
     // Increment delivery note number
     sqlx::query("UPDATE company_settings SET next_delivery_note_number = COALESCE(next_delivery_note_number, 1) + 1 WHERE id = 'default'")
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
+
+    tx.commit().await?;
 
     get_delivery_note_by_id(pool, &id).await
 }
@@ -1627,15 +1859,17 @@ pub async fn create_delivery_note(pool: &PgPool, input: CreateDeliveryNoteInput)
 pub async fn update_delivery_note(pool: &PgPool, input: UpdateDeliveryNoteInput) -> Result<DeliveryNote, sqlx::Error> {
     let now = Utc::now();
 
-    // Delete existing lines
-    sqlx::query("DELETE FROM delivery_note_lines WHERE delivery_note_id = $1")
-        .bind(&input.id)
-        .execute(pool)
-        .await?;
-
     let lines: Vec<DeliveryNoteLine> = input.lines.iter().enumerate()
         .map(|(i, l)| DeliveryNoteLine::new(&input.id, l.clone(), i as i32))
         .collect();
+
+    let mut tx = pool.begin().await?;
+
+    // Delete existing lines
+    sqlx::query("DELETE FROM delivery_note_lines WHERE delivery_note_id = $1")
+        .bind(&input.id)
+        .execute(&mut *tx)
+        .await?;
 
     sqlx::query(
         r#"
@@ -1653,7 +1887,7 @@ pub async fn update_delivery_note(pool: &PgPool, input: UpdateDeliveryNoteInput)
     .bind(&input.notes)
     .bind(&now)
     .bind(&input.id)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
 
     // Insert new lines
@@ -1672,9 +1906,11 @@ pub async fn update_delivery_note(pool: &PgPool, input: UpdateDeliveryNoteInput)
         .bind(&line.unit)
         .bind(line.position)
         .bind(&line.created_at)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
     }
+
+    tx.commit().await?;
 
     get_delivery_note_by_id(pool, &input.id).await
 }
@@ -2025,7 +2261,7 @@ pub async fn search_contacts(pool: &PgPool, query: &str) -> Result<Vec<ClientCon
     sqlx::query_as::<_, ClientContact>(
         r#"
         SELECT * FROM client_contacts
-        WHERE name LIKE $1 OR email LIKE $2 OR phone LIKE $3 OR role LIKE $4
+        WHERE name ILIKE $1 OR email ILIKE $2 OR phone ILIKE $3 OR role ILIKE $4
         ORDER BY name
         "#
     )
@@ -3047,6 +3283,109 @@ pub async fn restore_user_permission(pool: &PgPool, perm: UserPermissionBackup) 
     .bind(&perm.user_id)
     .bind(&perm.permission_key)
     .bind(perm.granted)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn restore_delivery_note(pool: &PgPool, dn: DeliveryNote) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        INSERT INTO delivery_notes (id, delivery_note_number, client_id, quote_id, invoice_id, status, issue_date, delivery_date, delivery_address, notes, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        "#,
+    )
+    .bind(&dn.id)
+    .bind(&dn.delivery_note_number)
+    .bind(&dn.client_id)
+    .bind(&dn.quote_id)
+    .bind(&dn.invoice_id)
+    .bind(dn.status.to_string())
+    .bind(&dn.issue_date)
+    .bind(&dn.delivery_date)
+    .bind(&dn.delivery_address)
+    .bind(&dn.notes)
+    .bind(&dn.created_at)
+    .bind(&dn.updated_at)
+    .execute(pool)
+    .await?;
+
+    for line in dn.lines {
+        sqlx::query(
+            r#"
+            INSERT INTO delivery_note_lines (id, delivery_note_id, product_id, description, quantity, unit, position, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            "#,
+        )
+        .bind(&line.id)
+        .bind(&line.delivery_note_id)
+        .bind(&line.product_id)
+        .bind(&line.description)
+        .bind(line.quantity)
+        .bind(&line.unit)
+        .bind(line.position)
+        .bind(&line.created_at)
+        .execute(pool)
+        .await?;
+    }
+
+    Ok(())
+}
+
+pub async fn restore_client_contact(pool: &PgPool, contact: ClientContact) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        INSERT INTO client_contacts (id, client_id, name, role, email, phone, is_primary, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        "#,
+    )
+    .bind(&contact.id)
+    .bind(&contact.client_id)
+    .bind(&contact.name)
+    .bind(&contact.role)
+    .bind(&contact.email)
+    .bind(&contact.phone)
+    .bind(contact.is_primary)
+    .bind(&contact.created_at)
+    .bind(&contact.updated_at)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn restore_reminder(pool: &PgPool, reminder: Reminder) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        INSERT INTO reminders (id, reminder_type, document_type, document_id, scheduled_date, sent_at, message, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        "#,
+    )
+    .bind(&reminder.id)
+    .bind(reminder.reminder_type.to_string())
+    .bind(reminder.document_type.to_string())
+    .bind(&reminder.document_id)
+    .bind(&reminder.scheduled_date)
+    .bind(&reminder.sent_at)
+    .bind(&reminder.message)
+    .bind(&reminder.created_at)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn restore_product_category(pool: &PgPool, category: ProductCategory) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        INSERT INTO product_categories (id, name, description, parent_id, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        "#,
+    )
+    .bind(&category.id)
+    .bind(&category.name)
+    .bind(&category.description)
+    .bind(&category.parent_id)
+    .bind(&category.created_at)
+    .bind(&category.updated_at)
     .execute(pool)
     .await?;
     Ok(())
