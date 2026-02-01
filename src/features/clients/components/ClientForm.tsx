@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Input, Textarea } from "@/components/ui";
-import { clientSchema, type ClientFormData } from "../schemas/clientSchema";
+import { createClientSchema, type ClientFormData } from "../schemas/clientSchema";
 import type { Client } from "@/types";
 
 interface ClientFormProps {
@@ -20,7 +20,7 @@ export function ClientForm({ client, onSubmit, onCancel, isLoading }: ClientForm
     handleSubmit,
     formState: { errors },
   } = useForm<ClientFormData>({
-    resolver: zodResolver(clientSchema),
+    resolver: zodResolver(createClientSchema(t)),
     defaultValues: {
       name: client?.name ?? "",
       email: client?.email ?? "",

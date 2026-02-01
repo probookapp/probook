@@ -1,3 +1,4 @@
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
@@ -52,13 +53,26 @@ pub fn load_db_config(app: &AppHandle) -> Result<Option<DbConfig>, Box<dyn std::
         return Ok(None);
     }
     let data = std::fs::read_to_string(&config_path)?;
-    let config: DbConfig = serde_json::from_str(&data)?;
+    let mut config: DbConfig = serde_json::from_str(&data)?;
+
+    // Decode base64-encoded password if present
+    if config.password.starts_with("b64:") {
+        config.password = String::from_utf8(
+            BASE64.decode(&config.password[4..]).unwrap_or_default()
+        ).unwrap_or_default();
+    }
+
     Ok(Some(config))
 }
 
 pub fn save_db_config_to_file(app: &AppHandle, config: &DbConfig) -> Result<(), Box<dyn std::error::Error>> {
     let config_path = get_config_path(app)?;
-    let data = serde_json::to_string_pretty(config)?;
+
+    // Encode the password as base64 before saving to disk
+    let mut config_to_save = config.clone();
+    config_to_save.password = format!("b64:{}", BASE64.encode(&config.password));
+
+    let data = serde_json::to_string_pretty(&config_to_save)?;
     std::fs::write(&config_path, data)?;
     Ok(())
 }

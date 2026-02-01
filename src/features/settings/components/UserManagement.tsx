@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, Shield, Eye, EyeOff } from 'lucide-react';
+import { toast } from '@/stores/useToastStore';
 import { Button, Input, Select, Modal } from '@/components/ui';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '../hooks/useUsers';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -108,7 +109,7 @@ export function UserManagement() {
       await deleteUser.mutateAsync(deleteConfirmUser.id);
       setDeleteConfirmUser(null);
     } catch (err) {
-      alert(typeof err === 'string' ? err : t('userManagement.deleteError'));
+      toast.error(typeof err === 'string' ? err : t('userManagement.deleteError'));
       setDeleteConfirmUser(null);
     }
   };

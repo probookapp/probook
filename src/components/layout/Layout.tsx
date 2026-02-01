@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { ToastContainer } from "@/components/ui";
@@ -9,6 +10,7 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
+  const { t } = useTranslation("common");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
@@ -43,7 +45,7 @@ export function Layout({ children }: LayoutProps) {
         <div className="sticky top-0 z-30 flex items-center gap-4 bg-gray-100 dark:bg-gray-900 px-4 py-3 lg:hidden border-b border-gray-200 dark:border-gray-800">
           <button
             onClick={() => setIsSidebarOpen(true)}
-            aria-label="Open menu"
+            aria-label={t("nav.openMenu")}
             className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800"
           >
             <Menu className="h-6 w-6" />

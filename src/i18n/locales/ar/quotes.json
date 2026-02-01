@@ -61,14 +61,18 @@
     "percent": "الدفعة المقدمة (%)",
     "amount": "مبلغ ثابت (€)",
     "amountPaid": "الدفعة المقدمة المدفوعة",
-    "remaining": "المتبقي"
+    "remaining": "المتبقي",
+    "percentPlaceholder": "مثال: 30",
+    "amountPlaceholder": "مثال: 500"
   },
   "totals": {
     "subtotalHt": "المجموع الفرعي (بدون ضريبة)",
     "vatProducts": "ضريبة المنتجات",
     "shippingHt": "الشحن (بدون ضريبة)",
     "shippingVat": "ضريبة الشحن",
-    "totalTtc": "المجموع (شامل الضريبة)"
+    "totalTtc": "المجموع (شامل الضريبة)",
+    "labelHt": "بدون ضريبة",
+    "labelTtc": "شامل الضريبة"
   },
   "actions": {
     "convertToInvoice": "تحويل إلى فاتورة",

@@ -39,6 +39,12 @@
     "totalOverdue": "إجمالي المتأخر",
     "daysOverdue": "يوم(أيام) متأخر",
     "daysUntil": "يوم(أيام) متبقية",
+    "messageOverdue": "متأخر {{days}} يوم(أيام)",
+    "messageDueSoon": "مستحق خلال {{days}} يوم(أيام)",
+    "messageExpiring": "ينتهي خلال {{days}} يوم(أيام)",
+    "messageExpired": "منتهي منذ {{days}} يوم(أيام)",
+    "reminderPaymentDue": "دفعة متأخرة",
+    "reminderQuoteExpiring": "عرض سعر ينتهي قريباً",
     "viewAll": "عرض الكل"
   },
   "quickActions": {

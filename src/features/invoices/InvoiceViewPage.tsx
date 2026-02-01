@@ -18,6 +18,7 @@ import { PaymentsList } from "./components";
 import { useInvoice, useMarkInvoicePaid, useIssueInvoice, useVerifyInvoiceIntegrity, useConvertInvoiceToDeliveryNote } from "./hooks/useInvoices";
 import { useCompanySettings } from "@/features/settings";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { toast } from "@/stores/useToastStore";
 
 export function InvoiceViewPage() {
   const { t } = useTranslation(["invoices", "common"]);
@@ -55,7 +56,7 @@ export function InvoiceViewPage() {
 
   const handleSendEmail = () => {
     if (!invoice.client?.email) {
-      alert(t("invoices:noClientEmail", "Ce client n'a pas d'adresse email."));
+      toast.error(t("invoices:noClientEmail"));
       return;
     }
     setShowEmailDialog(true);
@@ -64,7 +65,7 @@ export function InvoiceViewPage() {
   const getEmailSubject = () => `${t("invoices:title")} ${invoice.invoice_number}`;
 
   const getEmailBody = () =>
-    `${t("invoices:emailGreeting", "Bonjour")},\n\n${t("invoices:emailBody", "Veuillez trouver ci-joint la facture {{number}} d'un montant de {{amount}}.\n\nDate d'échéance : {{date}}", { number: invoice.invoice_number, amount: formatCurrency(invoice.total_ttc), date: formatDate(invoice.due_date) })}\n\n${t("invoices:emailClosing", "Cordialement")},\n${company?.company_name || ""}`;
+    `${t("invoices:emailGreeting")},\n\n${t("invoices:emailBody", { number: invoice.invoice_number, amount: formatCurrency(invoice.total_ttc), date: formatDate(invoice.due_date) })}\n\n${t("invoices:emailClosing")},\n${company?.company_name || ""}`;
 
   return (
     <div className="space-y-6">
@@ -205,9 +206,9 @@ export function InvoiceViewPage() {
               </div>
 
               {invoice.notes && (
-                <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
-                  <p className="text-sm font-medium text-yellow-800">{t("invoices:fields.notes")}</p>
-                  <p className="text-sm text-yellow-700">{invoice.notes}</p>
+                <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg">
+                  <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">{t("invoices:fields.notes")}</p>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300">{invoice.notes}</p>
                 </div>
               )}
             </CardContent>
@@ -254,31 +255,31 @@ export function InvoiceViewPage() {
           {invoice.integrity_hash && (
             <Card>
               <CardHeader>
-                <CardTitle>{t("invoices:documentIntegrity", "Intégrité du document")}</CardTitle>
+                <CardTitle>{t("invoices:documentIntegrity")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3">
                   {isIntegrityValid ? (
                     <>
-                      <div className="p-2 bg-green-100 rounded-full">
+                      <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
                         <ShieldCheck className="h-5 w-5 text-green-600" />
                       </div>
                       <div>
-                        <p className="font-medium text-green-700">{t("invoices:integrityValid", "Document intègre")}</p>
-                        <p className="text-sm text-gray-500">
-                          {t("invoices:signatureValid", "La signature numérique est valide")}
+                        <p className="font-medium text-green-700 dark:text-green-300">{t("invoices:integrityValid")}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {t("invoices:signatureValid")}
                         </p>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div className="p-2 bg-red-100 rounded-full">
+                      <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
                         <ShieldAlert className="h-5 w-5 text-red-600" />
                       </div>
                       <div>
-                        <p className="font-medium text-red-700">{t("invoices:integrityInvalid", "Intégrité compromise")}</p>
-                        <p className="text-sm text-gray-500">
-                          {t("invoices:documentModified", "Le document a été modifié")}
+                        <p className="font-medium text-red-700 dark:text-red-300">{t("invoices:integrityInvalid")}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {t("invoices:documentModified")}
                         </p>
                       </div>
                     </>

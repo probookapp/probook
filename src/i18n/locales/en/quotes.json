@@ -61,14 +61,18 @@
     "percent": "Down Payment (%)",
     "amount": "Fixed Amount (€)",
     "amountPaid": "Down Payment Paid",
-    "remaining": "Remaining"
+    "remaining": "Remaining",
+    "percentPlaceholder": "e.g. 30",
+    "amountPlaceholder": "e.g. 500"
   },
   "totals": {
     "subtotalHt": "Subtotal (excl. VAT)",
     "vatProducts": "VAT on products",
     "shippingHt": "Shipping (excl. VAT)",
     "shippingVat": "VAT on shipping",
-    "totalTtc": "Total (incl. VAT)"
+    "totalTtc": "Total (incl. VAT)",
+    "labelHt": "excl. VAT",
+    "labelTtc": "incl. VAT"
   },
   "actions": {
     "convertToInvoice": "Convert to Invoice",

@@ -37,6 +37,7 @@ export function useUpdateQuote() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["quotes"] });
       queryClient.invalidateQueries({ queryKey: ["quotes", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
     },
   });
 }
@@ -86,6 +87,7 @@ export function useConvertQuoteToDeliveryNote() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quotes"] });
       queryClient.invalidateQueries({ queryKey: ["deliveryNotes"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
     },
   });
 }

@@ -9,6 +9,22 @@ import type { Alert } from "@/types";
 function AlertItem({ alert, onMarkExpired }: { alert: Alert; onMarkExpired?: (id: string) => void }) {
   const { t } = useTranslation("dashboard");
 
+  const getAlertMessage = () => {
+    const days = Math.abs(alert.days);
+    switch (alert.alert_type) {
+      case "OVERDUE_INVOICE":
+        return t("alerts.messageOverdue", { days });
+      case "DUE_SOON":
+        return t("alerts.messageDueSoon", { days });
+      case "EXPIRING_QUOTE":
+        return t("alerts.messageExpiring", { days });
+      case "EXPIRED_QUOTE":
+        return t("alerts.messageExpired", { days });
+      default:
+        return alert.message;
+    }
+  };
+
   const getIcon = () => {
     switch (alert.alert_type) {
       case "OVERDUE_INVOICE":
@@ -58,7 +74,7 @@ function AlertItem({ alert, onMarkExpired }: { alert: Alert; onMarkExpired?: (id
             )}
           </div>
           <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{alert.client_name}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{alert.message}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{getAlertMessage()}</p>
           {alert.amount && (
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-1">
               {formatCurrency(alert.amount)}

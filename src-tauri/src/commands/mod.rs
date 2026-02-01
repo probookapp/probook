@@ -22,9 +22,15 @@ pub struct AppState {
     pub current_user_id: Mutex<Option<String>>,
 }
 
+fn require_auth(state: &AppState) -> Result<String, String> {
+    let guard = state.current_user_id.lock().unwrap();
+    guard.clone().ok_or_else(|| "Authentication required".to_string())
+}
+
 // Client Commands
 #[tauri::command]
 pub async fn get_clients(state: State<'_, AppState>) -> Result<Vec<Client>, String> {
+    require_auth(&state)?;
     repository::get_all_clients(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -32,6 +38,7 @@ pub async fn get_clients(state: State<'_, AppState>) -> Result<Vec<Client>, Stri
 
 #[tauri::command]
 pub async fn get_client(id: String, state: State<'_, AppState>) -> Result<Client, String> {
+    require_auth(&state)?;
     repository::get_client_by_id(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -39,6 +46,7 @@ pub async fn get_client(id: String, state: State<'_, AppState>) -> Result<Client
 
 #[tauri::command]
 pub async fn create_client(input: CreateClientInput, state: State<'_, AppState>) -> Result<Client, String> {
+    require_auth(&state)?;
     repository::create_client(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -46,6 +54,7 @@ pub async fn create_client(input: CreateClientInput, state: State<'_, AppState>)
 
 #[tauri::command]
 pub async fn update_client(input: UpdateClientInput, state: State<'_, AppState>) -> Result<Client, String> {
+    require_auth(&state)?;
     repository::update_client(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -53,6 +62,7 @@ pub async fn update_client(input: UpdateClientInput, state: State<'_, AppState>)
 
 #[tauri::command]
 pub async fn delete_client(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     repository::delete_client(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -60,6 +70,7 @@ pub async fn delete_client(id: String, state: State<'_, AppState>) -> Result<(),
 
 #[tauri::command]
 pub async fn batch_delete_clients(ids: Vec<String>, state: State<'_, AppState>) -> Result<u64, String> {
+    require_auth(&state)?;
     repository::batch_delete_clients(&state.pool, ids)
         .await
         .map_err(|e| e.to_string())
@@ -68,6 +79,7 @@ pub async fn batch_delete_clients(ids: Vec<String>, state: State<'_, AppState>) 
 // Product Commands
 #[tauri::command]
 pub async fn get_products(state: State<'_, AppState>) -> Result<Vec<Product>, String> {
+    require_auth(&state)?;
     repository::get_all_products(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -75,6 +87,7 @@ pub async fn get_products(state: State<'_, AppState>) -> Result<Vec<Product>, St
 
 #[tauri::command]
 pub async fn get_product(id: String, state: State<'_, AppState>) -> Result<Product, String> {
+    require_auth(&state)?;
     repository::get_product_by_id(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -82,6 +95,7 @@ pub async fn get_product(id: String, state: State<'_, AppState>) -> Result<Produ
 
 #[tauri::command]
 pub async fn create_product(input: CreateProductInput, state: State<'_, AppState>) -> Result<Product, String> {
+    require_auth(&state)?;
     repository::create_product(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -89,6 +103,7 @@ pub async fn create_product(input: CreateProductInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn update_product(input: UpdateProductInput, state: State<'_, AppState>) -> Result<Product, String> {
+    require_auth(&state)?;
     repository::update_product(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -96,6 +111,7 @@ pub async fn update_product(input: UpdateProductInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn delete_product(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     repository::delete_product(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -103,6 +119,7 @@ pub async fn delete_product(id: String, state: State<'_, AppState>) -> Result<()
 
 #[tauri::command]
 pub async fn batch_delete_products(ids: Vec<String>, state: State<'_, AppState>) -> Result<u64, String> {
+    require_auth(&state)?;
     repository::batch_delete_products(&state.pool, ids)
         .await
         .map_err(|e| e.to_string())
@@ -111,6 +128,7 @@ pub async fn batch_delete_products(ids: Vec<String>, state: State<'_, AppState>)
 // Quote Commands
 #[tauri::command]
 pub async fn get_quotes(state: State<'_, AppState>) -> Result<Vec<Quote>, String> {
+    require_auth(&state)?;
     repository::get_all_quotes(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -118,6 +136,7 @@ pub async fn get_quotes(state: State<'_, AppState>) -> Result<Vec<Quote>, String
 
 #[tauri::command]
 pub async fn get_quote(id: String, state: State<'_, AppState>) -> Result<Quote, String> {
+    require_auth(&state)?;
     repository::get_quote_by_id(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -125,6 +144,7 @@ pub async fn get_quote(id: String, state: State<'_, AppState>) -> Result<Quote, 
 
 #[tauri::command]
 pub async fn create_quote(input: CreateQuoteInput, state: State<'_, AppState>) -> Result<Quote, String> {
+    require_auth(&state)?;
     repository::create_quote(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -132,6 +152,7 @@ pub async fn create_quote(input: CreateQuoteInput, state: State<'_, AppState>) -
 
 #[tauri::command]
 pub async fn update_quote(input: UpdateQuoteInput, state: State<'_, AppState>) -> Result<Quote, String> {
+    require_auth(&state)?;
     // Get the current logo to potentially snapshot it with the quote
     let logo_snapshot = get_logo_base64_internal(&state).await;
 
@@ -142,6 +163,7 @@ pub async fn update_quote(input: UpdateQuoteInput, state: State<'_, AppState>) -
 
 #[tauri::command]
 pub async fn delete_quote(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     repository::delete_quote(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -149,6 +171,7 @@ pub async fn delete_quote(id: String, state: State<'_, AppState>) -> Result<(), 
 
 #[tauri::command]
 pub async fn batch_delete_quotes(ids: Vec<String>, state: State<'_, AppState>) -> Result<u64, String> {
+    require_auth(&state)?;
     repository::batch_delete_quotes(&state.pool, ids)
         .await
         .map_err(|e| e.to_string())
@@ -156,6 +179,7 @@ pub async fn batch_delete_quotes(ids: Vec<String>, state: State<'_, AppState>) -
 
 #[tauri::command]
 pub async fn convert_quote_to_invoice(id: String, state: State<'_, AppState>) -> Result<Invoice, String> {
+    require_auth(&state)?;
     repository::convert_quote_to_invoice(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -163,6 +187,7 @@ pub async fn convert_quote_to_invoice(id: String, state: State<'_, AppState>) ->
 
 #[tauri::command]
 pub async fn duplicate_quote(id: String, state: State<'_, AppState>) -> Result<Quote, String> {
+    require_auth(&state)?;
     repository::duplicate_quote(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -171,6 +196,7 @@ pub async fn duplicate_quote(id: String, state: State<'_, AppState>) -> Result<Q
 // Invoice Commands
 #[tauri::command]
 pub async fn get_invoices(state: State<'_, AppState>) -> Result<Vec<Invoice>, String> {
+    require_auth(&state)?;
     repository::get_all_invoices(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -178,6 +204,7 @@ pub async fn get_invoices(state: State<'_, AppState>) -> Result<Vec<Invoice>, St
 
 #[tauri::command]
 pub async fn get_invoice(id: String, state: State<'_, AppState>) -> Result<Invoice, String> {
+    require_auth(&state)?;
     repository::get_invoice_by_id(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -185,6 +212,7 @@ pub async fn get_invoice(id: String, state: State<'_, AppState>) -> Result<Invoi
 
 #[tauri::command]
 pub async fn create_invoice(input: CreateInvoiceInput, state: State<'_, AppState>) -> Result<Invoice, String> {
+    require_auth(&state)?;
     repository::create_invoice(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -192,6 +220,7 @@ pub async fn create_invoice(input: CreateInvoiceInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn update_invoice(input: UpdateInvoiceInput, state: State<'_, AppState>) -> Result<Invoice, String> {
+    require_auth(&state)?;
     repository::update_invoice(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -199,6 +228,7 @@ pub async fn update_invoice(input: UpdateInvoiceInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn delete_invoice(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     repository::delete_invoice(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -206,6 +236,7 @@ pub async fn delete_invoice(id: String, state: State<'_, AppState>) -> Result<()
 
 #[tauri::command]
 pub async fn batch_delete_invoices(ids: Vec<String>, state: State<'_, AppState>) -> Result<u64, String> {
+    require_auth(&state)?;
     repository::batch_delete_invoices(&state.pool, ids)
         .await
         .map_err(|e| e.to_string())
@@ -213,6 +244,7 @@ pub async fn batch_delete_invoices(ids: Vec<String>, state: State<'_, AppState>)
 
 #[tauri::command]
 pub async fn mark_invoice_paid(id: String, state: State<'_, AppState>) -> Result<Invoice, String> {
+    require_auth(&state)?;
     repository::mark_invoice_paid(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -220,6 +252,7 @@ pub async fn mark_invoice_paid(id: String, state: State<'_, AppState>) -> Result
 
 #[tauri::command]
 pub async fn issue_invoice(id: String, state: State<'_, AppState>) -> Result<Invoice, String> {
+    require_auth(&state)?;
     // Get the current logo to snapshot it with the invoice
     let logo_snapshot = get_logo_base64_internal(&state).await;
 
@@ -230,6 +263,7 @@ pub async fn issue_invoice(id: String, state: State<'_, AppState>) -> Result<Inv
 
 #[tauri::command]
 pub async fn duplicate_invoice(id: String, state: State<'_, AppState>) -> Result<Invoice, String> {
+    require_auth(&state)?;
     repository::duplicate_invoice(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -270,6 +304,7 @@ async fn get_logo_base64_internal(state: &State<'_, AppState>) -> Option<String>
 
 #[tauri::command]
 pub async fn verify_invoice_integrity(id: String, state: State<'_, AppState>) -> Result<bool, String> {
+    require_auth(&state)?;
     repository::verify_invoice_integrity(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -278,6 +313,7 @@ pub async fn verify_invoice_integrity(id: String, state: State<'_, AppState>) ->
 // Payment Commands
 #[tauri::command]
 pub async fn get_payments_by_invoice(invoice_id: String, state: State<'_, AppState>) -> Result<Vec<Payment>, String> {
+    require_auth(&state)?;
     repository::get_payments_by_invoice(&state.pool, &invoice_id)
         .await
         .map_err(|e| e.to_string())
@@ -285,6 +321,7 @@ pub async fn get_payments_by_invoice(invoice_id: String, state: State<'_, AppSta
 
 #[tauri::command]
 pub async fn create_payment(input: CreatePaymentInput, state: State<'_, AppState>) -> Result<Payment, String> {
+    require_auth(&state)?;
     repository::create_payment(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -292,6 +329,7 @@ pub async fn create_payment(input: CreatePaymentInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn delete_payment(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     repository::delete_payment(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -300,6 +338,7 @@ pub async fn delete_payment(id: String, state: State<'_, AppState>) -> Result<()
 // Settings Commands
 #[tauri::command]
 pub async fn get_company_settings(state: State<'_, AppState>) -> Result<CompanySettings, String> {
+    require_auth(&state)?;
     repository::get_company_settings(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -307,6 +346,7 @@ pub async fn get_company_settings(state: State<'_, AppState>) -> Result<CompanyS
 
 #[tauri::command]
 pub async fn update_company_settings(input: UpdateCompanySettingsInput, state: State<'_, AppState>) -> Result<CompanySettings, String> {
+    require_auth(&state)?;
     repository::update_company_settings(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -318,6 +358,7 @@ pub async fn upload_logo(
     app_handle: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
+    require_auth(&state)?;
     // Get the app data directory
     let app_data_dir = app_handle
         .path()
@@ -355,6 +396,7 @@ pub async fn upload_logo(
 
 #[tauri::command]
 pub async fn get_logo_base64(state: State<'_, AppState>) -> Result<Option<String>, String> {
+    require_auth(&state)?;
     let settings = repository::get_company_settings(&state.pool)
         .await
         .map_err(|e| e.to_string())?;
@@ -396,6 +438,7 @@ pub async fn delete_logo(
     _app_handle: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    require_auth(&state)?;
     let settings = repository::get_company_settings(&state.pool)
         .await
         .map_err(|e| e.to_string())?;
@@ -419,6 +462,7 @@ pub async fn delete_logo(
 // Expense Commands
 #[tauri::command]
 pub async fn get_expenses(state: State<'_, AppState>) -> Result<Vec<Expense>, String> {
+    require_auth(&state)?;
     repository::get_all_expenses(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -426,6 +470,7 @@ pub async fn get_expenses(state: State<'_, AppState>) -> Result<Vec<Expense>, St
 
 #[tauri::command]
 pub async fn get_expense(id: String, state: State<'_, AppState>) -> Result<Expense, String> {
+    require_auth(&state)?;
     repository::get_expense_by_id(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -433,6 +478,7 @@ pub async fn get_expense(id: String, state: State<'_, AppState>) -> Result<Expen
 
 #[tauri::command]
 pub async fn create_expense(input: CreateExpenseInput, state: State<'_, AppState>) -> Result<Expense, String> {
+    require_auth(&state)?;
     repository::create_expense(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -440,6 +486,7 @@ pub async fn create_expense(input: CreateExpenseInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn update_expense(input: UpdateExpenseInput, state: State<'_, AppState>) -> Result<Expense, String> {
+    require_auth(&state)?;
     repository::update_expense(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -447,6 +494,7 @@ pub async fn update_expense(input: UpdateExpenseInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn delete_expense(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     repository::delete_expense(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -454,6 +502,7 @@ pub async fn delete_expense(id: String, state: State<'_, AppState>) -> Result<()
 
 #[tauri::command]
 pub async fn batch_delete_expenses(ids: Vec<String>, state: State<'_, AppState>) -> Result<u64, String> {
+    require_auth(&state)?;
     repository::batch_delete_expenses(&state.pool, ids)
         .await
         .map_err(|e| e.to_string())
@@ -462,6 +511,7 @@ pub async fn batch_delete_expenses(ids: Vec<String>, state: State<'_, AppState>)
 // Supplier Commands
 #[tauri::command]
 pub async fn get_suppliers(state: State<'_, AppState>) -> Result<Vec<Supplier>, String> {
+    require_auth(&state)?;
     repository::get_all_suppliers(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -469,6 +519,7 @@ pub async fn get_suppliers(state: State<'_, AppState>) -> Result<Vec<Supplier>, 
 
 #[tauri::command]
 pub async fn get_supplier(id: String, state: State<'_, AppState>) -> Result<Supplier, String> {
+    require_auth(&state)?;
     repository::get_supplier_by_id(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -476,6 +527,7 @@ pub async fn get_supplier(id: String, state: State<'_, AppState>) -> Result<Supp
 
 #[tauri::command]
 pub async fn create_supplier(input: CreateSupplierInput, state: State<'_, AppState>) -> Result<Supplier, String> {
+    require_auth(&state)?;
     repository::create_supplier(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -483,6 +535,7 @@ pub async fn create_supplier(input: CreateSupplierInput, state: State<'_, AppSta
 
 #[tauri::command]
 pub async fn update_supplier(input: UpdateSupplierInput, state: State<'_, AppState>) -> Result<Supplier, String> {
+    require_auth(&state)?;
     repository::update_supplier(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -490,6 +543,7 @@ pub async fn update_supplier(input: UpdateSupplierInput, state: State<'_, AppSta
 
 #[tauri::command]
 pub async fn delete_supplier(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     repository::delete_supplier(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -497,6 +551,7 @@ pub async fn delete_supplier(id: String, state: State<'_, AppState>) -> Result<(
 
 #[tauri::command]
 pub async fn batch_delete_suppliers(ids: Vec<String>, state: State<'_, AppState>) -> Result<u64, String> {
+    require_auth(&state)?;
     repository::batch_delete_suppliers(&state.pool, ids)
         .await
         .map_err(|e| e.to_string())
@@ -505,6 +560,7 @@ pub async fn batch_delete_suppliers(ids: Vec<String>, state: State<'_, AppState>
 // Product-Supplier Link Commands
 #[tauri::command]
 pub async fn get_all_product_supplier_summaries(state: State<'_, AppState>) -> Result<Vec<ProductSupplierSummary>, String> {
+    require_auth(&state)?;
     repository::get_all_product_supplier_summaries(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -512,6 +568,7 @@ pub async fn get_all_product_supplier_summaries(state: State<'_, AppState>) -> R
 
 #[tauri::command]
 pub async fn get_suppliers_for_product(product_id: String, state: State<'_, AppState>) -> Result<Vec<SupplierWithPrice>, String> {
+    require_auth(&state)?;
     repository::get_suppliers_for_product(&state.pool, &product_id)
         .await
         .map_err(|e| e.to_string())
@@ -519,6 +576,7 @@ pub async fn get_suppliers_for_product(product_id: String, state: State<'_, AppS
 
 #[tauri::command]
 pub async fn get_products_for_supplier(supplier_id: String, state: State<'_, AppState>) -> Result<Vec<ProductWithPrice>, String> {
+    require_auth(&state)?;
     repository::get_products_for_supplier(&state.pool, &supplier_id)
         .await
         .map_err(|e| e.to_string())
@@ -526,6 +584,7 @@ pub async fn get_products_for_supplier(supplier_id: String, state: State<'_, App
 
 #[tauri::command]
 pub async fn add_product_supplier(input: CreateProductSupplierInput, state: State<'_, AppState>) -> Result<ProductSupplier, String> {
+    require_auth(&state)?;
     repository::add_product_supplier(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -533,6 +592,7 @@ pub async fn add_product_supplier(input: CreateProductSupplierInput, state: Stat
 
 #[tauri::command]
 pub async fn remove_product_supplier(link_id: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     repository::remove_product_supplier(&state.pool, &link_id)
         .await
         .map_err(|e| e.to_string())
@@ -540,6 +600,7 @@ pub async fn remove_product_supplier(link_id: String, state: State<'_, AppState>
 
 #[tauri::command]
 pub async fn update_product_supplier_price(link_id: String, purchase_price_ht: f64, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     repository::update_product_supplier_price(&state.pool, &link_id, purchase_price_ht)
         .await
         .map_err(|e| e.to_string())
@@ -548,6 +609,7 @@ pub async fn update_product_supplier_price(link_id: String, purchase_price_ht: f
 // Dashboard Commands
 #[tauri::command]
 pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<DashboardStats, String> {
+    require_auth(&state)?;
     repository::get_dashboard_stats(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -594,6 +656,7 @@ fn decrypt_backup(data: &[u8], password: &str) -> Result<BackupData, String> {
 
 #[tauri::command]
 pub async fn export_backup(file_path: String, password: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     if password.len() < 8 {
         return Err("Password must be at least 8 characters".to_string());
     }
@@ -623,22 +686,10 @@ pub async fn export_backup(file_path: String, password: String, state: State<'_,
     let suppliers = repository::get_all_suppliers(&state.pool)
         .await
         .map_err(|e| e.to_string())?;
-    // Gather all product-supplier links
-    let mut product_suppliers = Vec::new();
-    for product in &products {
-        let links = repository::get_suppliers_for_product(&state.pool, &product.id)
-            .await
-            .map_err(|e| e.to_string())?;
-        for link in links {
-            product_suppliers.push(ProductSupplier {
-                id: link.link_id,
-                product_id: product.id.clone(),
-                supplier_id: link.id,
-                purchase_price_ht: link.purchase_price_ht,
-                created_at: chrono::Utc::now(),
-            });
-        }
-    }
+    // Gather all product-supplier links with real created_at
+    let product_suppliers = repository::get_all_product_suppliers(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
     // Gather users and permissions for backup
     let users = repository::get_all_users_for_backup(&state.pool)
@@ -717,6 +768,7 @@ pub async fn export_backup(file_path: String, password: String, state: State<'_,
 
 #[tauri::command]
 pub async fn import_backup(file_path: String, password: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     let data = fs::read(&file_path).map_err(|e| e.to_string())?;
 
     // Try to parse as plain JSON first (local backups)
@@ -732,15 +784,17 @@ pub async fn import_backup(file_path: String, password: String, state: State<'_,
         decrypt_backup(&data, &password)?
     };
 
-    // Clear existing data and restore from backup
+    // Clear existing data and restore from backup in a single transaction
     // Note: This is a destructive operation
-    repository::clear_all_data(&state.pool)
+    let mut tx = state.pool.begin().await.map_err(|e| e.to_string())?;
+
+    repository::clear_all_data(&mut *tx)
         .await
         .map_err(|e| e.to_string())?;
 
     // Restore clients
     for client in backup.clients {
-        repository::restore_client(&state.pool, client)
+        repository::restore_client(&mut *tx, client)
             .await
             .map_err(|e| e.to_string())?;
     }
@@ -750,99 +804,101 @@ pub async fn import_backup(file_path: String, password: String, state: State<'_,
     let parents_first: Vec<_> = categories.iter().filter(|c| c.parent_id.is_none()).cloned().collect();
     let children: Vec<_> = categories.iter().filter(|c| c.parent_id.is_some()).cloned().collect();
     for category in parents_first.into_iter().chain(children.into_iter()) {
-        repository::restore_product_category(&state.pool, category)
+        repository::restore_product_category(&mut *tx, category)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     // Restore products
     for product in backup.products {
-        repository::restore_product(&state.pool, product)
+        repository::restore_product(&mut *tx, product)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     // Restore suppliers
     for supplier in backup.suppliers {
-        repository::restore_supplier(&state.pool, supplier)
+        repository::restore_supplier(&mut *tx, supplier)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     // Restore product-supplier links
     for ps in backup.product_suppliers {
-        repository::restore_product_supplier(&state.pool, ps)
+        repository::restore_product_supplier(&mut *tx, ps)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     // Restore quotes
     for quote in backup.quotes {
-        repository::restore_quote(&state.pool, quote)
+        repository::restore_quote(&mut *tx, quote)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     // Restore invoices
     for invoice in backup.invoices {
-        repository::restore_invoice(&state.pool, invoice)
+        repository::restore_invoice(&mut *tx, invoice)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     // Restore payments
     for payment in backup.payments {
-        repository::restore_payment(&state.pool, payment)
+        repository::restore_payment(&mut *tx, payment)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     // Restore delivery notes
     for dn in backup.delivery_notes {
-        repository::restore_delivery_note(&state.pool, dn)
+        repository::restore_delivery_note(&mut *tx, dn)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     // Restore expenses
     for expense in backup.expenses {
-        repository::restore_expense(&state.pool, expense)
+        repository::restore_expense(&mut *tx, expense)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     // Restore users
     for user in backup.users {
-        repository::restore_user(&state.pool, user)
+        repository::restore_user(&mut *tx, user)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     // Restore user permissions
     for perm in backup.user_permissions {
-        repository::restore_user_permission(&state.pool, perm)
+        repository::restore_user_permission(&mut *tx, perm)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     // Restore client contacts
     for contact in backup.client_contacts {
-        repository::restore_client_contact(&state.pool, contact)
+        repository::restore_client_contact(&mut *tx, contact)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     // Restore reminders
     for reminder in backup.reminders {
-        repository::restore_reminder(&state.pool, reminder)
+        repository::restore_reminder(&mut *tx, reminder)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     // Restore settings
-    repository::restore_settings(&state.pool, backup.settings)
+    repository::restore_settings(&mut *tx, backup.settings)
         .await
         .map_err(|e| e.to_string())?;
+
+    tx.commit().await.map_err(|e| e.to_string())?;
 
     Ok(())
 }
@@ -854,6 +910,7 @@ pub async fn update_app_settings(
     auto_update_enabled: bool,
     state: State<'_, AppState>,
 ) -> Result<CompanySettings, String> {
+    require_auth(&state)?;
     repository::update_app_settings(&state.pool, &app_language, &app_theme, auto_update_enabled)
         .await
         .map_err(|e| e.to_string())
@@ -889,6 +946,7 @@ pub async fn create_local_backup(
     app_handle: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<BackupInfo, String> {
+    require_auth(&state)?;
     let backups_dir = get_backups_dir(&app_handle)?;
 
     // Generate backup filename with timestamp
@@ -922,24 +980,13 @@ pub async fn create_local_backup(
     let suppliers = repository::get_all_suppliers(&state.pool)
         .await
         .map_err(|e| e.to_string())?;
-    let mut product_suppliers_local = Vec::new();
-    for product in &products {
-        let links = repository::get_suppliers_for_product(&state.pool, &product.id)
-            .await
-            .map_err(|e| e.to_string())?;
-        for link in links {
-            product_suppliers_local.push(ProductSupplier {
-                id: link.link_id,
-                product_id: product.id.clone(),
-                supplier_id: link.id,
-                purchase_price_ht: link.purchase_price_ht,
-                created_at: chrono::Utc::now(),
-            });
-        }
-    }
+    // Gather all product-supplier links with real created_at
+    let product_suppliers_local = repository::get_all_product_suppliers(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
     // Gather users and permissions for backup
-    let users_backup = repository::get_all_users_for_backup(&state.pool)
+    let mut users_backup = repository::get_all_users_for_backup(&state.pool)
         .await
         .map_err(|e| e.to_string())?;
     let user_permissions_backup = repository::get_all_user_permissions_for_backup(&state.pool)
@@ -960,8 +1007,13 @@ pub async fn create_local_backup(
         .await
         .map_err(|e| e.to_string())?;
 
+    // Redact password hashes for local backups (not encrypted)
+    for user in &mut users_backup {
+        user.password_hash = "[redacted]".to_string();
+    }
+
     let backup = BackupData {
-        version: "1.0".to_string(),
+        version: "2.0".to_string(),
         created_at: chrono::Utc::now().to_rfc3339(),
         clients,
         products,
@@ -1033,7 +1085,8 @@ fn cleanup_old_backups(backups_dir: &PathBuf, keep_count: usize) -> Result<(), S
 
 /// Get list of available local backups
 #[tauri::command]
-pub async fn get_backup_list(app_handle: AppHandle) -> Result<Vec<BackupInfo>, String> {
+pub async fn get_backup_list(app_handle: AppHandle, state: State<'_, AppState>) -> Result<Vec<BackupInfo>, String> {
+    require_auth(&state)?;
     let backups_dir = get_backups_dir(&app_handle)?;
 
     let mut backups: Vec<BackupInfo> = fs::read_dir(&backups_dir)
@@ -1067,7 +1120,8 @@ pub async fn get_backup_list(app_handle: AppHandle) -> Result<Vec<BackupInfo>, S
 
 /// Open the backups folder in the system file explorer
 #[tauri::command]
-pub async fn open_backups_folder(app_handle: AppHandle) -> Result<(), String> {
+pub async fn open_backups_folder(app_handle: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     let backups_dir = get_backups_dir(&app_handle)?;
 
     #[cfg(target_os = "windows")]
@@ -1099,12 +1153,21 @@ pub async fn open_backups_folder(app_handle: AppHandle) -> Result<(), String> {
 
 /// Delete a specific backup file
 #[tauri::command]
-pub async fn delete_backup(path: String) -> Result<(), String> {
+pub async fn delete_backup(path: String, app_handle: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     let backup_path = PathBuf::from(&path);
 
-    // Safety check: only delete backup files
+    // Safety check: only delete backup files with correct extension
     if backup_path.extension().map(|ext| ext != "enc" && ext != "json").unwrap_or(true) {
         return Err("Can only delete backup files".to_string());
+    }
+
+    // Safety check: verify the file is inside the backups directory
+    let backups_dir = get_backups_dir(&app_handle)?;
+    let canonical_backup = backup_path.canonicalize().map_err(|e| e.to_string())?;
+    let canonical_dir = backups_dir.canonicalize().map_err(|e| e.to_string())?;
+    if !canonical_backup.starts_with(&canonical_dir) {
+        return Err("Can only delete files in the backups directory".to_string());
     }
 
     fs::remove_file(&backup_path).map_err(|e| e.to_string())?;
@@ -1115,6 +1178,7 @@ pub async fn delete_backup(path: String) -> Result<(), String> {
 // Product Category Commands
 #[tauri::command]
 pub async fn get_product_categories(state: State<'_, AppState>) -> Result<Vec<ProductCategory>, String> {
+    require_auth(&state)?;
     repository::get_all_product_categories(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -1122,6 +1186,7 @@ pub async fn get_product_categories(state: State<'_, AppState>) -> Result<Vec<Pr
 
 #[tauri::command]
 pub async fn get_product_category(id: String, state: State<'_, AppState>) -> Result<ProductCategory, String> {
+    require_auth(&state)?;
     repository::get_product_category_by_id(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1129,6 +1194,7 @@ pub async fn get_product_category(id: String, state: State<'_, AppState>) -> Res
 
 #[tauri::command]
 pub async fn create_product_category(input: CreateProductCategoryInput, state: State<'_, AppState>) -> Result<ProductCategory, String> {
+    require_auth(&state)?;
     repository::create_product_category(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -1136,6 +1202,7 @@ pub async fn create_product_category(input: CreateProductCategoryInput, state: S
 
 #[tauri::command]
 pub async fn update_product_category(input: UpdateProductCategoryInput, state: State<'_, AppState>) -> Result<ProductCategory, String> {
+    require_auth(&state)?;
     repository::update_product_category(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -1143,6 +1210,7 @@ pub async fn update_product_category(input: UpdateProductCategoryInput, state: S
 
 #[tauri::command]
 pub async fn delete_product_category(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     repository::delete_product_category(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1156,6 +1224,7 @@ pub async fn upload_product_photo(
     app_handle: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
+    require_auth(&state)?;
     // Get the app data directory
     let app_data_dir = app_handle
         .path()
@@ -1193,6 +1262,7 @@ pub async fn upload_product_photo(
 
 #[tauri::command]
 pub async fn get_product_photo_base64(product_id: String, state: State<'_, AppState>) -> Result<Option<String>, String> {
+    require_auth(&state)?;
     let product = repository::get_product_by_id(&state.pool, &product_id)
         .await
         .map_err(|e| e.to_string())?;
@@ -1232,6 +1302,7 @@ pub async fn delete_product_photo(
     product_id: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    require_auth(&state)?;
     let product = repository::get_product_by_id(&state.pool, &product_id)
         .await
         .map_err(|e| e.to_string())?;
@@ -1255,6 +1326,7 @@ pub async fn delete_product_photo(
 // Delivery Note Commands
 #[tauri::command]
 pub async fn get_delivery_notes(state: State<'_, AppState>) -> Result<Vec<DeliveryNote>, String> {
+    require_auth(&state)?;
     repository::get_all_delivery_notes(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -1262,6 +1334,7 @@ pub async fn get_delivery_notes(state: State<'_, AppState>) -> Result<Vec<Delive
 
 #[tauri::command]
 pub async fn get_delivery_note(id: String, state: State<'_, AppState>) -> Result<DeliveryNote, String> {
+    require_auth(&state)?;
     repository::get_delivery_note_by_id(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1269,6 +1342,7 @@ pub async fn get_delivery_note(id: String, state: State<'_, AppState>) -> Result
 
 #[tauri::command]
 pub async fn create_delivery_note(input: CreateDeliveryNoteInput, state: State<'_, AppState>) -> Result<DeliveryNote, String> {
+    require_auth(&state)?;
     repository::create_delivery_note(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -1276,6 +1350,7 @@ pub async fn create_delivery_note(input: CreateDeliveryNoteInput, state: State<'
 
 #[tauri::command]
 pub async fn update_delivery_note(input: UpdateDeliveryNoteInput, state: State<'_, AppState>) -> Result<DeliveryNote, String> {
+    require_auth(&state)?;
     repository::update_delivery_note(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -1283,6 +1358,7 @@ pub async fn update_delivery_note(input: UpdateDeliveryNoteInput, state: State<'
 
 #[tauri::command]
 pub async fn delete_delivery_note(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     repository::delete_delivery_note(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1290,6 +1366,7 @@ pub async fn delete_delivery_note(id: String, state: State<'_, AppState>) -> Res
 
 #[tauri::command]
 pub async fn batch_delete_delivery_notes(ids: Vec<String>, state: State<'_, AppState>) -> Result<u64, String> {
+    require_auth(&state)?;
     repository::batch_delete_delivery_notes(&state.pool, ids)
         .await
         .map_err(|e| e.to_string())
@@ -1297,6 +1374,7 @@ pub async fn batch_delete_delivery_notes(ids: Vec<String>, state: State<'_, AppS
 
 #[tauri::command]
 pub async fn duplicate_delivery_note(id: String, state: State<'_, AppState>) -> Result<DeliveryNote, String> {
+    require_auth(&state)?;
     repository::duplicate_delivery_note(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1304,6 +1382,7 @@ pub async fn duplicate_delivery_note(id: String, state: State<'_, AppState>) -> 
 
 #[tauri::command]
 pub async fn convert_quote_to_delivery_note(id: String, state: State<'_, AppState>) -> Result<DeliveryNote, String> {
+    require_auth(&state)?;
     repository::convert_quote_to_delivery_note(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1311,6 +1390,7 @@ pub async fn convert_quote_to_delivery_note(id: String, state: State<'_, AppStat
 
 #[tauri::command]
 pub async fn convert_invoice_to_delivery_note(id: String, state: State<'_, AppState>) -> Result<DeliveryNote, String> {
+    require_auth(&state)?;
     repository::convert_invoice_to_delivery_note(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1318,6 +1398,7 @@ pub async fn convert_invoice_to_delivery_note(id: String, state: State<'_, AppSt
 
 #[tauri::command]
 pub async fn convert_delivery_note_to_invoice(id: String, state: State<'_, AppState>) -> Result<Invoice, String> {
+    require_auth(&state)?;
     repository::convert_delivery_note_to_invoice(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1325,6 +1406,7 @@ pub async fn convert_delivery_note_to_invoice(id: String, state: State<'_, AppSt
 
 #[tauri::command]
 pub async fn create_invoice_from_delivery_notes(delivery_note_ids: Vec<String>, state: State<'_, AppState>) -> Result<Invoice, String> {
+    require_auth(&state)?;
     repository::create_invoice_from_delivery_notes(&state.pool, delivery_note_ids)
         .await
         .map_err(|e| e.to_string())
@@ -1333,6 +1415,7 @@ pub async fn create_invoice_from_delivery_notes(delivery_note_ids: Vec<String>, 
 // Client Contact Commands
 #[tauri::command]
 pub async fn get_client_contacts(state: State<'_, AppState>) -> Result<Vec<ClientContact>, String> {
+    require_auth(&state)?;
     repository::get_all_client_contacts(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -1340,6 +1423,7 @@ pub async fn get_client_contacts(state: State<'_, AppState>) -> Result<Vec<Clien
 
 #[tauri::command]
 pub async fn get_client_contacts_by_client(client_id: String, state: State<'_, AppState>) -> Result<Vec<ClientContact>, String> {
+    require_auth(&state)?;
     repository::get_client_contacts_by_client_id(&state.pool, &client_id)
         .await
         .map_err(|e| e.to_string())
@@ -1347,6 +1431,7 @@ pub async fn get_client_contacts_by_client(client_id: String, state: State<'_, A
 
 #[tauri::command]
 pub async fn get_client_contact(id: String, state: State<'_, AppState>) -> Result<ClientContact, String> {
+    require_auth(&state)?;
     repository::get_client_contact_by_id(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1354,6 +1439,7 @@ pub async fn get_client_contact(id: String, state: State<'_, AppState>) -> Resul
 
 #[tauri::command]
 pub async fn create_client_contact(input: CreateClientContactInput, state: State<'_, AppState>) -> Result<ClientContact, String> {
+    require_auth(&state)?;
     repository::create_client_contact(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -1361,6 +1447,7 @@ pub async fn create_client_contact(input: CreateClientContactInput, state: State
 
 #[tauri::command]
 pub async fn update_client_contact(input: UpdateClientContactInput, state: State<'_, AppState>) -> Result<ClientContact, String> {
+    require_auth(&state)?;
     repository::update_client_contact(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -1368,6 +1455,7 @@ pub async fn update_client_contact(input: UpdateClientContactInput, state: State
 
 #[tauri::command]
 pub async fn delete_client_contact(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     repository::delete_client_contact(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1375,6 +1463,7 @@ pub async fn delete_client_contact(id: String, state: State<'_, AppState>) -> Re
 
 #[tauri::command]
 pub async fn search_contacts(query: String, state: State<'_, AppState>) -> Result<Vec<ClientContact>, String> {
+    require_auth(&state)?;
     repository::search_contacts(&state.pool, &query)
         .await
         .map_err(|e| e.to_string())
@@ -1383,6 +1472,7 @@ pub async fn search_contacts(query: String, state: State<'_, AppState>) -> Resul
 // Reminder Commands
 #[tauri::command]
 pub async fn get_reminders(state: State<'_, AppState>) -> Result<Vec<Reminder>, String> {
+    require_auth(&state)?;
     repository::get_all_reminders(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -1390,6 +1480,7 @@ pub async fn get_reminders(state: State<'_, AppState>) -> Result<Vec<Reminder>, 
 
 #[tauri::command]
 pub async fn get_pending_reminders(state: State<'_, AppState>) -> Result<Vec<Reminder>, String> {
+    require_auth(&state)?;
     repository::get_pending_reminders(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -1397,6 +1488,7 @@ pub async fn get_pending_reminders(state: State<'_, AppState>) -> Result<Vec<Rem
 
 #[tauri::command]
 pub async fn get_reminders_by_document(document_type: String, document_id: String, state: State<'_, AppState>) -> Result<Vec<Reminder>, String> {
+    require_auth(&state)?;
     repository::get_reminders_by_document(&state.pool, &document_type, &document_id)
         .await
         .map_err(|e| e.to_string())
@@ -1404,6 +1496,7 @@ pub async fn get_reminders_by_document(document_type: String, document_id: Strin
 
 #[tauri::command]
 pub async fn create_reminder(input: CreateReminderInput, state: State<'_, AppState>) -> Result<Reminder, String> {
+    require_auth(&state)?;
     repository::create_reminder(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -1411,6 +1504,7 @@ pub async fn create_reminder(input: CreateReminderInput, state: State<'_, AppSta
 
 #[tauri::command]
 pub async fn mark_reminder_sent(id: String, state: State<'_, AppState>) -> Result<Reminder, String> {
+    require_auth(&state)?;
     repository::mark_reminder_sent(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1418,6 +1512,7 @@ pub async fn mark_reminder_sent(id: String, state: State<'_, AppState>) -> Resul
 
 #[tauri::command]
 pub async fn delete_reminder(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
     repository::delete_reminder(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1425,6 +1520,7 @@ pub async fn delete_reminder(id: String, state: State<'_, AppState>) -> Result<(
 
 #[tauri::command]
 pub async fn check_and_create_reminders(state: State<'_, AppState>) -> Result<Vec<Reminder>, String> {
+    require_auth(&state)?;
     let mut all_reminders = Vec::new();
 
     // Create payment due reminders
@@ -1449,6 +1545,7 @@ pub async fn get_revenue_by_month(
     end_date: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<Vec<RevenueByPeriod>, String> {
+    require_auth(&state)?;
     let start = start_date.and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok());
     let end = end_date.and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok());
     repository::get_revenue_by_month(&state.pool, start, end)
@@ -1462,6 +1559,7 @@ pub async fn get_revenue_by_client(
     end_date: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<Vec<RevenueByClient>, String> {
+    require_auth(&state)?;
     let start = start_date.and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok());
     let end = end_date.and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok());
     repository::get_revenue_by_client(&state.pool, start, end)
@@ -1475,6 +1573,7 @@ pub async fn get_product_sales(
     end_date: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<Vec<ProductSales>, String> {
+    require_auth(&state)?;
     let start = start_date.and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok());
     let end = end_date.and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok());
     repository::get_product_sales(&state.pool, start, end)
@@ -1484,6 +1583,7 @@ pub async fn get_product_sales(
 
 #[tauri::command]
 pub async fn get_outstanding_payments(state: State<'_, AppState>) -> Result<Vec<OutstandingPayment>, String> {
+    require_auth(&state)?;
     repository::get_outstanding_payments(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -1495,6 +1595,7 @@ pub async fn get_quote_conversion_stats(
     end_date: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<QuoteConversionStats, String> {
+    require_auth(&state)?;
     let start = start_date.and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok());
     let end = end_date.and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok());
     repository::get_quote_conversion_stats(&state.pool, start, end)
@@ -1505,6 +1606,7 @@ pub async fn get_quote_conversion_stats(
 // Alerts and Reminders
 #[tauri::command]
 pub async fn get_alerts_summary(state: State<'_, AppState>) -> Result<AlertsSummary, String> {
+    require_auth(&state)?;
     repository::get_alerts_summary(&state.pool)
         .await
         .map_err(|e| e.to_string())
@@ -1512,6 +1614,7 @@ pub async fn get_alerts_summary(state: State<'_, AppState>) -> Result<AlertsSumm
 
 #[tauri::command]
 pub async fn mark_quote_expired(quote_id: String, state: State<'_, AppState>) -> Result<Quote, String> {
+    require_auth(&state)?;
     repository::mark_quote_expired(&state.pool, &quote_id)
         .await
         .map_err(|e| e.to_string())
@@ -1520,6 +1623,7 @@ pub async fn mark_quote_expired(quote_id: String, state: State<'_, AppState>) ->
 // Import Commands
 #[tauri::command]
 pub async fn import_clients(file_path: String, state: State<'_, AppState>) -> Result<ImportResult, String> {
+    require_auth(&state)?;
     let (headers, rows) = import::parse_file(&file_path)?;
 
     import::validate_columns(
@@ -1529,6 +1633,11 @@ pub async fn import_clients(file_path: String, state: State<'_, AppState>) -> Re
     )?;
 
     let mut result = ImportResult::new();
+
+    // Fetch all clients once before the loop to avoid O(n*m)
+    let mut existing_clients = repository::get_all_clients(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
     for (i, row) in rows.iter().enumerate() {
         let name = match import::get_field(&headers, row, "name") {
@@ -1543,11 +1652,7 @@ pub async fn import_clients(file_path: String, state: State<'_, AppState>) -> Re
         let phone = import::get_field(&headers, row, "phone");
 
         // Check for duplicate by name+phone or email
-        let existing = repository::get_all_clients(&state.pool)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        let found = existing.iter().find(|c| {
+        let found = existing_clients.iter().find(|c| {
             (c.name == name && c.phone.as_deref() == phone.as_deref())
                 || (email.is_some() && c.email.as_deref() == email.as_deref())
         });
@@ -1586,7 +1691,10 @@ pub async fn import_clients(file_path: String, state: State<'_, AppState>) -> Re
                 notes: import::get_field(&headers, row, "notes"),
             };
             match repository::create_client(&state.pool, input).await {
-                Ok(_) => result.added += 1,
+                Ok(new_client) => {
+                    existing_clients.push(new_client);
+                    result.added += 1;
+                }
                 Err(e) => result.errors.push(format!("Row {}: {}", i + 2, e)),
             }
         }
@@ -1597,6 +1705,7 @@ pub async fn import_clients(file_path: String, state: State<'_, AppState>) -> Re
 
 #[tauri::command]
 pub async fn import_products(file_path: String, state: State<'_, AppState>) -> Result<ImportResult, String> {
+    require_auth(&state)?;
     let (headers, rows) = import::parse_file(&file_path)?;
 
     import::validate_columns(
@@ -1606,6 +1715,11 @@ pub async fn import_products(file_path: String, state: State<'_, AppState>) -> R
     )?;
 
     let mut result = ImportResult::new();
+
+    // Fetch all products once before the loop to avoid O(n*m)
+    let existing_products = repository::get_all_products(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
     for (i, row) in rows.iter().enumerate() {
         let designation = match import::get_field(&headers, row, "designation") {
@@ -1633,11 +1747,7 @@ pub async fn import_products(file_path: String, state: State<'_, AppState>) -> R
         let reference = import::get_field(&headers, row, "reference");
 
         // Check for duplicate by reference (if provided) or designation
-        let existing = repository::get_all_products(&state.pool)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        let found = existing.iter().find(|p| {
+        let found = existing_products.iter().find(|p| {
             if let Some(ref ref_val) = reference {
                 p.reference.as_deref() == Some(ref_val.as_str())
             } else {
@@ -1670,12 +1780,13 @@ pub async fn import_products(file_path: String, state: State<'_, AppState>) -> R
             description: import::get_field(&headers, row, "description"),
             unit_price_ht,
             vat_rate,
-            unit: import::get_field(&headers, row, "unit").unwrap_or_else(|| "unité".to_string()),
+            unit: import::get_field(&headers, row, "unit").unwrap_or_else(|| "unite".to_string()),
             reference,
             is_service,
             category_id: None,
             quantity,
             purchase_price_ht,
+            description_html: None,
         };
 
         match repository::create_product(&state.pool, input).await {
@@ -1689,6 +1800,7 @@ pub async fn import_products(file_path: String, state: State<'_, AppState>) -> R
 
 #[tauri::command]
 pub async fn import_suppliers(file_path: String, state: State<'_, AppState>) -> Result<ImportResult, String> {
+    require_auth(&state)?;
     let (headers, rows) = import::parse_file(&file_path)?;
 
     import::validate_columns(
@@ -1698,6 +1810,11 @@ pub async fn import_suppliers(file_path: String, state: State<'_, AppState>) -> 
     )?;
 
     let mut result = ImportResult::new();
+
+    // Fetch all suppliers once before the loop to avoid O(n*m)
+    let mut existing_suppliers = repository::get_all_suppliers(&state.pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
     for (i, row) in rows.iter().enumerate() {
         let name = match import::get_field(&headers, row, "name") {
@@ -1711,11 +1828,7 @@ pub async fn import_suppliers(file_path: String, state: State<'_, AppState>) -> 
         let email = import::get_field(&headers, row, "email");
 
         // Check for duplicate by name+email
-        let existing = repository::get_all_suppliers(&state.pool)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        let found = existing.iter().find(|s| {
+        let found = existing_suppliers.iter().find(|s| {
             s.name == name && s.email.as_deref() == email.as_deref()
         });
 
@@ -1743,7 +1856,10 @@ pub async fn import_suppliers(file_path: String, state: State<'_, AppState>) -> 
                 notes: import::get_field(&headers, row, "notes"),
             };
             match repository::create_supplier(&state.pool, input).await {
-                Ok(_) => result.added += 1,
+                Ok(new_supplier) => {
+                    existing_suppliers.push(new_supplier);
+                    result.added += 1;
+                }
                 Err(e) => result.errors.push(format!("Row {}: {}", i + 2, e)),
             }
         }
@@ -1802,8 +1918,8 @@ pub async fn setup_admin(input: SetupInput, state: State<'_, AppState>) -> Resul
         return Err("Setup already completed".to_string());
     }
 
-    if input.password.len() < 4 {
-        return Err("Password must be at least 4 characters".to_string());
+    if input.password.len() < 8 {
+        return Err("Password must be at least 8 characters".to_string());
     }
 
     let id = uuid::Uuid::new_v4().to_string();
@@ -1904,8 +2020,8 @@ pub async fn get_users(state: State<'_, AppState>) -> Result<Vec<UserInfo>, Stri
 pub async fn create_user_account(input: CreateUserInput, state: State<'_, AppState>) -> Result<UserInfo, String> {
     require_admin(&state).await?;
 
-    if input.password.len() < 4 {
-        return Err("Password must be at least 4 characters".to_string());
+    if input.password.len() < 8 {
+        return Err("Password must be at least 8 characters".to_string());
     }
 
     let id = uuid::Uuid::new_v4().to_string();
@@ -1937,8 +2053,8 @@ pub async fn update_user_account(input: UpdateUserInput, state: State<'_, AppSta
 
     if let Some(ref password) = input.password {
         if !password.is_empty() {
-            if password.len() < 4 {
-                return Err("Password must be at least 4 characters".to_string());
+            if password.len() < 8 {
+                return Err("Password must be at least 8 characters".to_string());
             }
             let password_hash = hash_password(password)?;
             repository::update_user_password(&state.pool, &input.id, &password_hash)
@@ -2000,8 +2116,8 @@ pub async fn change_own_password(current_password: String, new_password: String,
         return Err("Current password is incorrect".to_string());
     }
 
-    if new_password.len() < 4 {
-        return Err("New password must be at least 4 characters".to_string());
+    if new_password.len() < 8 {
+        return Err("New password must be at least 8 characters".to_string());
     }
 
     let new_hash = hash_password(&new_password)?;
@@ -2027,26 +2143,11 @@ pub async fn test_db_connection(config: DbConfig) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn save_db_config(config: DbConfig, app: AppHandle) -> Result<(), String> {
+pub async fn save_db_config(config: DbConfig, app: AppHandle) -> Result<String, String> {
     // Save config to file
     db::connection::save_db_config_to_file(&app, &config).map_err(|e| e.to_string())?;
 
-    // Connect and run migrations
-    let pool = db::connection::connect_to_postgres(&config)
-        .await
-        .map_err(|e| format!("Connection failed: {}", e))?;
-
-    db::migrations::run_migrations(&pool)
-        .await
-        .map_err(|e| format!("Migration failed: {}", e))?;
-
-    // Manage AppState with the new pool
-    app.manage(AppState {
-        pool,
-        current_user_id: Mutex::new(None),
-    });
-
-    Ok(())
+    Ok("Database configuration saved. Please restart the application for changes to take effect.".to_string())
 }
 
 #[tauri::command]

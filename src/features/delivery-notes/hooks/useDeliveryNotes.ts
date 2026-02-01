@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { deliveryNoteApi, quoteApi } from "@/lib/tauri";
+import { deliveryNoteApi } from "@/lib/tauri";
 import type { CreateDeliveryNoteInput, UpdateDeliveryNoteInput } from "@/types";
 
 export function useDeliveryNotes() {
@@ -62,17 +62,6 @@ export function useDuplicateDeliveryNote() {
   });
 }
 
-export function useConvertQuoteToDeliveryNote() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (quoteId: string) => quoteApi.convertToDeliveryNote(quoteId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["deliveryNotes"] });
-    },
-  });
-}
-
 export function useConvertDeliveryNoteToInvoice() {
   const queryClient = useQueryClient();
 
@@ -81,6 +70,7 @@ export function useConvertDeliveryNoteToInvoice() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["deliveryNotes"] });
     },
   });
 }

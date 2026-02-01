@@ -358,21 +358,21 @@ export function ReportsPage() {
                   <p className="text-sm text-(--color-text-secondary)">{t("reports:quoteConversion.totalQuotes")}</p>
                   <p className="text-2xl font-bold">{conversionData.total_quotes}</p>
                 </div>
-                <div className="p-4 bg-green-50 rounded-lg">
-                  <p className="text-sm text-green-600">{t("reports:acceptedQuotes")}</p>
-                  <p className="text-2xl font-bold text-green-700">
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <p className="text-sm text-green-600 dark:text-green-400">{t("reports:acceptedQuotes")}</p>
+                  <p className="text-2xl font-bold text-green-700 dark:text-green-300">
                     {conversionData.converted_quotes}
                   </p>
                 </div>
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-600">{t("reports:quoteConversion.conversionRate")}</p>
-                  <p className="text-2xl font-bold text-blue-700">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <p className="text-sm text-blue-600 dark:text-blue-400">{t("reports:quoteConversion.conversionRate")}</p>
+                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                     {conversionData.conversion_rate.toFixed(1)}%
                   </p>
                 </div>
-                <div className="p-4 bg-primary-50 rounded-lg">
-                  <p className="text-sm text-primary-600">{t("reports:quoteConversion.convertedAmount")}</p>
-                  <p className="text-2xl font-bold text-primary-700">
+                <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+                  <p className="text-sm text-primary-600 dark:text-primary-400">{t("reports:quoteConversion.convertedAmount")}</p>
+                  <p className="text-2xl font-bold text-primary-700 dark:text-primary-300">
                     {formatCurrency(conversionData.converted_amount)}
                   </p>
                 </div>
@@ -387,7 +387,7 @@ export function ReportsPage() {
                         <span>{t("reports:quoteConversion.conversionRate")}</span>
                         <span>{conversionData.conversion_rate.toFixed(1)}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-4">
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
                         <div
                           className="bg-green-500 h-4 rounded-full transition-all duration-500"
                           style={{ width: `${Math.min(conversionData.conversion_rate, 100)}%` }}
@@ -403,7 +403,7 @@ export function ReportsPage() {
                       </div>
                       <div>
                         <p className="text-(--color-text-secondary)">{t("reports:quoteConversion.convertedAmount")}</p>
-                        <p className="font-medium text-green-600">
+                        <p className="font-medium text-green-600 dark:text-green-400">
                           {formatCurrency(conversionData.converted_amount)}
                         </p>
                       </div>

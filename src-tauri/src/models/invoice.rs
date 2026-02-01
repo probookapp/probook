@@ -122,6 +122,8 @@ pub struct CreateInvoiceInput {
     pub shipping_vat_rate: Option<f64>,
     pub down_payment_percent: Option<f64>,
     pub down_payment_amount: Option<f64>,
+    pub is_down_payment_invoice: Option<bool>,
+    pub parent_quote_id: Option<String>,
     pub lines: Vec<CreateInvoiceLineInput>,
 }
 
@@ -129,7 +131,6 @@ pub struct CreateInvoiceInput {
 pub struct UpdateInvoiceInput {
     pub id: String,
     pub client_id: String,
-    pub status: InvoiceStatus,
     pub issue_date: NaiveDate,
     pub due_date: NaiveDate,
     pub notes: Option<String>,

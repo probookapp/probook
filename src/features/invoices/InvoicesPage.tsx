@@ -205,7 +205,7 @@ export function InvoicesPage() {
                           <Copy className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => navigate(`/invoices/${invoice.id}/pdf`)}
+                          onClick={() => navigate(`/invoices/${invoice.id}`)}
                           className="p-1 text-gray-500 hover:text-primary-600 transition-colors"
                           title={t("invoices:actions.downloadPdf")}
                           aria-label={t("invoices:actions.downloadPdf")}
@@ -229,7 +229,7 @@ export function InvoicesPage() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-gray-500 py-8">
-                    <Receipt className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                    <Receipt className="h-12 w-12 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
                     {t("invoices:noInvoices")}
                   </TableCell>
                 </TableRow>

@@ -37,6 +37,7 @@ export function useUpdateInvoice() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoices", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
     },
   });
 }
@@ -141,6 +142,7 @@ export function useConvertInvoiceToDeliveryNote() {
     mutationFn: (id: string) => invoiceApi.convertToDeliveryNote(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deliveryNotes"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
     },
   });
 }
@@ -153,6 +155,7 @@ export function useCreateInvoiceFromDeliveryNotes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["deliveryNotes"] });
     },
   });
 }

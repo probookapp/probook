@@ -57,6 +57,7 @@ export interface Product {
   id: string;
   designation: string;
   description: string | null;
+  description_html: string | null;
   unit_price_ht: number;
   vat_rate: number;
   unit: string;
@@ -75,6 +76,7 @@ export interface Product {
 export interface CreateProductInput {
   designation: string;
   description?: string | null;
+  description_html?: string | null;
   unit_price_ht: number;
   vat_rate: number;
   unit: string;
@@ -133,7 +135,7 @@ export interface QuoteLine {
   position: number;
   // Phase 2: Subtotals
   group_name: string | null;
-  is_subtotal_line: number | null;
+  is_subtotal_line: boolean | null;
 }
 
 export interface CreateQuoteInput {
@@ -214,7 +216,7 @@ export interface InvoiceLine {
   position: number;
   // Phase 2: Subtotals
   group_name: string | null;
-  is_subtotal_line: number | null;
+  is_subtotal_line: boolean | null;
 }
 
 export interface CreateInvoiceInput {
@@ -228,6 +230,8 @@ export interface CreateInvoiceInput {
   shipping_vat_rate?: number;
   down_payment_percent?: number;
   down_payment_amount?: number;
+  is_down_payment_invoice?: boolean;
+  parent_quote_id?: string | null;
   lines: CreateInvoiceLineInput[];
 }
 
@@ -242,9 +246,18 @@ export interface CreateInvoiceLineInput {
   is_subtotal_line?: boolean;
 }
 
-export interface UpdateInvoiceInput extends CreateInvoiceInput {
+export interface UpdateInvoiceInput {
   id: string;
-  status: InvoiceStatus;
+  client_id: string;
+  issue_date: string;
+  due_date: string;
+  notes?: string | null;
+  notes_html?: string | null;
+  shipping_cost_ht?: number;
+  shipping_vat_rate?: number;
+  down_payment_percent?: number;
+  down_payment_amount?: number;
+  lines: CreateInvoiceLineInput[];
 }
 
 // Payment types
@@ -289,6 +302,7 @@ export interface CompanySettings {
   next_invoice_number: number;
   next_quote_number: number;
   legal_mentions: string | null;
+  legal_mentions_html: string | null;
   bank_details: string | null;
   // Phase 4: Delivery notes
   delivery_note_prefix: string | null;
@@ -324,7 +338,9 @@ export interface UpdateCompanySettingsInput {
   invoice_prefix: string;
   quote_prefix: string;
   legal_mentions?: string | null;
+  legal_mentions_html?: string | null;
   bank_details?: string | null;
+  delivery_note_prefix?: string | null;
   currency?: string | null;
 }
 
@@ -448,6 +464,7 @@ export interface DeliveryNote {
   delivery_date: string | null;
   delivery_address: string | null;
   notes: string | null;
+  notes_html: string | null;
   lines: DeliveryNoteLine[];
   created_at: string;
   updated_at: string;
@@ -458,6 +475,7 @@ export interface DeliveryNoteLine {
   delivery_note_id: string;
   product_id: string | null;
   description: string;
+  description_html: string | null;
   quantity: number;
   unit: string | null;
   position: number;
@@ -472,12 +490,14 @@ export interface CreateDeliveryNoteInput {
   delivery_date?: string | null;
   delivery_address?: string | null;
   notes?: string | null;
+  notes_html?: string | null;
   lines: CreateDeliveryNoteLineInput[];
 }
 
 export interface CreateDeliveryNoteLineInput {
   product_id?: string | null;
   description: string;
+  description_html?: string | null;
   quantity: number;
   unit?: string | null;
 }

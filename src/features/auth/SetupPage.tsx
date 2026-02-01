@@ -25,7 +25,7 @@ export function SetupPage() {
       return;
     }
 
-    if (password.length < 4) {
+    if (password.length < 8) {
       setError(t('setup.passwordTooShort'));
       return;
     }

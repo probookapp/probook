@@ -39,6 +39,12 @@
     "totalOverdue": "Total impayé",
     "daysOverdue": "jour(s) de retard",
     "daysUntil": "jour(s) restant(s)",
+    "messageOverdue": "{{days}} jour(s) de retard",
+    "messageDueSoon": "Échéance dans {{days}} jour(s)",
+    "messageExpiring": "Expire dans {{days}} jour(s)",
+    "messageExpired": "Expiré depuis {{days}} jour(s)",
+    "reminderPaymentDue": "Paiement en retard",
+    "reminderQuoteExpiring": "Devis expire bientôt",
     "viewAll": "Voir tout"
   },
   "quickActions": {

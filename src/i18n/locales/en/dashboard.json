@@ -39,6 +39,12 @@
     "totalOverdue": "Total Overdue",
     "daysOverdue": "day(s) overdue",
     "daysUntil": "day(s) remaining",
+    "messageOverdue": "{{days}} day(s) overdue",
+    "messageDueSoon": "Due in {{days}} day(s)",
+    "messageExpiring": "Expires in {{days}} day(s)",
+    "messageExpired": "Expired {{days}} day(s) ago",
+    "reminderPaymentDue": "Payment overdue",
+    "reminderQuoteExpiring": "Quote expiring soon",
     "viewAll": "View all"
   },
   "quickActions": {

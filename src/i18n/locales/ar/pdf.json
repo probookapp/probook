@@ -98,7 +98,9 @@
     "generatedOn": "تم الإنشاء في",
     "siret": "السجل التجاري",
     "vatNumber": "الرقم الضريبي",
-    "phone": "هاتف"
+    "phone": "هاتف",
+    "labelHt": "بدون ضريبة",
+    "labelTtc": "شامل الضريبة"
   },
   "numberToWords": {
     "and": "و",

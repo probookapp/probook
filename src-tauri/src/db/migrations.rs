@@ -326,7 +326,7 @@ pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
             document_type TEXT NOT NULL,
             document_id TEXT NOT NULL,
             scheduled_date TEXT NOT NULL,
-            sent_at TEXT,
+            sent_at TIMESTAMPTZ,
             message TEXT,
             created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
@@ -427,6 +427,12 @@ pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
         .execute(pool)
         .await
         .ok();
+    // Migrate reminders.sent_at from TEXT to TIMESTAMPTZ for existing databases
+    sqlx::query("ALTER TABLE reminders ALTER COLUMN sent_at TYPE TIMESTAMPTZ USING sent_at::TIMESTAMPTZ")
+        .execute(pool)
+        .await
+        .ok();
+
     sqlx::query("CREATE INDEX IF NOT EXISTS idx_invoices_client_id ON invoices(client_id)")
         .execute(pool)
         .await

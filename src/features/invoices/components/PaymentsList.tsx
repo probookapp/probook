@@ -74,19 +74,19 @@ export function PaymentsList({ invoice }: PaymentsListProps) {
       </CardHeader>
       <CardContent>
         {/* Summary */}
-        <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg mb-4">
+        <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-4">
           <div>
-            <p className="text-sm text-gray-500">{t("payments.invoiceTotal")}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t("payments.invoiceTotal")}</p>
             <p className="font-semibold">{formatCurrency(invoice.total_ttc)}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">{t("payments.totalPaid")}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t("payments.totalPaid")}</p>
             <p className="font-semibold text-green-600">
               {formatCurrency(totalPaid)}
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">{t("payments.remaining")}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t("payments.remaining")}</p>
             <p className={`font-semibold ${remaining > 0 ? "text-orange-600" : "text-green-600"}`}>
               {formatCurrency(remaining)}
             </p>
@@ -102,7 +102,7 @@ export function PaymentsList({ invoice }: PaymentsListProps) {
                 className="flex items-center justify-between p-3 border rounded-lg"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
+                  <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
                     <CreditCard className="h-4 w-4 text-green-600" />
                   </div>
                   <div>
@@ -157,7 +157,7 @@ export function PaymentsList({ invoice }: PaymentsListProps) {
         title={t("payments.deletePayment")}
         size="sm"
       >
-        <p className="text-gray-600 mb-6">
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
           {t("payments.deleteConfirm")}
         </p>
         <div className="flex justify-end gap-3">

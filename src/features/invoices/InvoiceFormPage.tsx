@@ -150,7 +150,7 @@ export function InvoiceFormPage() {
           unit_price_ht: line.unit_price_ht,
           vat_rate: line.vat_rate,
           group_name: line.group_name,
-          is_subtotal_line: line.is_subtotal_line === 1,
+          is_subtotal_line: !!line.is_subtotal_line,
         }))
       );
     }
@@ -277,7 +277,6 @@ export function InvoiceFormPage() {
       await updateInvoice.mutateAsync({
         id,
         ...formData,
-        status: data.status || "DRAFT",
       });
     } else {
       await createInvoice.mutateAsync(formData);
@@ -326,7 +325,7 @@ export function InvoiceFormPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>{t("invoices:generalInfo", "Informations générales")}</CardTitle>
+            <CardTitle>{t("invoices:generalInfo")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -436,7 +435,7 @@ export function InvoiceFormPage() {
                         <div className="text-right">
                           <span className="text-sm text-blue-600 dark:text-blue-400">{t("invoices:lines.groupTotal")}:</span>
                           <span className="ml-2 font-bold text-blue-800 dark:text-blue-200">
-                            {formatCurrency(groupSubtotals[groupName]?.ttc || 0)} TTC
+                            {formatCurrency(groupSubtotals[groupName]?.ttc || 0)} {t("invoices:totals.labelTtc")}
                           </span>
                         </div>
                       </div>
@@ -478,7 +477,7 @@ export function InvoiceFormPage() {
                                 ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300"
                                 : "text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300"
                             }`}
-                            title={t("invoices:richDescription", "Description enrichie")}
+                            title={t("invoices:richDescription")}
                           >
                             <FileText className="h-4 w-4" />
                           </button>
@@ -531,7 +530,7 @@ export function InvoiceFormPage() {
                     {isExpanded && (
                       <div className="mt-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-                          {t("invoices:richDescription", "Description enrichie (formatage HTML)")}
+                          {t("invoices:richDescription")}
                         </label>
                         <RichTextEditor
                           content={line?.description_html || ""}
@@ -541,7 +540,7 @@ export function InvoiceFormPage() {
                               setValue(`lines.${index}.description`, text);
                             }
                           }}
-                          placeholder={t("invoices:richDescriptionPlaceholder", "Description détaillée avec mise en forme...")}
+                          placeholder={t("invoices:richDescriptionPlaceholder")}
                           minHeight="80px"
                         />
                       </div>
@@ -582,13 +581,13 @@ export function InvoiceFormPage() {
               <div className="w-full sm:w-72 md:w-80 lg:w-96 space-y-2">
                 {/* Group subtotals */}
                 {Object.keys(groupSubtotals).length > 0 && (
-                  <div className="mb-3 pb-3 border-b border-gray-200">
-                    <p className="text-xs font-medium text-gray-500 uppercase mb-2">{t("invoices:groupSubtotals", "Sous-totaux par groupe")}</p>
+                  <div className="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+                    <p className="text-xs font-medium text-gray-500 uppercase mb-2">{t("invoices:groupSubtotals")}</p>
                     {Object.entries(groupSubtotals).map(([groupName, sub]) => (
-                      <div key={groupName} className="flex justify-between text-sm py-1 bg-gray-100 px-2 rounded mb-1">
-                        <span className="text-gray-600 font-medium">{groupName}</span>
-                        <span className="text-gray-700">
-                          {formatCurrency(sub.ht)} HT / {formatCurrency(sub.ttc)} TTC
+                      <div key={groupName} className="flex justify-between text-sm py-1 bg-gray-100 dark:bg-gray-800 px-2 rounded mb-1">
+                        <span className="text-gray-600 dark:text-gray-400 font-medium">{groupName}</span>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {formatCurrency(sub.ht)} {t("invoices:totals.labelHt")} / {formatCurrency(sub.ttc)} {t("invoices:totals.labelTtc")}
                         </span>
                       </div>
                     ))}
@@ -637,7 +636,7 @@ export function InvoiceFormPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t("invoices:shippingAndDownPayment", "Frais de port et acompte")}</CardTitle>
+            <CardTitle>{t("invoices:shippingAndDownPayment")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -658,18 +657,18 @@ export function InvoiceFormPage() {
                 type="number"
                 step="1"
                 {...register("down_payment_percent")}
-                placeholder="Ex: 30"
+                placeholder={t("invoices:downPayment.percentPlaceholder")}
               />
               <Input
                 label={t("invoices:downPayment.amount")}
                 type="number"
                 step="0.01"
                 {...register("down_payment_amount")}
-                placeholder="Ex: 500"
+                placeholder={t("invoices:downPayment.amountPlaceholder")}
               />
             </div>
             <p className="text-sm text-gray-500 mt-2">
-              {t("invoices:downPaymentHint", "Saisissez soit un pourcentage, soit un montant fixe pour l'acompte. Si les deux sont renseignés, le montant fixe sera utilisé.")}
+              {t("invoices:downPaymentHint")}
             </p>
           </CardContent>
         </Card>
@@ -685,7 +684,7 @@ export function InvoiceFormPage() {
                 setNotesHtml(html);
                 setValue("notes", text);
               }}
-              placeholder={t("invoices:notesPlaceholder", "Notes additionnelles (visibles sur la facture)...")}
+              placeholder={t("invoices:notesPlaceholder")}
               minHeight="120px"
             />
           </CardContent>

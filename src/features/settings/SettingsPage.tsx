@@ -4,6 +4,7 @@ import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import { Save, Upload, Download, AlertCircle, Image, Trash2, Clock, Sun, Moon, Monitor, Globe, HardDrive, FolderOpen, RefreshCw, Lock, Eye, EyeOff, Users } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
+import { toast } from "@/stores/useToastStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { UserManagement } from "./components/UserManagement";
 import {
@@ -48,6 +49,7 @@ const createSettingsSchema = (t: (key: string) => string) => z.object({
   default_payment_terms: z.coerce.number().min(0),
   invoice_prefix: z.string().min(1, t("validation.invoicePrefixRequired")),
   quote_prefix: z.string().min(1, t("validation.quotePrefixRequired")),
+  delivery_note_prefix: z.string().min(1, t("validation.deliveryNotePrefixRequired")).nullable().optional(),
   legal_mentions: z.string().nullable().optional(),
   bank_details: z.string().nullable().optional(),
   currency: z.string().optional().nullable(),
@@ -165,6 +167,7 @@ export function SettingsPage() {
       default_payment_terms: 30,
       invoice_prefix: "FA-",
       quote_prefix: "DE-",
+      delivery_note_prefix: "BL-",
       legal_mentions: "",
       bank_details: "",
       currency: "EUR",
@@ -188,6 +191,7 @@ export function SettingsPage() {
         default_payment_terms: settings.default_payment_terms,
         invoice_prefix: settings.invoice_prefix,
         quote_prefix: settings.quote_prefix,
+        delivery_note_prefix: settings.delivery_note_prefix ?? "BL-",
         legal_mentions: settings.legal_mentions ?? "",
         bank_details: settings.bank_details ?? "",
         currency: settings.currency ?? "EUR",
@@ -242,7 +246,7 @@ export function SettingsPage() {
       setPendingExportPath(null);
       setBackupPassword("");
       setConfirmPassword("");
-      alert(t("messages.exportSuccess"));
+      toast.success(t("messages.exportSuccess"));
     } catch (error) {
       setPasswordError(t("messages.exportFailed"));
     }
@@ -266,7 +270,7 @@ export function SettingsPage() {
         setImportModalOpen(true);
       }
     } catch (error) {
-      alert(t("messages.importFailed"));
+      toast.error(t("messages.importFailed"));
     }
   };
 
@@ -278,7 +282,7 @@ export function SettingsPage() {
       setImportModalOpen(false);
       setPendingImportPath(null);
       setBackupPassword("");
-      alert(t("messages.importSuccess"));
+      toast.success(t("messages.importSuccess"));
     } catch (error) {
       setPasswordError(t("backup.wrongPassword"));
     }
@@ -631,6 +635,11 @@ export function SettingsPage() {
                 label={t("billing.quotePrefix")}
                 {...register("quote_prefix")}
                 error={errors.quote_prefix?.message}
+              />
+              <Input
+                label={t("billing.deliveryNotePrefix")}
+                {...register("delivery_note_prefix")}
+                error={errors.delivery_note_prefix?.message}
               />
             </div>
           </CardContent>

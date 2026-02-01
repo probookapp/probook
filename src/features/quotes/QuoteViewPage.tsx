@@ -18,6 +18,7 @@ import { PDFViewer } from "@/features/pdf";
 import { useQuote, useConvertQuoteToInvoice, useConvertQuoteToDeliveryNote } from "./hooks/useQuotes";
 import { useCompanySettings } from "@/features/settings";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { toast } from "@/stores/useToastStore";
 
 export function QuoteViewPage() {
   const { t } = useTranslation(["quotes", "common"]);
@@ -52,7 +53,7 @@ export function QuoteViewPage() {
 
   const handleSendEmail = () => {
     if (!quote.client?.email) {
-      alert(t("quotes:noClientEmail", "Ce client n'a pas d'adresse email."));
+      toast.error(t("quotes:noClientEmail"));
       return;
     }
     setShowEmailDialog(true);
@@ -61,7 +62,7 @@ export function QuoteViewPage() {
   const getEmailSubject = () => `${t("quotes:title")} ${quote.quote_number}`;
 
   const getEmailBody = () =>
-    `${t("quotes:emailGreeting", "Bonjour")},\n\n${t("quotes:emailBody", "Veuillez trouver ci-joint le devis {{number}} d'un montant de {{amount}}.\n\nCe devis est valable jusqu'au {{date}}.", { number: quote.quote_number, amount: formatCurrency(quote.total_ttc), date: formatDate(quote.validity_date) })}\n\n${t("quotes:emailClosing", "Cordialement")},\n${company?.company_name || ""}`;
+    `${t("quotes:emailGreeting")},\n\n${t("quotes:emailBody", { number: quote.quote_number, amount: formatCurrency(quote.total_ttc), date: formatDate(quote.validity_date) })}\n\n${t("quotes:emailClosing")},\n${company?.company_name || ""}`;
 
   return (
     <div className="space-y-6">
@@ -106,7 +107,7 @@ export function QuoteViewPage() {
                 isLoading={convertToDeliveryNote.isPending}
               >
                 <Truck className="h-4 w-4 mr-2" />
-                {t("quotes:createDeliveryNote", "Créer bon de livraison")}
+                {t("quotes:createDeliveryNote")}
               </Button>
               <Button size="sm" onClick={() => setShowConvertModal(true)}>
                 <ArrowRight className="h-4 w-4 mr-2" />
@@ -192,9 +193,9 @@ export function QuoteViewPage() {
               </div>
 
               {quote.notes && (
-                <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
-                  <p className="text-sm font-medium text-yellow-800">{t("quotes:fields.notes")}</p>
-                  <p className="text-sm text-yellow-700">{quote.notes}</p>
+                <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg">
+                  <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">{t("quotes:fields.notes")}</p>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300">{quote.notes}</p>
                 </div>
               )}
             </CardContent>
@@ -227,7 +228,7 @@ export function QuoteViewPage() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">{t("quotes:pdfDocument", "Document PDF")}</CardTitle>
+              <CardTitle className="text-base">{t("quotes:pdfDocument")}</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               {company && (

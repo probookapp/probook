@@ -61,14 +61,18 @@
     "percent": "Acompte versé (%)",
     "amount": "Montant fixe (€)",
     "amountPaid": "Acompte déjà versé",
-    "remaining": "Reste à payer"
+    "remaining": "Reste à payer",
+    "percentPlaceholder": "Ex : 30",
+    "amountPlaceholder": "Ex : 500"
   },
   "totals": {
     "subtotalHt": "Sous-total HT",
     "vatProducts": "TVA produits",
     "shippingHt": "Frais de port HT",
     "shippingVat": "TVA frais de port",
-    "totalTtc": "Total TTC"
+    "totalTtc": "Total TTC",
+    "labelHt": "HT",
+    "labelTtc": "TTC"
   },
   "actions": {
     "convertToInvoice": "Convertir en facture",

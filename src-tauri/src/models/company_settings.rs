@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+fn default_auto_update() -> bool { true }
+
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct CompanySettings {
     pub id: String,
@@ -22,6 +24,7 @@ pub struct CompanySettings {
     pub next_invoice_number: i32,
     pub next_quote_number: i32,
     pub legal_mentions: Option<String>,
+    pub legal_mentions_html: Option<String>,
     pub bank_details: Option<String>,
     // Phase 4: Delivery notes
     pub delivery_note_prefix: Option<String>,
@@ -30,12 +33,14 @@ pub struct CompanySettings {
     pub backup_schedule: Option<String>,
     pub last_backup_date: Option<String>,
     pub cloud_provider: Option<String>,
-    pub auto_backup_enabled: Option<bool>,
+    #[serde(default)]
+    pub auto_backup_enabled: bool,
     // Phase 9: Internationalization and theming
     pub app_language: Option<String>,
     pub app_theme: Option<String>,
     // Auto-update
-    pub auto_update_enabled: Option<bool>,
+    #[serde(default = "default_auto_update")]
+    pub auto_update_enabled: bool,
     // Currency
     pub currency: Option<String>,
     pub updated_at: DateTime<Utc>,
@@ -58,8 +63,10 @@ pub struct UpdateCompanySettingsInput {
     pub invoice_prefix: String,
     pub quote_prefix: String,
     pub legal_mentions: Option<String>,
+    pub legal_mentions_html: Option<String>,
     pub bank_details: Option<String>,
     pub currency: Option<String>,
+    pub delivery_note_prefix: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

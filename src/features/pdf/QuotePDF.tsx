@@ -202,7 +202,7 @@ export function QuotePDF({ quote, company, logoBase64 }: QuotePDFProps) {
               elements.push(
                 <View key={`subtotal-${groupName}`} style={{ backgroundColor: "#f3f4f6", padding: 6, flexDirection: "row", justifyContent: "flex-end" }}>
                   <Text style={{ fontSize: 8, fontWeight: "bold", color: "#4b5563", marginRight: 10 }}>
-                    Sous-total {groupName}: {formatCurrency(groupTotalHt)} HT / {formatCurrency(groupTotalTtc)} TTC
+                    {i18n.t("pdf:quote.groupSubtotal", { group: groupName })}: {formatCurrency(groupTotalHt)} {i18n.t("pdf:common.labelHt")} / {formatCurrency(groupTotalTtc)} {i18n.t("pdf:common.labelTtc")}
                   </Text>
                 </View>
               );

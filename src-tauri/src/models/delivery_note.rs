@@ -36,6 +36,7 @@ pub struct DeliveryNote {
     pub delivery_date: Option<NaiveDate>,
     pub delivery_address: Option<String>,
     pub notes: Option<String>,
+    pub notes_html: Option<String>,
     pub lines: Vec<DeliveryNoteLine>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -53,6 +54,7 @@ pub struct DeliveryNoteRow {
     pub delivery_date: Option<NaiveDate>,
     pub delivery_address: Option<String>,
     pub notes: Option<String>,
+    pub notes_html: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -63,6 +65,7 @@ pub struct DeliveryNoteLine {
     pub delivery_note_id: String,
     pub product_id: Option<String>,
     pub description: String,
+    pub description_html: Option<String>,
     pub quantity: f64,
     pub unit: Option<String>,
     pub position: i32,
@@ -78,6 +81,7 @@ pub struct CreateDeliveryNoteInput {
     pub delivery_date: Option<NaiveDate>,
     pub delivery_address: Option<String>,
     pub notes: Option<String>,
+    pub notes_html: Option<String>,
     pub lines: Vec<CreateDeliveryNoteLineInput>,
 }
 
@@ -85,6 +89,7 @@ pub struct CreateDeliveryNoteInput {
 pub struct CreateDeliveryNoteLineInput {
     pub product_id: Option<String>,
     pub description: String,
+    pub description_html: Option<String>,
     pub quantity: f64,
     pub unit: Option<String>,
 }
@@ -100,6 +105,7 @@ pub struct UpdateDeliveryNoteInput {
     pub delivery_date: Option<NaiveDate>,
     pub delivery_address: Option<String>,
     pub notes: Option<String>,
+    pub notes_html: Option<String>,
     pub lines: Vec<CreateDeliveryNoteLineInput>,
 }
 
@@ -110,6 +116,7 @@ impl DeliveryNoteLine {
             delivery_note_id: delivery_note_id.to_string(),
             product_id: input.product_id,
             description: input.description,
+            description_html: input.description_html,
             quantity: input.quantity,
             unit: input.unit,
             position,

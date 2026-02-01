@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { toast } from "@/stores/useToastStore";
 import {
   Plus,
   Eye,
@@ -83,8 +84,12 @@ export function DeliveryNotesPage() {
   }, [selection.selectedIds, selection.selectedCount, deliveryNotes]);
 
   const handleDelete = async (id: string) => {
-    await deleteDeliveryNote.mutateAsync(id);
-    setDeleteConfirmId(null);
+    try {
+      await deleteDeliveryNote.mutateAsync(id);
+      setDeleteConfirmId(null);
+    } catch {
+      setDeleteConfirmId(null);
+    }
   };
 
   const handleDuplicate = async (note: DeliveryNote) => {
@@ -100,7 +105,7 @@ export function DeliveryNotesPage() {
     const clientIds = new Set(selectedNotes.map((n) => n.client_id));
 
     if (clientIds.size > 1) {
-      alert(t("delivery:sameClientRequired", "Veuillez sélectionner des bons de livraison du même client."));
+      toast.error(t("delivery:sameClientRequired", "Please select delivery notes from the same client."));
       return;
     }
 
@@ -122,7 +127,7 @@ export function DeliveryNotesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-(--color-text-primary)">{t("delivery:title")}</h1>
-          <p className="text-sm sm:text-base text-(--color-text-secondary)">{t("delivery:subtitle", "Gérez vos bons de livraison")}</p>
+          <p className="text-sm sm:text-base text-(--color-text-secondary)">{t("delivery:subtitle", "Manage your delivery notes")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Button onClick={() => navigate("/delivery-notes/new")} size="sm">
@@ -135,7 +140,7 @@ export function DeliveryNotesPage() {
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>{t("delivery:listTitle", "Liste des bons de livraison")}</CardTitle>
+            <CardTitle>{t("delivery:listTitle", "Delivery Note List")}</CardTitle>
             <div className="relative w-full sm:w-56 md:w-64 lg:w-72">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
@@ -234,8 +239,8 @@ export function DeliveryNotesPage() {
                         <button
                           onClick={() => handleDuplicate(note)}
                           className="p-1 text-gray-500 hover:text-primary-600 transition-colors"
-                          title={t("delivery:actions.duplicate", "Dupliquer")}
-                          aria-label={t("delivery:actions.duplicate", "Dupliquer")}
+                          title={t("delivery:actions.duplicate", "Duplicate")}
+                          aria-label={t("delivery:actions.duplicate", "Duplicate")}
                         >
                           <Copy className="h-4 w-4" />
                         </button>

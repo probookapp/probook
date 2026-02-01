@@ -57,36 +57,47 @@ export function DeliveryNoteViewPage() {
 
   const handleMarkDelivered = async () => {
     if (!deliveryNote) return;
-
-    await updateDeliveryNote.mutateAsync({
-      id: deliveryNote.id,
-      client_id: deliveryNote.client_id,
-      quote_id: deliveryNote.quote_id,
-      invoice_id: deliveryNote.invoice_id,
-      issue_date: deliveryNote.issue_date,
-      delivery_date: new Date().toISOString().split("T")[0],
-      delivery_address: deliveryNote.delivery_address,
-      notes: deliveryNote.notes,
-      status: "DELIVERED",
-      lines: deliveryNote.lines.map((l) => ({
-        product_id: l.product_id,
-        description: l.description,
-        quantity: l.quantity,
-        unit: l.unit,
-      })),
-    });
+    try {
+      await updateDeliveryNote.mutateAsync({
+        id: deliveryNote.id,
+        client_id: deliveryNote.client_id,
+        quote_id: deliveryNote.quote_id,
+        invoice_id: deliveryNote.invoice_id,
+        issue_date: deliveryNote.issue_date,
+        delivery_date: new Date().toISOString().split("T")[0],
+        delivery_address: deliveryNote.delivery_address,
+        notes: deliveryNote.notes,
+        status: "DELIVERED",
+        lines: deliveryNote.lines.map((l) => ({
+          product_id: l.product_id,
+          description: l.description,
+          quantity: l.quantity,
+          unit: l.unit,
+        })),
+      });
+    } catch {
+      // Error is handled by TanStack Query
+    }
   };
 
   const handleDuplicate = async () => {
     if (!deliveryNote) return;
-    const newNote = await duplicateDeliveryNote.mutateAsync(deliveryNote.id);
-    navigate(`/delivery-notes/${newNote.id}/edit`);
+    try {
+      const newNote = await duplicateDeliveryNote.mutateAsync(deliveryNote.id);
+      navigate(`/delivery-notes/${newNote.id}/edit`);
+    } catch {
+      // Error is handled by TanStack Query
+    }
   };
 
   const handleConvertToInvoice = async () => {
     if (!deliveryNote) return;
-    const invoice = await convertToInvoice.mutateAsync(deliveryNote.id);
-    navigate(`/invoices/${invoice.id}`);
+    try {
+      const invoice = await convertToInvoice.mutateAsync(deliveryNote.id);
+      navigate(`/invoices/${invoice.id}`);
+    } catch {
+      // Error is handled by TanStack Query
+    }
   };
 
   const handleSendEmail = () => {
@@ -160,15 +171,17 @@ export function DeliveryNoteViewPage() {
             <Mail className="h-4 w-4 mr-2" />
             {t("delivery:actions.sendByEmail")}
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleConvertToInvoice}
-            isLoading={convertToInvoice.isPending}
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            {t("delivery:actions.createInvoice")}
-          </Button>
+          {deliveryNote.status === "DELIVERED" && !deliveryNote.invoice_id && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleConvertToInvoice}
+              isLoading={convertToInvoice.isPending}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              {t("delivery:actions.createInvoice")}
+            </Button>
+          )}
           <Button variant="secondary" size="sm" onClick={handleDuplicate}>
             <Copy className="h-4 w-4 mr-2" />
             {t("delivery:actions.duplicate")}

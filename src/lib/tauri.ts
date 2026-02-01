@@ -266,7 +266,7 @@ export const importApi = {
 export const dbApi = {
   checkConfigured: () => invoke<boolean>("check_db_configured"),
   testConnection: (config: DatabaseConfig) => invoke<void>("test_db_connection", { config }),
-  saveConfig: (config: DatabaseConfig) => invoke<void>("save_db_config", { config }),
+  saveConfig: (config: DatabaseConfig) => invoke<string>("save_db_config", { config }),
   getConfig: () => invoke<DatabaseConfigSafe | null>("get_db_config"),
 };
 

@@ -23,7 +23,7 @@ import {
   useUpdateDeliveryNote,
 } from "./hooks/useDeliveryNotes";
 import {
-  deliveryNoteSchema,
+  createDeliveryNoteSchema,
   type DeliveryNoteFormData,
 } from "./schemas/deliveryNoteSchema";
 import type { DeliveryNoteStatus } from "@/types";
@@ -65,7 +65,7 @@ export function DeliveryNoteFormPage() {
     formState: { errors },
     reset,
   } = useForm<DeliveryNoteFormData & { status?: DeliveryNoteStatus }>({
-    resolver: zodResolver(deliveryNoteSchema) as Resolver<DeliveryNoteFormData>,
+    resolver: zodResolver(createDeliveryNoteSchema(t)) as Resolver<DeliveryNoteFormData>,
     defaultValues: {
       client_id: "",
       issue_date: new Date().toISOString().split("T")[0],

@@ -143,7 +143,7 @@ export function QuoteFormPage() {
           unit_price_ht: line.unit_price_ht,
           vat_rate: line.vat_rate,
           group_name: line.group_name,
-          is_subtotal_line: line.is_subtotal_line === 1,
+          is_subtotal_line: !!line.is_subtotal_line,
         }))
       );
     }
@@ -320,7 +320,7 @@ export function QuoteFormPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>{t("quotes:generalInfo", "Informations générales")}</CardTitle>
+            <CardTitle>{t("quotes:generalInfo")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -430,7 +430,7 @@ export function QuoteFormPage() {
                         <div className="text-right">
                           <span className="text-sm text-blue-600 dark:text-blue-400">{t("quotes:lines.groupTotal")}:</span>
                           <span className="ml-2 font-bold text-blue-800 dark:text-blue-200">
-                            {formatCurrency(groupSubtotals[groupName]?.ttc || 0)} TTC
+                            {formatCurrency(groupSubtotals[groupName]?.ttc || 0)} {t("quotes:totals.labelTtc")}
                           </span>
                         </div>
                       </div>
@@ -472,7 +472,7 @@ export function QuoteFormPage() {
                                 ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300"
                                 : "text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300"
                             }`}
-                            title={t("quotes:richDescription", "Description enrichie")}
+                            title={t("quotes:richDescription")}
                           >
                             <FileText className="h-4 w-4" />
                           </button>
@@ -525,7 +525,7 @@ export function QuoteFormPage() {
                     {isExpanded && (
                       <div className="mt-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-                          {t("quotes:richDescription", "Description enrichie (formatage HTML)")}
+                          {t("quotes:richDescription")}
                         </label>
                         <RichTextEditor
                           content={line?.description_html || ""}
@@ -535,7 +535,7 @@ export function QuoteFormPage() {
                               setValue(`lines.${index}.description`, text);
                             }
                           }}
-                          placeholder={t("quotes:richDescriptionPlaceholder", "Description détaillée avec mise en forme...")}
+                          placeholder={t("quotes:richDescriptionPlaceholder")}
                           minHeight="80px"
                         />
                       </div>
@@ -576,13 +576,13 @@ export function QuoteFormPage() {
               <div className="w-full sm:w-72 md:w-80 lg:w-96 space-y-2">
                 {/* Group subtotals */}
                 {Object.keys(groupSubtotals).length > 0 && (
-                  <div className="mb-3 pb-3 border-b border-gray-200">
-                    <p className="text-xs font-medium text-gray-500 uppercase mb-2">{t("quotes:groupSubtotals", "Sous-totaux par groupe")}</p>
+                  <div className="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+                    <p className="text-xs font-medium text-gray-500 uppercase mb-2">{t("quotes:groupSubtotals")}</p>
                     {Object.entries(groupSubtotals).map(([groupName, sub]) => (
-                      <div key={groupName} className="flex justify-between text-sm py-1 bg-gray-100 px-2 rounded mb-1">
-                        <span className="text-gray-600 font-medium">{groupName}</span>
-                        <span className="text-gray-700">
-                          {formatCurrency(sub.ht)} HT / {formatCurrency(sub.ttc)} TTC
+                      <div key={groupName} className="flex justify-between text-sm py-1 bg-gray-100 dark:bg-gray-800 px-2 rounded mb-1">
+                        <span className="text-gray-600 dark:text-gray-400 font-medium">{groupName}</span>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {formatCurrency(sub.ht)} {t("quotes:totals.labelHt")} / {formatCurrency(sub.ttc)} {t("quotes:totals.labelTtc")}
                         </span>
                       </div>
                     ))}
@@ -631,7 +631,7 @@ export function QuoteFormPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t("quotes:shippingAndDownPayment", "Frais de port et acompte")}</CardTitle>
+            <CardTitle>{t("quotes:shippingAndDownPayment")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -652,18 +652,18 @@ export function QuoteFormPage() {
                 type="number"
                 step="1"
                 {...register("down_payment_percent")}
-                placeholder="Ex: 30"
+                placeholder={t("quotes:downPayment.percentPlaceholder")}
               />
               <Input
                 label={t("quotes:downPayment.amount")}
                 type="number"
                 step="0.01"
                 {...register("down_payment_amount")}
-                placeholder="Ex: 500"
+                placeholder={t("quotes:downPayment.amountPlaceholder")}
               />
             </div>
             <p className="text-sm text-gray-500 mt-2">
-              {t("quotes:downPaymentHint", "Saisissez soit un pourcentage, soit un montant fixe pour l'acompte. Si les deux sont renseignés, le montant fixe sera utilisé.")}
+              {t("quotes:downPaymentHint")}
             </p>
           </CardContent>
         </Card>
@@ -679,7 +679,7 @@ export function QuoteFormPage() {
                 setNotesHtml(html);
                 setValue("notes", text);
               }}
-              placeholder={t("quotes:notesPlaceholder", "Notes additionnelles (visibles sur le devis)...")}
+              placeholder={t("quotes:notesPlaceholder")}
               minHeight="120px"
             />
           </CardContent>
@@ -694,7 +694,7 @@ export function QuoteFormPage() {
             isLoading={createQuote.isPending || updateQuote.isPending}
             disabled={hasStockErrors}
           >
-            {isEditing ? t("common:buttons.save") : t("quotes:createQuote", "Créer le devis")}
+            {isEditing ? t("common:buttons.save") : t("quotes:createQuote")}
           </Button>
         </div>
       </form>

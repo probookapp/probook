@@ -98,7 +98,9 @@
     "generatedOn": "Généré le",
     "siret": "SIRET",
     "vatNumber": "N° TVA",
-    "phone": "Tél"
+    "phone": "Tél",
+    "labelHt": "HT",
+    "labelTtc": "TTC"
   },
   "numberToWords": {
     "and": "et",

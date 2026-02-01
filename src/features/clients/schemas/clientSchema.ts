@@ -1,14 +1,14 @@
 import { z } from "zod";
 
-export const clientSchema = z.object({
-  name: z.string().min(1, "Le nom est requis"),
+export const createClientSchema = (t: (key: string) => string) => z.object({
+  name: z.string().min(1, t("validation.nameRequired")),
   email: z
     .string()
     .nullable()
     .optional()
     .refine(
       (val) => !val || val.length === 0 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
-      { message: "Email invalide" }
+      { message: t("validation.emailInvalid") }
     ),
   phone: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
@@ -20,4 +20,4 @@ export const clientSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
-export type ClientFormData = z.infer<typeof clientSchema>;
+export type ClientFormData = z.infer<ReturnType<typeof createClientSchema>>;
