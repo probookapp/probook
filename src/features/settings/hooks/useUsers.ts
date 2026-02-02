@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/lib/tauri';
-import type { CreateUserInput, UpdateUserInput } from '@/types';
+import { useAuthStore } from '@/stores/useAuthStore';
+import type { CreateUserInput, UpdateUserInput, UserInfo } from '@/types';
 
 export function useUsers() {
   return useQuery({
@@ -21,10 +22,14 @@ export function useCreateUser() {
 
 export function useUpdateUser() {
   const queryClient = useQueryClient();
+  const { currentUser, setUser } = useAuthStore();
   return useMutation({
     mutationFn: (input: UpdateUserInput) => authApi.updateUser(input),
-    onSuccess: () => {
+    onSuccess: (updatedUser: UserInfo) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      if (currentUser && updatedUser.id === currentUser.id) {
+        setUser(updatedUser);
+      }
     },
   });
 }
