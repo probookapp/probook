@@ -31,7 +31,7 @@ pub struct CompanySettings {
     pub next_delivery_note_number: Option<i32>,
     // Phase 8: Cloud backup
     pub backup_schedule: Option<String>,
-    pub last_backup_date: Option<String>,
+    pub last_backup_date: Option<DateTime<Utc>>,
     pub cloud_provider: Option<String>,
     #[serde(default)]
     pub auto_backup_enabled: bool,

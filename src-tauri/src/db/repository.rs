@@ -1150,9 +1150,9 @@ pub async fn update_company_settings(pool: &PgPool, input: UpdateCompanySettings
 }
 
 pub async fn update_last_backup_date(pool: &PgPool) -> Result<(), sqlx::Error> {
-    let now = Utc::now().to_rfc3339();
+    let now = Utc::now();
     sqlx::query("UPDATE company_settings SET last_backup_date = $1 WHERE id = 'default'")
-        .bind(&now)
+        .bind(now)
         .execute(pool)
         .await?;
     Ok(())
@@ -2659,8 +2659,8 @@ pub async fn create_quote_expiring_reminders(pool: &PgPool) -> Result<Vec<Remind
 
 // Report Functions
 pub async fn get_revenue_by_month(pool: &PgPool, start_date: Option<chrono::NaiveDate>, end_date: Option<chrono::NaiveDate>) -> Result<Vec<RevenueByPeriod>, sqlx::Error> {
-    let start = start_date.map(|d| d.to_string()).unwrap_or_else(|| "2000-01-01".to_string());
-    let end = end_date.map(|d| d.to_string()).unwrap_or_else(|| "2100-12-31".to_string());
+    let start = start_date.unwrap_or(chrono::NaiveDate::from_ymd_opt(2000, 1, 1).unwrap());
+    let end = end_date.unwrap_or(chrono::NaiveDate::from_ymd_opt(2100, 12, 31).unwrap());
 
     let rows = sqlx::query_as::<_, (String, f64, f64, i64)>(
         r#"
@@ -2676,8 +2676,8 @@ pub async fn get_revenue_by_month(pool: &PgPool, start_date: Option<chrono::Naiv
         ORDER BY period DESC
         "#
     )
-    .bind(&start)
-    .bind(&end)
+    .bind(start)
+    .bind(end)
     .fetch_all(pool)
     .await?;
 
@@ -2687,8 +2687,8 @@ pub async fn get_revenue_by_month(pool: &PgPool, start_date: Option<chrono::Naiv
 }
 
 pub async fn get_revenue_by_client(pool: &PgPool, start_date: Option<chrono::NaiveDate>, end_date: Option<chrono::NaiveDate>) -> Result<Vec<RevenueByClient>, sqlx::Error> {
-    let start = start_date.map(|d| d.to_string()).unwrap_or_else(|| "2000-01-01".to_string());
-    let end = end_date.map(|d| d.to_string()).unwrap_or_else(|| "2100-12-31".to_string());
+    let start = start_date.unwrap_or(chrono::NaiveDate::from_ymd_opt(2000, 1, 1).unwrap());
+    let end = end_date.unwrap_or(chrono::NaiveDate::from_ymd_opt(2100, 12, 31).unwrap());
 
     let rows = sqlx::query_as::<_, (String, String, f64, f64, i64)>(
         r#"
@@ -2706,8 +2706,8 @@ pub async fn get_revenue_by_client(pool: &PgPool, start_date: Option<chrono::Nai
         ORDER BY revenue_ttc DESC
         "#
     )
-    .bind(&start)
-    .bind(&end)
+    .bind(start)
+    .bind(end)
     .fetch_all(pool)
     .await?;
 
@@ -2717,8 +2717,8 @@ pub async fn get_revenue_by_client(pool: &PgPool, start_date: Option<chrono::Nai
 }
 
 pub async fn get_product_sales(pool: &PgPool, start_date: Option<chrono::NaiveDate>, end_date: Option<chrono::NaiveDate>) -> Result<Vec<ProductSales>, sqlx::Error> {
-    let start = start_date.map(|d| d.to_string()).unwrap_or_else(|| "2000-01-01".to_string());
-    let end = end_date.map(|d| d.to_string()).unwrap_or_else(|| "2100-12-31".to_string());
+    let start = start_date.unwrap_or(chrono::NaiveDate::from_ymd_opt(2000, 1, 1).unwrap());
+    let end = end_date.unwrap_or(chrono::NaiveDate::from_ymd_opt(2100, 12, 31).unwrap());
 
     let rows = sqlx::query_as::<_, (String, String, f64, f64, f64)>(
         r#"
@@ -2737,8 +2737,8 @@ pub async fn get_product_sales(pool: &PgPool, start_date: Option<chrono::NaiveDa
         ORDER BY revenue_ttc DESC
         "#
     )
-    .bind(&start)
-    .bind(&end)
+    .bind(start)
+    .bind(end)
     .fetch_all(pool)
     .await?;
 
@@ -2748,7 +2748,7 @@ pub async fn get_product_sales(pool: &PgPool, start_date: Option<chrono::NaiveDa
 }
 
 pub async fn get_outstanding_payments(pool: &PgPool) -> Result<Vec<OutstandingPayment>, sqlx::Error> {
-    let rows = sqlx::query_as::<_, (String, String, String, String, String, f64)>(
+    let rows = sqlx::query_as::<_, (String, String, String, chrono::NaiveDate, chrono::NaiveDate, f64)>(
         r#"
         SELECT
             i.id,
@@ -2769,15 +2769,13 @@ pub async fn get_outstanding_payments(pool: &PgPool) -> Result<Vec<OutstandingPa
     let today = chrono::Utc::now().date_naive();
 
     Ok(rows.into_iter().map(|(invoice_id, invoice_number, client_name, issue_date, due_date, total_ttc)| {
-        let issue = chrono::NaiveDate::parse_from_str(&issue_date, "%Y-%m-%d").unwrap_or(today);
-        let due = chrono::NaiveDate::parse_from_str(&due_date, "%Y-%m-%d").unwrap_or(today);
-        let days_overdue = (today - due).num_days().max(0);
+        let days_overdue = (today - due_date).num_days().max(0);
         OutstandingPayment {
             invoice_id,
             invoice_number,
             client_name,
-            issue_date: issue,
-            due_date: due,
+            issue_date,
+            due_date,
             total_ttc,
             days_overdue
         }
@@ -2785,8 +2783,8 @@ pub async fn get_outstanding_payments(pool: &PgPool) -> Result<Vec<OutstandingPa
 }
 
 pub async fn get_quote_conversion_stats(pool: &PgPool, start_date: Option<chrono::NaiveDate>, end_date: Option<chrono::NaiveDate>) -> Result<QuoteConversionStats, sqlx::Error> {
-    let start = start_date.map(|d| d.to_string()).unwrap_or_else(|| "2000-01-01".to_string());
-    let end = end_date.map(|d| d.to_string()).unwrap_or_else(|| "2100-12-31".to_string());
+    let start = start_date.unwrap_or(chrono::NaiveDate::from_ymd_opt(2000, 1, 1).unwrap());
+    let end = end_date.unwrap_or(chrono::NaiveDate::from_ymd_opt(2100, 12, 31).unwrap());
 
     let row = sqlx::query_as::<_, (i64, i64, f64, f64)>(
         r#"
@@ -2799,8 +2797,8 @@ pub async fn get_quote_conversion_stats(pool: &PgPool, start_date: Option<chrono
         WHERE issue_date >= $1 AND issue_date <= $2
         "#
     )
-    .bind(&start)
-    .bind(&end)
+    .bind(start)
+    .bind(end)
     .fetch_one(pool)
     .await?;
 
@@ -2821,11 +2819,10 @@ pub async fn get_alerts_summary(pool: &PgPool) -> Result<AlertsSummary, sqlx::Er
     use crate::models::Alert;
 
     let today = chrono::Utc::now().date_naive();
-    let today_str = today.to_string();
-    let soon_threshold = (today + chrono::Duration::days(7)).to_string();
+    let soon_threshold = today + chrono::Duration::days(7);
 
     // Get overdue invoices (past due date, status = ISSUED)
-    let overdue_rows: Vec<(String, String, String, String, f64)> = sqlx::query_as(
+    let overdue_rows: Vec<(String, String, String, chrono::NaiveDate, f64)> = sqlx::query_as(
         r#"
         SELECT i.id, i.invoice_number, COALESCE(c.name, 'Unknown'), i.due_date, i.total_ttc
         FROM invoices i
@@ -2834,13 +2831,12 @@ pub async fn get_alerts_summary(pool: &PgPool) -> Result<AlertsSummary, sqlx::Er
         ORDER BY i.due_date ASC
         "#
     )
-    .bind(&today_str)
+    .bind(today)
     .fetch_all(pool)
     .await?;
 
     let overdue_invoices: Vec<Alert> = overdue_rows.into_iter().map(|(id, number, client, due_date, amount)| {
-        let due = chrono::NaiveDate::parse_from_str(&due_date, "%Y-%m-%d").unwrap_or(today);
-        let days = (today - due).num_days() as i32;
+        let days = (today - due_date).num_days() as i32;
         Alert {
             id: format!("overdue-{}", id),
             alert_type: "OVERDUE_INVOICE".to_string(),
@@ -2851,14 +2847,14 @@ pub async fn get_alerts_summary(pool: &PgPool) -> Result<AlertsSummary, sqlx::Er
             document_number: number,
             client_name: client,
             amount: Some(amount),
-            date: due_date,
+            date: due_date.to_string(),
             days,
             severity: if days > 30 { "danger".to_string() } else { "warning".to_string() },
         }
     }).collect();
 
     // Get invoices due soon (within 7 days)
-    let due_soon_rows: Vec<(String, String, String, String, f64)> = sqlx::query_as(
+    let due_soon_rows: Vec<(String, String, String, chrono::NaiveDate, f64)> = sqlx::query_as(
         r#"
         SELECT i.id, i.invoice_number, COALESCE(c.name, 'Unknown'), i.due_date, i.total_ttc
         FROM invoices i
@@ -2867,14 +2863,13 @@ pub async fn get_alerts_summary(pool: &PgPool) -> Result<AlertsSummary, sqlx::Er
         ORDER BY i.due_date ASC
         "#
     )
-    .bind(&today_str)
-    .bind(&soon_threshold)
+    .bind(today)
+    .bind(soon_threshold)
     .fetch_all(pool)
     .await?;
 
     let due_soon_invoices: Vec<Alert> = due_soon_rows.into_iter().map(|(id, number, client, due_date, amount)| {
-        let due = chrono::NaiveDate::parse_from_str(&due_date, "%Y-%m-%d").unwrap_or(today);
-        let days = (due - today).num_days() as i32;
+        let days = (due_date - today).num_days() as i32;
         Alert {
             id: format!("due-soon-{}", id),
             alert_type: "DUE_SOON".to_string(),
@@ -2885,14 +2880,14 @@ pub async fn get_alerts_summary(pool: &PgPool) -> Result<AlertsSummary, sqlx::Er
             document_number: number,
             client_name: client,
             amount: Some(amount),
-            date: due_date,
+            date: due_date.to_string(),
             days: -days, // Negative for "days until"
             severity: "info".to_string(),
         }
     }).collect();
 
     // Get expiring quotes (within 7 days, status SENT or DRAFT)
-    let expiring_rows: Vec<(String, String, String, String, f64)> = sqlx::query_as(
+    let expiring_rows: Vec<(String, String, String, chrono::NaiveDate, f64)> = sqlx::query_as(
         r#"
         SELECT q.id, q.quote_number, COALESCE(c.name, 'Unknown'), q.validity_date, q.total_ttc
         FROM quotes q
@@ -2901,14 +2896,13 @@ pub async fn get_alerts_summary(pool: &PgPool) -> Result<AlertsSummary, sqlx::Er
         ORDER BY q.validity_date ASC
         "#
     )
-    .bind(&today_str)
-    .bind(&soon_threshold)
+    .bind(today)
+    .bind(soon_threshold)
     .fetch_all(pool)
     .await?;
 
     let expiring_quotes: Vec<Alert> = expiring_rows.into_iter().map(|(id, number, client, validity_date, amount)| {
-        let validity = chrono::NaiveDate::parse_from_str(&validity_date, "%Y-%m-%d").unwrap_or(today);
-        let days = (validity - today).num_days() as i32;
+        let days = (validity_date - today).num_days() as i32;
         Alert {
             id: format!("expiring-{}", id),
             alert_type: "EXPIRING_QUOTE".to_string(),
@@ -2919,14 +2913,14 @@ pub async fn get_alerts_summary(pool: &PgPool) -> Result<AlertsSummary, sqlx::Er
             document_number: number,
             client_name: client,
             amount: Some(amount),
-            date: validity_date,
+            date: validity_date.to_string(),
             days: -days,
             severity: if days <= 3 { "warning".to_string() } else { "info".to_string() },
         }
     }).collect();
 
     // Get expired quotes (past validity, still in SENT status)
-    let expired_rows: Vec<(String, String, String, String, f64)> = sqlx::query_as(
+    let expired_rows: Vec<(String, String, String, chrono::NaiveDate, f64)> = sqlx::query_as(
         r#"
         SELECT q.id, q.quote_number, COALESCE(c.name, 'Unknown'), q.validity_date, q.total_ttc
         FROM quotes q
@@ -2935,13 +2929,12 @@ pub async fn get_alerts_summary(pool: &PgPool) -> Result<AlertsSummary, sqlx::Er
         ORDER BY q.validity_date DESC
         "#
     )
-    .bind(&today_str)
+    .bind(today)
     .fetch_all(pool)
     .await?;
 
     let expired_quotes: Vec<Alert> = expired_rows.into_iter().map(|(id, number, client, validity_date, amount)| {
-        let validity = chrono::NaiveDate::parse_from_str(&validity_date, "%Y-%m-%d").unwrap_or(today);
-        let days = (today - validity).num_days() as i32;
+        let days = (today - validity_date).num_days() as i32;
         Alert {
             id: format!("expired-{}", id),
             alert_type: "EXPIRED_QUOTE".to_string(),
@@ -2952,7 +2945,7 @@ pub async fn get_alerts_summary(pool: &PgPool) -> Result<AlertsSummary, sqlx::Er
             document_number: number,
             client_name: client,
             amount: Some(amount),
-            date: validity_date,
+            date: validity_date.to_string(),
             days,
             severity: "danger".to_string(),
         }
