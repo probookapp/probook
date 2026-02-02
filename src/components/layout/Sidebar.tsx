@@ -71,7 +71,10 @@ export function Sidebar({ onClose }: SidebarProps) {
   return (
     <aside className="w-56 lg:w-64 h-full bg-gray-900 dark:bg-gray-950 text-white flex flex-col">
       <div className="p-6 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Probook</h1>
+        <div className="flex items-center justify-center gap-2.5 flex-1">
+          <img src="/probook-icon.png" alt="" className="h-7 w-7" />
+          <h1 className="text-xl font-bold">Probook</h1>
+        </div>
         {onClose && (
           <button
             onClick={onClose}

@@ -64,7 +64,10 @@ export function DatabaseSetupPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Probook</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center justify-center gap-2">
+            <img src="/probook-icon.png" alt="Probook" className="h-9 w-9" />
+            Probook
+          </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-2">{t('database.subtitle')}</p>
         </div>
 

@@ -771,14 +771,15 @@ export function SettingsPage() {
               value={backupPassword}
               onChange={(e) => setBackupPassword(e.target.value)}
               placeholder={t("backup.passwordPlaceholder")}
+              className="pr-10"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="absolute right-3 top-8.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               aria-label={showPassword ? t("backup.hidePassword") : t("backup.showPassword")}
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
           <Input
@@ -838,14 +839,15 @@ export function SettingsPage() {
               value={backupPassword}
               onChange={(e) => setBackupPassword(e.target.value)}
               placeholder={t("backup.passwordPlaceholder")}
+              className="pr-10"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="absolute right-3 top-8.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               aria-label={showPassword ? t("backup.hidePassword") : t("backup.showPassword")}
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
           {passwordError && (

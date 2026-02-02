@@ -130,6 +130,12 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/* Hide native browser password reveal button (Edge, Chrome) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
 /* Number input spinner styles */
 input[type="number"] {
   -moz-appearance: textfield;
