@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "@/components/layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -15,9 +16,26 @@ import { ReportsPage } from "@/features/reports";
 import { ExpensesPage } from "@/features/expenses";
 import { SuppliersPage } from "@/features/suppliers";
 import { SettingsPage } from "@/features/settings";
+import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 function App() {
   const { isLoading, needsDbSetup, needsSetup, isAuthenticated } = useAuthStore();
+  const splashClosed = useRef(false);
+
+  useEffect(() => {
+    if (!isLoading && !splashClosed.current) {
+      splashClosed.current = true;
+      (async () => {
+        try {
+          await getCurrentWebviewWindow().show();
+          const splash = await WebviewWindow.getByLabel("splashscreen");
+          await splash?.close();
+        } catch {
+          // Splash window may not exist in dev mode
+        }
+      })();
+    }
+  }, [isLoading]);
 
   if (isLoading) {
     return (
