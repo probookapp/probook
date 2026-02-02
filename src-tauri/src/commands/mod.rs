@@ -2147,7 +2147,19 @@ pub async fn save_db_config(config: DbConfig, app: AppHandle) -> Result<String, 
     // Save config to file
     db::connection::save_db_config_to_file(&app, &config).map_err(|e| e.to_string())?;
 
-    Ok("Database configuration saved. Please restart the application for changes to take effect.".to_string())
+    // Connect to DB and run migrations immediately so no restart is needed
+    let pool = db::connection::connect_to_postgres(&config)
+        .await
+        .map_err(|e| e.to_string())?;
+    db::migrations::run_migrations(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    app.manage(AppState {
+        pool,
+        current_user_id: Mutex::new(None),
+    });
+
+    Ok("Database configuration saved.".to_string())
 }
 
 #[tauri::command]
