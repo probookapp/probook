@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Users } from "lucide-react";
 import { Button, Input, Textarea } from "@/components/ui";
 import { createClientSchema, type ClientFormData } from "../schemas/clientSchema";
 import type { Client } from "@/types";
@@ -9,10 +10,11 @@ interface ClientFormProps {
   client?: Client;
   onSubmit: (data: ClientFormData) => void;
   onCancel: () => void;
+  onManageContacts?: () => void;
   isLoading?: boolean;
 }
 
-export function ClientForm({ client, onSubmit, onCancel, isLoading }: ClientFormProps) {
+export function ClientForm({ client, onSubmit, onCancel, onManageContacts, isLoading }: ClientFormProps) {
   const { t } = useTranslation("clients");
   const { t: tCommon } = useTranslation("common");
   const {
@@ -109,6 +111,12 @@ export function ClientForm({ client, onSubmit, onCancel, isLoading }: ClientForm
       />
 
       <div className="flex justify-end gap-3">
+        {onManageContacts && (
+          <Button type="button" variant="secondary" onClick={onManageContacts} className="mr-auto">
+            <Users className="h-4 w-4 mr-2" />
+            {t("contacts.title")}
+          </Button>
+        )}
         <Button type="button" variant="secondary" onClick={onCancel}>
           {tCommon("buttons.cancel")}
         </Button>

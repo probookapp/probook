@@ -253,6 +253,10 @@ export function ClientsPage() {
           client={selectedClient}
           onSubmit={handleSubmit}
           onCancel={handleCloseModal}
+          onManageContacts={selectedClient ? () => {
+            handleCloseModal();
+            setViewingClient(selectedClient);
+          } : undefined}
           isLoading={createClient.isPending || updateClient.isPending}
         />
       </Modal>
