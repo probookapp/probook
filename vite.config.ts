@@ -15,6 +15,42 @@ export default defineConfig(async () => ({
     },
   },
 
+  build: {
+    chunkSizeWarningLimit: 1600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React core
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          // PDF generation (largest dependency)
+          "vendor-pdf": ["@react-pdf/renderer"],
+          // Rich text editor
+          "vendor-editor": [
+            "@tiptap/react",
+            "@tiptap/starter-kit",
+            "@tiptap/extension-color",
+            "@tiptap/extension-font-family",
+            "@tiptap/extension-text-style",
+            "@tiptap/extension-underline",
+          ],
+          // Data fetching & state
+          "vendor-state": ["@tanstack/react-query", "zustand", "react-hook-form", "@hookform/resolvers"],
+          // i18n
+          "vendor-i18n": ["i18next", "react-i18next", "i18next-browser-languagedetector"],
+          // Tauri plugins
+          "vendor-tauri": [
+            "@tauri-apps/api",
+            "@tauri-apps/plugin-dialog",
+            "@tauri-apps/plugin-fs",
+            "@tauri-apps/plugin-opener",
+            "@tauri-apps/plugin-process",
+            "@tauri-apps/plugin-updater",
+          ],
+        },
+      },
+    },
+  },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent Vite from obscuring rust errors
