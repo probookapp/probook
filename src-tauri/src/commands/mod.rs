@@ -12,10 +12,10 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
 
-use crate::db::repository;
+use probook_core::db::repository;
 use crate::db::{self, connection::{DbConfig, DbConfigSafe}};
-use crate::models::*;
-use crate::services::import::{self, ImportResult};
+use probook_core::models::*;
+use probook_core::services::import::{self, ImportResult};
 
 pub struct AppState {
     pub pool: PgPool,
@@ -2086,7 +2086,7 @@ pub async fn delete_user_account(id: String, state: State<'_, AppState>) -> Resu
     // Use a transaction with FOR UPDATE to prevent race condition on last admin deletion
     let mut tx = state.pool.begin().await.map_err(|e| e.to_string())?;
 
-    let target_user: crate::models::User = sqlx::query_as(
+    let target_user: probook_core::models::User = sqlx::query_as(
         "SELECT * FROM users WHERE id = $1 FOR UPDATE"
     )
     .bind(&id)
@@ -2151,7 +2151,7 @@ pub async fn check_db_configured(app: AppHandle) -> Result<bool, String> {
 
 #[tauri::command]
 pub async fn test_db_connection(config: DbConfig) -> Result<(), String> {
-    let pool = db::connection::connect_to_postgres(&config)
+    let pool = probook_core::db::connect_to_postgres(&config)
         .await
         .map_err(|e| format!("Connection failed: {}", e))?;
     pool.close().await;
@@ -2164,10 +2164,10 @@ pub async fn save_db_config(config: DbConfig, app: AppHandle) -> Result<String, 
     db::connection::save_db_config_to_file(&app, &config).map_err(|e| e.to_string())?;
 
     // Connect to DB and run migrations immediately so no restart is needed
-    let pool = db::connection::connect_to_postgres(&config)
+    let pool = probook_core::db::connect_to_postgres(&config)
         .await
         .map_err(|e| e.to_string())?;
-    db::migrations::run_migrations(&pool)
+    probook_core::db::migrations::run_migrations(&pool)
         .await
         .map_err(|e| e.to_string())?;
     app.manage(AppState {

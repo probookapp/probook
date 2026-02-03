@@ -1,6 +1,5 @@
 pub mod commands;
 pub mod db;
-pub mod models;
 pub mod services;
 
 use commands::AppState;
@@ -19,6 +18,17 @@ pub fn run() {
             tauri::async_runtime::block_on(async move {
                 match db::init_database(&handle).await {
                     Ok(Some(pool)) => {
+                        // Start backup scheduler
+                        let backups_dir = handle
+                            .path()
+                            .app_data_dir()
+                            .map(|d| d.join("backups"))
+                            .unwrap_or_default();
+                        let _scheduler = services::backup_scheduler::BackupScheduler::start(
+                            pool.clone(),
+                            backups_dir,
+                        );
+
                         handle.manage(AppState { pool, current_user_id: std::sync::Mutex::new(None) });
                     }
                     Ok(None) => {

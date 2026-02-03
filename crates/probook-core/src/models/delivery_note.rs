@@ -124,3 +124,33 @@ impl DeliveryNoteLine {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_delivery_note_line_creation() {
+        let input = CreateDeliveryNoteLineInput {
+            product_id: Some("prod-1".to_string()),
+            description: "Widget".to_string(),
+            description_html: Some("<p>Widget</p>".to_string()),
+            quantity: 10.0,
+            unit: Some("pcs".to_string()),
+        };
+        let line = DeliveryNoteLine::new("dn-1", input, 2);
+        assert_eq!(line.delivery_note_id, "dn-1");
+        assert_eq!(line.description, "Widget");
+        assert_eq!(line.description_html, Some("<p>Widget</p>".to_string()));
+        assert!((line.quantity - 10.0).abs() < f64::EPSILON);
+        assert_eq!(line.unit, Some("pcs".to_string()));
+        assert_eq!(line.position, 2);
+    }
+
+    #[test]
+    fn test_delivery_note_status_display() {
+        assert_eq!(DeliveryNoteStatus::DRAFT.to_string(), "DRAFT");
+        assert_eq!(DeliveryNoteStatus::DELIVERED.to_string(), "DELIVERED");
+        assert_eq!(DeliveryNoteStatus::CANCELLED.to_string(), "CANCELLED");
+    }
+}
