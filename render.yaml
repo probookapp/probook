@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: probook-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: probook-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://your-app.vercel.app
+      - key: PORT
+        value: 3001
+
+databases:
+  - name: probook-db
+    plan: free
+    databaseName: probook
