@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm, useFieldArray, useWatch, Controller, type Resolver } from "react-hook-form";
 import { toast } from "@/stores/useToastStore";
@@ -28,6 +28,8 @@ import {
   type DeliveryNoteFormData,
 } from "./schemas/deliveryNoteSchema";
 import type { DeliveryNoteStatus } from "@/types";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 
 export function DeliveryNoteFormPage() {
   const { t } = useTranslation(["delivery", "common"]);
@@ -63,7 +65,7 @@ export function DeliveryNoteFormPage() {
     handleSubmit,
     control,
     setValue,
-    formState: { errors },
+    formState: { errors, isDirty },
     reset,
   } = useForm<DeliveryNoteFormData & { status?: DeliveryNoteStatus }>({
     resolver: zodResolver(createDeliveryNoteSchema(t)) as Resolver<DeliveryNoteFormData>,
@@ -112,6 +114,9 @@ export function DeliveryNoteFormPage() {
   const hasStockErrors = useMemo(() => {
     return watchedLines.some((_, index) => getStockError(index) !== null);
   }, [watchedLines, products]);
+
+  const [submitted, setSubmitted] = useState(false);
+  const blocker = useUnsavedChangesGuard(isDirty && !submitted);
 
   // Load existing delivery note data when editing
   useEffect(() => {
@@ -166,9 +171,11 @@ export function DeliveryNoteFormPage() {
           ...input,
           status: data.status || "DRAFT",
         });
+        setSubmitted(true);
         navigate(`/delivery-notes/${id}`);
       } else {
         const newNote = await createDeliveryNote.mutateAsync(input);
+        setSubmitted(true);
         navigate(`/delivery-notes/${newNote.id}`);
       }
     } catch (error) {
@@ -377,6 +384,7 @@ export function DeliveryNoteFormPage() {
           </Button>
         </div>
       </form>
+      <UnsavedChangesDialog blocker={blocker} />
     </div>
   );
 }

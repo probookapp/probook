@@ -247,6 +247,12 @@
     "deleted": "Items deleted successfully",
     "deleteError": "Failed to delete selected items"
   },
+  "unsavedChanges": {
+    "title": "Unsaved changes",
+    "message": "You have unsaved changes. Are you sure you want to leave this page?",
+    "stay": "Stay",
+    "leave": "Leave"
+  },
   "update": {
     "available": "Update available",
     "availableDescription": "Version {{version}} is ready to download.",

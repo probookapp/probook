@@ -21,6 +21,8 @@ import { useClients } from "@/features/clients";
 import { useProducts } from "@/features/products";
 import { formatCurrency, formatDateISO, calculateLineTotal } from "@/lib/utils";
 import type { QuoteStatus } from "@/types";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 
 const createLineSchema = (t: (key: string) => string) => z.object({
   product_id: z.string().nullable().optional(),
@@ -63,13 +65,15 @@ export function QuoteFormPage() {
   const updateQuote = useUpdateQuote();
   const [notesHtml, setNotesHtml] = useState("");
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(new Set());
+  const [submitted, setSubmitted] = useState(false);
 
   const {
     register,
     control,
     handleSubmit,
     setValue,
-    formState: { errors },
+    reset,
+    formState: { errors, isDirty },
   } = useForm<QuoteFormData>({
     resolver: zodResolver(quoteFormSchema) as Resolver<QuoteFormData>,
     defaultValues: {
@@ -122,21 +126,21 @@ export function QuoteFormPage() {
     defaultValue: 0,
   });
 
+  const blocker = useUnsavedChangesGuard(isDirty && !submitted);
+
   useEffect(() => {
     if (quote && isEditing) {
-      setValue("client_id", quote.client_id);
-      setValue("issue_date", quote.issue_date);
-      setValue("validity_date", quote.validity_date);
-      setValue("notes", quote.notes ?? "");
-      setValue("status", quote.status);
-      setValue("shipping_cost_ht", quote.shipping_cost_ht ?? 0);
-      setValue("shipping_vat_rate", quote.shipping_vat_rate ?? 20);
-      setValue("down_payment_percent", quote.down_payment_percent ?? 0);
-      setValue("down_payment_amount", quote.down_payment_amount ?? 0);
-      setNotesHtml(quote.notes_html || "");
-      setValue(
-        "lines",
-        quote.lines.map((line) => ({
+      reset({
+        client_id: quote.client_id,
+        issue_date: quote.issue_date,
+        validity_date: quote.validity_date,
+        notes: quote.notes ?? "",
+        status: quote.status,
+        shipping_cost_ht: quote.shipping_cost_ht ?? 0,
+        shipping_vat_rate: quote.shipping_vat_rate ?? 20,
+        down_payment_percent: quote.down_payment_percent ?? 0,
+        down_payment_amount: quote.down_payment_amount ?? 0,
+        lines: quote.lines.map((line) => ({
           product_id: line.product_id,
           description: line.description,
           description_html: line.description_html,
@@ -145,10 +149,11 @@ export function QuoteFormPage() {
           vat_rate: line.vat_rate,
           group_name: line.group_name,
           is_subtotal_line: !!line.is_subtotal_line,
-        }))
-      );
+        })),
+      });
+      setNotesHtml(quote.notes_html || "");
     }
-  }, [quote, isEditing, setValue]);
+  }, [quote, isEditing, reset]);
 
   // Calculate totals reactively based on watched lines and shipping
   const { totals, groupSubtotals } = useMemo(() => {
@@ -276,6 +281,7 @@ export function QuoteFormPage() {
     } else {
       await createQuote.mutateAsync(formData);
     }
+    setSubmitted(true);
     navigate("/quotes");
   };
 
@@ -708,6 +714,7 @@ export function QuoteFormPage() {
           </Button>
         </div>
       </form>
+      <UnsavedChangesDialog blocker={blocker} />
     </div>
   );
 }

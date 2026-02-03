@@ -21,6 +21,8 @@ import { useClients } from "@/features/clients";
 import { useProducts } from "@/features/products";
 import { formatCurrency, formatDateISO, calculateLineTotal } from "@/lib/utils";
 import type { InvoiceStatus } from "@/types";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 
 const createLineSchema = (t: (key: string) => string) => z.object({
   product_id: z.string().nullable().optional(),
@@ -63,13 +65,15 @@ export function InvoiceFormPage() {
   const updateInvoice = useUpdateInvoice();
   const [notesHtml, setNotesHtml] = useState("");
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(new Set());
+  const [submitted, setSubmitted] = useState(false);
 
   const {
     register,
     control,
     handleSubmit,
     setValue,
-    formState: { errors },
+    reset,
+    formState: { errors, isDirty },
   } = useForm<InvoiceFormData>({
     resolver: zodResolver(invoiceFormSchema) as Resolver<InvoiceFormData>,
     defaultValues: {
@@ -129,21 +133,21 @@ export function InvoiceFormPage() {
     }
   }, [invoice, isEditing, id, navigate]);
 
+  const blocker = useUnsavedChangesGuard(isDirty && !submitted);
+
   useEffect(() => {
     if (invoice && isEditing) {
-      setValue("client_id", invoice.client_id);
-      setValue("issue_date", invoice.issue_date);
-      setValue("due_date", invoice.due_date);
-      setValue("notes", invoice.notes ?? "");
-      setValue("status", invoice.status);
-      setValue("shipping_cost_ht", invoice.shipping_cost_ht ?? 0);
-      setValue("shipping_vat_rate", invoice.shipping_vat_rate ?? 20);
-      setValue("down_payment_percent", invoice.down_payment_percent ?? 0);
-      setValue("down_payment_amount", invoice.down_payment_amount ?? 0);
-      setNotesHtml(invoice.notes_html || "");
-      setValue(
-        "lines",
-        invoice.lines.map((line) => ({
+      reset({
+        client_id: invoice.client_id,
+        issue_date: invoice.issue_date,
+        due_date: invoice.due_date,
+        notes: invoice.notes ?? "",
+        status: invoice.status,
+        shipping_cost_ht: invoice.shipping_cost_ht ?? 0,
+        shipping_vat_rate: invoice.shipping_vat_rate ?? 20,
+        down_payment_percent: invoice.down_payment_percent ?? 0,
+        down_payment_amount: invoice.down_payment_amount ?? 0,
+        lines: invoice.lines.map((line) => ({
           product_id: line.product_id,
           description: line.description,
           description_html: line.description_html,
@@ -152,10 +156,11 @@ export function InvoiceFormPage() {
           vat_rate: line.vat_rate,
           group_name: line.group_name,
           is_subtotal_line: !!line.is_subtotal_line,
-        }))
-      );
+        })),
+      });
+      setNotesHtml(invoice.notes_html || "");
     }
-  }, [invoice, isEditing, setValue]);
+  }, [invoice, isEditing, reset]);
 
   // Calculate totals reactively based on watched lines and shipping
   const { totals, groupSubtotals } = useMemo(() => {
@@ -282,6 +287,7 @@ export function InvoiceFormPage() {
     } else {
       await createInvoice.mutateAsync(formData);
     }
+    setSubmitted(true);
     navigate("/invoices");
   };
 
@@ -713,6 +719,7 @@ export function InvoiceFormPage() {
           </Button>
         </div>
       </form>
+      <UnsavedChangesDialog blocker={blocker} />
     </div>
   );
 }
