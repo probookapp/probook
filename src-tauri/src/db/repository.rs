@@ -465,7 +465,7 @@ pub async fn update_quote(pool: &PgPool, input: UpdateQuoteInput, logo_snapshot:
 
     // Validate status transitions
     let valid_transition = match current_quote.status {
-        QuoteStatus::DRAFT => true, // DRAFT can transition to any status
+        QuoteStatus::DRAFT => matches!(input.status, QuoteStatus::DRAFT | QuoteStatus::SENT | QuoteStatus::ACCEPTED),
         QuoteStatus::SENT => true, // SENT can go to ACCEPTED, EXPIRED, or back to DRAFT
         QuoteStatus::ACCEPTED => matches!(input.status, QuoteStatus::ACCEPTED | QuoteStatus::DRAFT),
         QuoteStatus::EXPIRED => matches!(input.status, QuoteStatus::EXPIRED | QuoteStatus::DRAFT),
@@ -1836,6 +1836,30 @@ pub async fn create_product_category(pool: &PgPool, input: CreateProductCategory
 
 pub async fn update_product_category(pool: &PgPool, input: UpdateProductCategoryInput) -> Result<ProductCategory, sqlx::Error> {
     let now = Utc::now();
+
+    // Prevent circular parent references
+    if let Some(ref parent_id) = input.parent_id {
+        if parent_id == &input.id {
+            return Err(sqlx::Error::Protocol("A category cannot be its own parent".to_string()));
+        }
+        // Walk up the parent chain to detect cycles
+        let mut current_id = parent_id.clone();
+        loop {
+            let row: Option<(Option<String>,)> = sqlx::query_as(
+                "SELECT parent_id FROM product_categories WHERE id = $1"
+            ).bind(&current_id).fetch_optional(pool).await?;
+            match row {
+                Some((Some(next_parent),)) => {
+                    if next_parent == input.id {
+                        return Err(sqlx::Error::Protocol("Circular parent reference detected".to_string()));
+                    }
+                    current_id = next_parent;
+                }
+                _ => break,
+            }
+        }
+    }
+
     sqlx::query(
         r#"
         UPDATE product_categories SET name = $1, description = $2, parent_id = $3, updated_at = $4
@@ -2044,6 +2068,20 @@ pub async fn create_delivery_note(pool: &PgPool, input: CreateDeliveryNoteInput)
 
 pub async fn update_delivery_note(pool: &PgPool, input: UpdateDeliveryNoteInput) -> Result<DeliveryNote, sqlx::Error> {
     let now = Utc::now();
+
+    // Validate status transitions
+    let current = get_delivery_note_by_id(pool, &input.id).await?;
+    let valid_transition = match current.status {
+        DeliveryNoteStatus::DRAFT => true, // DRAFT can transition to any status
+        DeliveryNoteStatus::DELIVERED => matches!(input.status, DeliveryNoteStatus::DELIVERED | DeliveryNoteStatus::CANCELLED),
+        DeliveryNoteStatus::CANCELLED => matches!(input.status, DeliveryNoteStatus::CANCELLED | DeliveryNoteStatus::DRAFT),
+    };
+    if !valid_transition {
+        return Err(sqlx::Error::Protocol(format!(
+            "Invalid status transition from {} to {}",
+            current.status, input.status
+        )));
+    }
 
     let lines: Vec<DeliveryNoteLine> = input.lines.iter().enumerate()
         .map(|(i, l)| DeliveryNoteLine::new(&input.id, l.clone(), i as i32))
@@ -2291,7 +2329,7 @@ pub async fn convert_delivery_note_to_invoice(pool: &PgPool, delivery_note_id: &
         invoice_lines.push(CreateInvoiceLineInput {
             product_id: line.product_id,
             description: line.description,
-            description_html: None,
+            description_html: line.description_html,
             quantity: line.quantity,
             unit_price_ht,
             vat_rate,
@@ -2308,7 +2346,7 @@ pub async fn convert_delivery_note_to_invoice(pool: &PgPool, delivery_note_id: &
         issue_date: chrono::Utc::now().date_naive(),
         due_date,
         notes: delivery_note.notes,
-        notes_html: None,
+        notes_html: delivery_note.notes_html,
         shipping_cost_ht: None,
         shipping_vat_rate: None,
         down_payment_percent: None,
@@ -2357,7 +2395,7 @@ pub async fn create_invoice_from_delivery_notes(pool: &PgPool, delivery_note_ids
             all_lines.push(CreateInvoiceLineInput {
                 product_id: line.product_id,
                 description: line.description,
-                description_html: None,
+                description_html: line.description_html,
                 quantity: line.quantity,
                 unit_price_ht,
                 vat_rate,

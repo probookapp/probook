@@ -223,7 +223,7 @@ export function SettingsPage() {
         setExportModalOpen(true);
       }
     } catch (error) {
-      alert(t("messages.exportFailed"));
+      toast.error(t("messages.exportFailed"));
     }
   };
 
@@ -294,7 +294,7 @@ export function SettingsPage() {
       setBackupSuccess(true);
       setTimeout(() => setBackupSuccess(false), 3000);
     } catch (error) {
-      alert(t("messages.backupFailed"));
+      toast.error(t("messages.backupFailed"));
     }
   };
 
@@ -302,7 +302,7 @@ export function SettingsPage() {
     try {
       await openBackupsFolder.mutateAsync();
     } catch (error) {
-      alert(t("messages.openFolderFailed"));
+      toast.error(t("messages.openFolderFailed"));
     }
   };
 

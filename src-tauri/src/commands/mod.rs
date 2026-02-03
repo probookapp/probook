@@ -2083,21 +2083,37 @@ pub async fn delete_user_account(id: String, state: State<'_, AppState>) -> Resu
         return Err("Cannot delete your own account".to_string());
     }
 
-    let target_user = repository::get_user_by_id(&state.pool, &id)
+    // Use a transaction with FOR UPDATE to prevent race condition on last admin deletion
+    let mut tx = state.pool.begin().await.map_err(|e| e.to_string())?;
+
+    let target_user: crate::models::User = sqlx::query_as(
+        "SELECT * FROM users WHERE id = $1 FOR UPDATE"
+    )
+    .bind(&id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    if target_user.role == "admin" {
+        let (admin_count,): (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM users WHERE role = 'admin' FOR UPDATE"
+        )
+        .fetch_one(&mut *tx)
         .await
         .map_err(|e| e.to_string())?;
-    if target_user.role == "admin" {
-        let admin_count = repository::count_admin_users(&state.pool)
-            .await
-            .map_err(|e| e.to_string())?;
         if admin_count <= 1 {
             return Err("Cannot delete the last admin account".to_string());
         }
     }
 
-    repository::delete_user(&state.pool, &id)
+    sqlx::query("DELETE FROM users WHERE id = $1")
+        .bind(&id)
+        .execute(&mut *tx)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    tx.commit().await.map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
