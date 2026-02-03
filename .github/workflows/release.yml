@@ -34,7 +34,10 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: "./src-tauri -> target"
+          workspaces: |
+            ./src-tauri -> target
+            ./crates/probook-core -> target
+            ./crates/probook-api -> target
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
