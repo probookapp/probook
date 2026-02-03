@@ -136,7 +136,23 @@ export function QuoteViewPage() {
                 </div>
               </div>
 
-              <div className="border rounded-lg overflow-x-auto">
+              {/* Mobile line items */}
+              <div className="md:hidden space-y-3">
+                {quote.lines.map((line) => (
+                  <div key={line.id} className="border rounded-lg p-3 bg-(--color-bg-secondary)">
+                    <p className="text-sm font-medium">{line.description}</p>
+                    <div className="flex items-center justify-between mt-1.5 text-sm text-(--color-text-secondary)">
+                      <span>{line.quantity} × {formatCurrency(line.unit_price_ht)} HT</span>
+                      <span>{line.vat_rate}% {t("common:labels.vat")}</span>
+                    </div>
+                    <div className="flex justify-end mt-1">
+                      <span className="text-sm font-medium">{formatCurrency(line.total_ttc)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop line items table */}
+              <div className="hidden md:block border rounded-lg overflow-x-auto">
                 <table className="w-full min-w-125">
                   <thead className="bg-(--color-bg-secondary)">
                     <tr>

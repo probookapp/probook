@@ -114,7 +114,57 @@ export function InvoicesPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="p-0">
+          {/* Mobile card view */}
+          <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {filteredInvoices && filteredInvoices.length > 0 ? (
+              filteredInvoices.map((invoice) => (
+                <div key={invoice.id} className="p-4 flex items-start gap-3">
+                  {invoice.status === "DRAFT" && (
+                    <input
+                      type="checkbox"
+                      checked={selection.isSelected(invoice.id)}
+                      onChange={() => selection.toggle(invoice.id)}
+                      className="mt-1 h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono font-medium text-(--color-text-primary)">{invoice.invoice_number}</span>
+                      <Badge variant={getInvoiceStatusVariantWithUrgency(invoice.status, invoice.due_date)}>
+                        {getInvoiceStatusLabelWithUrgency(invoice.status, invoice.due_date)}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-(--color-text-secondary) mt-0.5">{invoice.client?.name || "-"}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-xs text-(--color-text-secondary)">{formatDate(invoice.issue_date)} → {formatDate(invoice.due_date)}</span>
+                      <span className="font-medium text-(--color-text-primary)">{formatCurrency(invoice.total_ttc)}</span>
+                    </div>
+                    <div className="flex justify-end gap-1 mt-2">
+                      <button onClick={() => navigate(`/invoices/${invoice.id}`)} className="p-1 text-gray-500 hover:text-primary-600" title={t("common:buttons.view")} aria-label={t("common:buttons.view")}><Eye className="h-4 w-4" /></button>
+                      {invoice.status === "DRAFT" && (
+                        <button onClick={() => navigate(`/invoices/${invoice.id}/edit`)} className="p-1 text-gray-500 hover:text-primary-600" title={t("common:buttons.edit")} aria-label={t("common:buttons.edit")}><Pencil className="h-4 w-4" /></button>
+                      )}
+                      {invoice.status === "ISSUED" && (
+                        <button onClick={() => setMarkPaidId(invoice.id)} className="p-1 text-gray-500 hover:text-green-600" title={t("invoices:actions.markAsPaid")} aria-label={t("invoices:actions.markAsPaid")}><CheckCircle className="h-4 w-4" /></button>
+                      )}
+                      <button onClick={() => duplicateInvoice.mutate(invoice.id)} className="p-1 text-gray-500 hover:text-blue-600" title={t("invoices:actions.duplicate")} aria-label={t("invoices:actions.duplicate")} disabled={duplicateInvoice.isPending}><Copy className="h-4 w-4" /></button>
+                      {invoice.status === "DRAFT" && (
+                        <button onClick={() => setDeleteConfirmId(invoice.id)} className="p-1 text-gray-500 hover:text-red-600" title={t("common:buttons.delete")} aria-label={t("common:buttons.delete")}><Trash2 className="h-4 w-4" /></button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-8 text-center text-gray-500">
+                <Receipt className="h-12 w-12 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                {t("invoices:noInvoices")}
+              </div>
+            )}
+          </div>
+          {/* Desktop table view */}
+          <div className="hidden md:block overflow-x-auto">
           <Table className="min-w-175">
             <TableHeader>
               <TableRow>
@@ -236,6 +286,7 @@ export function InvoicesPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

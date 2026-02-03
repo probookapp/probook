@@ -155,7 +155,56 @@ export function DeliveryNotesPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="p-0">
+          {/* Mobile card view */}
+          <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {filteredDeliveryNotes && filteredDeliveryNotes.length > 0 ? (
+              filteredDeliveryNotes.map((note) => (
+                <div key={note.id} className="p-4 flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selection.isSelected(note.id)}
+                    onChange={() => selection.toggle(note.id)}
+                    className="mt-1 h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono font-medium text-(--color-text-primary)">{note.delivery_note_number}</span>
+                      <Badge variant={statusConfig[note.status].variant}>
+                        <Truck className="h-3 w-3 mr-1" />
+                        {statusConfig[note.status].label}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-(--color-text-secondary) mt-0.5">{note.client?.name || "-"}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-xs text-(--color-text-secondary)">
+                        {formatDate(note.issue_date)}
+                        {note.delivery_date && ` → ${formatDate(note.delivery_date)}`}
+                      </span>
+                      {note.quote_id && (
+                        <Link to={`/quotes/${note.quote_id}`} className="text-xs text-primary-600 hover:underline inline-flex items-center gap-1">
+                          <FileText className="h-3 w-3" />
+                          {t("common:buttons.view")}
+                        </Link>
+                      )}
+                    </div>
+                    <div className="flex justify-end gap-1 mt-2">
+                      <Link to={`/delivery-notes/${note.id}`} className="p-1 text-gray-500 hover:text-primary-600" title={t("common:buttons.view")} aria-label={t("common:buttons.view")}><Eye className="h-4 w-4" /></Link>
+                      {note.status === "DRAFT" && (
+                        <Link to={`/delivery-notes/${note.id}/edit`} className="p-1 text-gray-500 hover:text-primary-600" title={t("common:buttons.edit")} aria-label={t("common:buttons.edit")}><Pencil className="h-4 w-4" /></Link>
+                      )}
+                      <button onClick={() => handleDuplicate(note)} className="p-1 text-gray-500 hover:text-primary-600" title={t("delivery:actions.duplicate", "Duplicate")} aria-label={t("delivery:actions.duplicate", "Duplicate")}><Copy className="h-4 w-4" /></button>
+                      <button onClick={() => setDeleteConfirmId(note.id)} className="p-1 text-gray-500 hover:text-red-600" title={t("common:buttons.delete")} aria-label={t("common:buttons.delete")}><Trash2 className="h-4 w-4" /></button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-8 text-center text-gray-500">{t("delivery:noDeliveryNotes")}</div>
+            )}
+          </div>
+          {/* Desktop table view */}
+          <div className="hidden md:block overflow-x-auto">
           <Table className="min-w-200">
             <TableHeader>
               <TableRow>
@@ -265,6 +314,7 @@ export function DeliveryNotesPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

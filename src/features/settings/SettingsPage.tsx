@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import { Save, Upload, Download, AlertCircle, Image, Trash2, Clock, Sun, Moon, Monitor, Globe, HardDrive, FolderOpen, RefreshCw, Lock, Eye, EyeOff, Users } from "lucide-react";
-import { open } from "@tauri-apps/plugin-dialog";
+import { isTauri } from "@/lib/config";
 import { toast } from "@/stores/useToastStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { UserManagement } from "./components/UserManagement";
@@ -125,6 +125,8 @@ export function SettingsPage() {
   };
 
   const handleUploadLogo = async () => {
+    if (!isTauri()) return;
+    const { open } = await import("@tauri-apps/plugin-dialog");
     const filePath = await open({
       multiple: false,
       filters: [
@@ -209,7 +211,9 @@ export function SettingsPage() {
   };
 
   const handleExport = async () => {
+    if (!isTauri()) return;
     try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
       const filePath = await open({
         multiple: false,
         directory: true,
@@ -253,7 +257,9 @@ export function SettingsPage() {
   };
 
   const handleImport = async () => {
+    if (!isTauri()) return;
     try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
       const filePath = await open({
         multiple: false,
         filters: [

@@ -157,7 +157,41 @@ export function SuppliersPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="p-0">
+          {/* Mobile card view */}
+          <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {filteredSuppliers && filteredSuppliers.length > 0 ? (
+              filteredSuppliers.map((supplier) => (
+                <div key={supplier.id} className="p-4 flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selection.isSelected(supplier.id)}
+                    onChange={() => selection.toggle(supplier.id)}
+                    className="mt-0.5 h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{supplier.name}</p>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => setProductsSupplier(supplier)} className="p-1 text-gray-500 hover:text-primary-600 dark:hover:text-primary-400" title={t("products.title")} aria-label={t("products.title")}><Package className="h-4 w-4" /></button>
+                        <button onClick={() => handleOpenModal(supplier)} className="p-1 text-gray-500 hover:text-primary-600 dark:hover:text-primary-400" title={tCommon("buttons.edit")} aria-label={tCommon("buttons.edit")}><Pencil className="h-4 w-4" /></button>
+                        <button onClick={() => setDeleteConfirmId(supplier.id)} className="p-1 text-gray-500 hover:text-red-600" title={tCommon("buttons.delete")} aria-label={tCommon("buttons.delete")}><Trash2 className="h-4 w-4" /></button>
+                      </div>
+                    </div>
+                    {supplier.email && <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{supplier.email}</p>}
+                    <div className="flex items-center gap-3 mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                      {supplier.phone && <span>{supplier.phone}</span>}
+                      {supplier.address && <span className="truncate">{supplier.address}</span>}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-8 text-center text-gray-500 dark:text-gray-400">{t("noSuppliers")}</div>
+            )}
+          </div>
+          {/* Desktop table view */}
+          <div className="hidden md:block overflow-x-auto">
           <Table className="min-w-150">
             <TableHeader>
               <TableRow>
@@ -232,6 +266,7 @@ export function SuppliersPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

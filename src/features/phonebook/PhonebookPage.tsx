@@ -57,11 +57,9 @@ export function PhonebookPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t("phonebook.title")}</h1>
-          <p className="text-gray-500 dark:text-gray-400">{t("phonebook.subtitle")}</p>
-        </div>
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{t("phonebook.title")}</h1>
+        <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">{t("phonebook.subtitle")}</p>
       </div>
 
       <Card>

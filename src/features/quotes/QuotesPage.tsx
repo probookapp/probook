@@ -103,7 +103,51 @@ export function QuotesPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="p-0">
+          {/* Mobile card view */}
+          <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {filteredQuotes && filteredQuotes.length > 0 ? (
+              filteredQuotes.map((quote) => (
+                <div key={quote.id} className="p-4 flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selection.isSelected(quote.id)}
+                    onChange={() => selection.toggle(quote.id)}
+                    className="mt-1 h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono font-medium text-(--color-text-primary)">{quote.quote_number}</span>
+                      <Badge variant={getQuoteStatusVariant(quote.status)}>
+                        {getStatusLabel(quote.status)}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-(--color-text-secondary) mt-0.5">{quote.client?.name || "-"}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-xs text-(--color-text-secondary)">{formatDate(quote.issue_date)} → {formatDate(quote.validity_date)}</span>
+                      <span className="font-medium text-(--color-text-primary)">{formatCurrency(quote.total_ttc)}</span>
+                    </div>
+                    <div className="flex justify-end gap-1 mt-2">
+                      <button onClick={() => navigate(`/quotes/${quote.id}`)} className="p-1 text-gray-500 hover:text-primary-600" title={t("common:buttons.view")} aria-label={t("common:buttons.view")}><Eye className="h-4 w-4" /></button>
+                      <button onClick={() => navigate(`/quotes/${quote.id}/edit`)} className="p-1 text-gray-500 hover:text-primary-600" title={t("common:buttons.edit")} aria-label={t("common:buttons.edit")}><Pencil className="h-4 w-4" /></button>
+                      <button onClick={() => duplicateQuote.mutate(quote.id)} className="p-1 text-gray-500 hover:text-blue-600" title={t("quotes:actions.duplicate")} aria-label={t("quotes:actions.duplicate")} disabled={duplicateQuote.isPending}><Copy className="h-4 w-4" /></button>
+                      {quote.status === "ACCEPTED" && (
+                        <button onClick={() => setConvertConfirm(quote)} className="p-1 text-gray-500 hover:text-green-600" title={t("quotes:actions.convertToInvoice")} aria-label={t("quotes:actions.convertToInvoice")}><ArrowRight className="h-4 w-4" /></button>
+                      )}
+                      <button onClick={() => setDeleteConfirmId(quote.id)} className="p-1 text-gray-500 hover:text-red-600" title={t("common:buttons.delete")} aria-label={t("common:buttons.delete")}><Trash2 className="h-4 w-4" /></button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-8 text-center text-gray-500">
+                <FileText className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                {t("quotes:noQuotes")}
+              </div>
+            )}
+          </div>
+          {/* Desktop table view */}
+          <div className="hidden md:block overflow-x-auto">
           <Table className="min-w-175">
             <TableHeader>
               <TableRow>
@@ -210,6 +254,7 @@ export function QuotesPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

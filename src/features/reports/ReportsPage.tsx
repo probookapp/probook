@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { save } from "@tauri-apps/plugin-dialog";
-import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { isTauri } from "@/lib/config";
 import { toast } from "@/stores/useToastStore";
 import {
   BarChart3,
@@ -92,14 +91,30 @@ export function ReportsPage() {
     ].join("\n");
 
     try {
-      const filePath = await save({
-        defaultPath: `${filename}_${new Date().toISOString().split("T")[0]}.csv`,
-        filters: [{ name: "CSV", extensions: ["csv"] }],
-      });
+      if (isTauri()) {
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+        const filePath = await save({
+          defaultPath: `${filename}_${new Date().toISOString().split("T")[0]}.csv`,
+          filters: [{ name: "CSV", extensions: ["csv"] }],
+        });
 
-      if (filePath) {
-        await writeTextFile(filePath, csvContent);
-        toast.success(t("reports:exportSuccess", { path: filePath }));
+        if (filePath) {
+          await writeTextFile(filePath, csvContent);
+          toast.success(t("reports:exportSuccess", { path: filePath }));
+        }
+      } else {
+        // Web mode: browser download
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${filename}_${new Date().toISOString().split("T")[0]}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success(t("reports:exportSuccess", { path: filename }));
       }
     } catch (error) {
       toast.error(t("reports:exportError"));

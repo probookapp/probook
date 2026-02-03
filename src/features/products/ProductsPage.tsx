@@ -220,7 +220,57 @@ export function ProductsPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
+          <CardContent className="p-0">
+            {/* Mobile card view */}
+            <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredProducts && filteredProducts.length > 0 ? (
+                filteredProducts.map((product) => (
+                  <div key={product.id} className="p-4 flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selection.isSelected(product.id)}
+                      onChange={() => selection.toggle(product.id)}
+                      className="mt-1 h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {product.is_service ? (
+                            <Badge variant="info"><Briefcase className="h-3 w-3 mr-1" />{t("types.service")}</Badge>
+                          ) : (
+                            <Badge variant="default"><Package className="h-3 w-3 mr-1" />{t("types.product")}</Badge>
+                          )}
+                          <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{product.designation}</p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button onClick={() => setSupplierProductId(product.id)} className="p-1 text-gray-500 hover:text-amber-600 dark:hover:text-amber-400" aria-label={t("fields.suppliers")} title={t("fields.suppliers")}><Truck className="h-4 w-4" /></button>
+                          <button onClick={() => handleOpenModal(product)} className="p-1 text-gray-500 hover:text-primary-600 dark:hover:text-primary-400" aria-label={tCommon("buttons.edit")}><Pencil className="h-4 w-4" /></button>
+                          <button onClick={() => setDeleteConfirmId(product.id)} className="p-1 text-gray-500 hover:text-red-600" aria-label={tCommon("buttons.delete")}><Trash2 className="h-4 w-4" /></button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        {product.reference && <span className="font-mono">{product.reference}</span>}
+                        {getCategoryName(product.category_id) && (
+                          <span className="inline-flex items-center gap-1"><Folder className="h-3 w-3" />{getCategoryName(product.category_id)}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatCurrency(product.unit_price_ht)} HT</span>
+                        {!product.is_service && (
+                          <Badge variant={(product.quantity ?? 0) > 0 ? "success" : "danger"}>
+                            {t("fields.quantity")}: {product.quantity ?? 0}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-gray-500 dark:text-gray-400">{t("noProducts")}</div>
+              )}
+            </div>
+            {/* Desktop table view */}
+            <div className="hidden md:block overflow-x-auto">
             <Table className="min-w-200">
               <TableHeader>
                 <TableRow>
@@ -335,6 +385,7 @@ export function ProductsPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}

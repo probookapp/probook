@@ -269,7 +269,21 @@ export function DeliveryNoteViewPage() {
         <CardHeader>
           <CardTitle className="text-base">{t("delivery:lines.title")}</CardTitle>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="p-0">
+          {/* Mobile line items */}
+          <div className="md:hidden divide-y divide-(--color-border)">
+            {deliveryNote.lines.map((line) => (
+              <div key={line.id} className="px-4 py-3">
+                <p className="text-sm font-medium">{line.description}</p>
+                <div className="flex items-center gap-3 mt-1 text-sm text-(--color-text-secondary)">
+                  <span>{line.quantity}</span>
+                  <span>{line.unit || "-"}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Desktop line items table */}
+          <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-80">
             <thead className="bg-(--color-bg-secondary) border-b border-(--color-border)">
               <tr>
@@ -294,6 +308,7 @@ export function DeliveryNoteViewPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </CardContent>
       </Card>
 
