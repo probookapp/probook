@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useForm, useFieldArray, useWatch, type Resolver } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Trash2, ArrowLeft, FileText } from "lucide-react";
@@ -13,6 +13,7 @@ import {
   CardTitle,
   Input,
   Select,
+  SearchableSelect,
   RichTextEditor,
 } from "@/components/ui";
 import { useQuote, useCreateQuote, useUpdateQuote } from "./hooks/useQuotes";
@@ -324,11 +325,19 @@ export function QuoteFormPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Select
-                label={t("quotes:fields.client") + " *"}
-                options={clientOptions}
-                {...register("client_id")}
-                error={errors.client_id?.message}
+              <Controller
+                name="client_id"
+                control={control}
+                render={({ field }) => (
+                  <SearchableSelect
+                    label={t("quotes:fields.client") + " *"}
+                    options={clientOptions}
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder={t("common:labels.select")}
+                    error={errors.client_id?.message}
+                  />
+                )}
               />
               <Input
                 label={t("quotes:fields.issueDate") + " *"}
@@ -448,11 +457,12 @@ export function QuoteFormPage() {
                   >
                     <div className="grid grid-cols-12 gap-3 items-start">
                       <div className="col-span-12 md:col-span-6 lg:col-span-3">
-                        <Select
-                          name={`lines.${index}.product_id`}
+                        <SearchableSelect
                           label={t("quotes:lines.product")}
                           options={productOptions}
-                          onChange={(e) => handleProductSelect(index, e.target.value)}
+                          value={line?.product_id || ""}
+                          onChange={(val) => handleProductSelect(index, val)}
+                          placeholder={t("quotes:lines.product") + " (" + t("common:labels.optional") + ")"}
                         />
                       </div>
                       <div className="col-span-12 md:col-span-6 lg:col-span-3">

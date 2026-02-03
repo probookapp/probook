@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, Controller, type Resolver } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Input, Textarea, Select } from "@/components/ui";
+import { Button, Input, Textarea, Select, SearchableSelect } from "@/components/ui";
 import { createProductSchema, type ProductFormData } from "../schemas/productSchema";
 import { useProductCategories } from "../hooks/useProductCategories";
 import { ProductPhotoUpload } from "./ProductPhotoUpload";
@@ -45,6 +45,7 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
     register,
     handleSubmit,
     watch,
+    control,
     formState: { errors },
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema) as Resolver<ProductFormData>,
@@ -125,11 +126,19 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Select
-          label={t("fields.category")}
-          options={categoryOptions}
-          {...register("category_id")}
-          error={errors.category_id?.message}
+        <Controller
+          name="category_id"
+          control={control}
+          render={({ field }) => (
+            <SearchableSelect
+              label={t("fields.category")}
+              options={categoryOptions}
+              value={field.value ?? ""}
+              onChange={field.onChange}
+              placeholder={t("fields.noCategory")}
+              error={errors.category_id?.message}
+            />
+          )}
         />
         {!isService && (
           <Input

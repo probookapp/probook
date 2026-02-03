@@ -4,6 +4,7 @@ import { Plus, X, Check, Pencil } from "lucide-react";
 import {
   Button,
   Input,
+  SearchableSelect,
   Table,
   TableHeader,
   TableBody,
@@ -120,27 +121,19 @@ export function ProductSuppliers({ productId }: ProductSuppliersProps) {
       {isAdding && (
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label
-                htmlFor="supplier-select"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                {tCommon("labels.select")}
-              </label>
-              <select
-                id="supplier-select"
-                value={selectedSupplierId}
-                onChange={(e) => setSelectedSupplierId(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg shadow-sm transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 border-gray-300 dark:border-gray-600"
-              >
-                <option value="">{t("suppliers.selectSupplier")}</option>
-                {availableSuppliers.map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>
-                    {supplier.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SearchableSelect
+              label={tCommon("labels.select")}
+              options={[
+                { value: "", label: t("suppliers.selectSupplier") },
+                ...availableSuppliers.map((supplier) => ({
+                  value: supplier.id,
+                  label: supplier.name,
+                })),
+              ]}
+              value={selectedSupplierId}
+              onChange={setSelectedSupplierId}
+              placeholder={t("suppliers.selectSupplier")}
+            />
             <Input
               label={t("suppliers.purchasePrice")}
               type="number"

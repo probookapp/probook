@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useForm, useFieldArray, useWatch, type Resolver } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, Controller, type Resolver } from "react-hook-form";
 import { toast } from "@/stores/useToastStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -14,6 +14,7 @@ import {
   Input,
   Textarea,
   Select,
+  SearchableSelect,
 } from "@/components/ui";
 import { useClients } from "@/features/clients/hooks/useClients";
 import { useProducts } from "@/features/products/hooks/useProducts";
@@ -220,11 +221,19 @@ export function DeliveryNoteFormPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label={`${t("delivery:fields.client")} *`}
-                options={clientOptions}
-                {...register("client_id")}
-                error={errors.client_id?.message}
+              <Controller
+                name="client_id"
+                control={control}
+                render={({ field }) => (
+                  <SearchableSelect
+                    label={`${t("delivery:fields.client")} *`}
+                    options={clientOptions}
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder={t("delivery:selectClient")}
+                    error={errors.client_id?.message}
+                  />
+                )}
               />
               {isEdit && (
                 <Select
@@ -294,16 +303,17 @@ export function DeliveryNoteFormPage() {
                   )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Select
+                  <SearchableSelect
                     label={t("delivery:lines.product")}
                     options={productOptions}
-                    {...register(`lines.${index}.product_id`)}
-                    onChange={(e) => {
-                      register(`lines.${index}.product_id`).onChange(e);
-                      if (e.target.value) {
-                        handleProductSelect(index, e.target.value);
+                    value={watchedLines[index]?.product_id || ""}
+                    onChange={(val) => {
+                      setValue(`lines.${index}.product_id`, val || null);
+                      if (val) {
+                        handleProductSelect(index, val);
                       }
                     }}
+                    placeholder={t("delivery:selectProduct")}
                   />
                   <div className="md:col-span-2">
                     <Input
