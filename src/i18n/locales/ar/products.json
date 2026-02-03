@@ -94,7 +94,10 @@
     "linked": "تم ربط المورد بنجاح",
     "linkError": "فشل في ربط المورد",
     "unlinked": "تم إلغاء ربط المورد بنجاح",
-    "unlinkError": "فشل في إلغاء ربط المورد"
+    "unlinkError": "فشل في إلغاء ربط المورد",
+    "editPrice": "انقر لتعديل السعر",
+    "priceUpdated": "تم تحديث سعر الشراء",
+    "priceUpdateError": "فشل في تحديث السعر"
   },
   "validation": {
     "nameRequired": "الاسم مطلوب",

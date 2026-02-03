@@ -94,7 +94,10 @@
     "linked": "Fournisseur lié avec succès",
     "linkError": "Erreur lors de la liaison du fournisseur",
     "unlinked": "Fournisseur délié avec succès",
-    "unlinkError": "Erreur lors de la suppression du lien"
+    "unlinkError": "Erreur lors de la suppression du lien",
+    "editPrice": "Cliquer pour modifier le prix",
+    "priceUpdated": "Prix d'achat mis à jour",
+    "priceUpdateError": "Erreur lors de la mise à jour du prix"
   },
   "validation": {
     "nameRequired": "Le nom est requis",

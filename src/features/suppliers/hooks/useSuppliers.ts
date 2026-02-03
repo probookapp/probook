@@ -72,6 +72,21 @@ export function useAddProductSupplier() {
   });
 }
 
+export function useUpdateProductSupplierPrice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ linkId, purchasePriceHt }: { linkId: string; purchasePriceHt: number }) =>
+      productSupplierApi.updatePrice(linkId, purchasePriceHt),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["supplier-products"] });
+      queryClient.invalidateQueries({ queryKey: ["suppliers-for-product"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product-supplier-summaries"] });
+    },
+  });
+}
+
 export function useRemoveProductSupplier() {
   const queryClient = useQueryClient();
 

@@ -94,7 +94,10 @@
     "linked": "Supplier linked successfully",
     "linkError": "Failed to link supplier",
     "unlinked": "Supplier unlinked successfully",
-    "unlinkError": "Failed to unlink supplier"
+    "unlinkError": "Failed to unlink supplier",
+    "editPrice": "Click to edit price",
+    "priceUpdated": "Purchase price updated",
+    "priceUpdateError": "Failed to update price"
   },
   "validation": {
     "nameRequired": "Name is required",

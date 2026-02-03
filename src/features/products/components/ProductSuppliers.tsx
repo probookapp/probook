@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Check, Pencil } from "lucide-react";
 import {
   Button,
   Input,
@@ -16,6 +16,7 @@ import {
   useSuppliers,
   useAddProductSupplier,
   useRemoveProductSupplier,
+  useUpdateProductSupplierPrice,
 } from "@/features/suppliers/hooks/useSuppliers";
 import { useToastStore } from "@/stores/useToastStore";
 import { formatCurrency } from "@/lib/utils";
@@ -34,10 +35,13 @@ export function ProductSuppliers({ productId }: ProductSuppliersProps) {
   const { data: allSuppliers } = useSuppliers();
   const addProductSupplier = useAddProductSupplier();
   const removeProductSupplier = useRemoveProductSupplier();
+  const updatePrice = useUpdateProductSupplierPrice();
 
   const [isAdding, setIsAdding] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
+  const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
+  const [editingPrice, setEditingPrice] = useState("");
 
   const linkedSupplierIds = new Set(linkedSuppliers?.map((s: SupplierWithPrice) => s.id) ?? []);
   const availableSuppliers = allSuppliers?.filter((s) => !linkedSupplierIds.has(s.id)) ?? [];
@@ -68,6 +72,26 @@ export function ProductSuppliers({ productId }: ProductSuppliersProps) {
       addToast({ type: "success", message: t("suppliers.unlinked") });
     } catch {
       addToast({ type: "error", message: t("suppliers.unlinkError") });
+    }
+  };
+
+  const handleStartEditPrice = (supplier: SupplierWithPrice) => {
+    setEditingLinkId(supplier.link_id);
+    setEditingPrice(String(supplier.purchase_price_ht));
+  };
+
+  const handleSavePrice = async () => {
+    if (!editingLinkId || !editingPrice) return;
+    try {
+      await updatePrice.mutateAsync({
+        linkId: editingLinkId,
+        purchasePriceHt: parseFloat(editingPrice),
+      });
+      addToast({ type: "success", message: t("suppliers.priceUpdated") });
+      setEditingLinkId(null);
+      setEditingPrice("");
+    } catch {
+      addToast({ type: "error", message: t("suppliers.priceUpdateError") });
     }
   };
 
@@ -176,7 +200,46 @@ export function ProductSuppliers({ productId }: ProductSuppliersProps) {
                     {supplier.phone || "-"}
                   </TableCell>
                   <TableCell className="text-gray-600 dark:text-gray-400">
-                    {formatCurrency(supplier.purchase_price_ht)}
+                    {editingLinkId === supplier.link_id ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={editingPrice}
+                          onChange={(e) => setEditingPrice(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSavePrice();
+                            if (e.key === "Escape") { setEditingLinkId(null); setEditingPrice(""); }
+                          }}
+                          autoFocus
+                          className="w-24 px-2 py-1 text-sm border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        />
+                        <button
+                          onClick={handleSavePrice}
+                          className="p-1 text-green-600 hover:text-green-700 transition-colors"
+                          title={tCommon("buttons.save")}
+                        >
+                          <Check className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => { setEditingLinkId(null); setEditingPrice(""); }}
+                          className="p-1 text-gray-500 hover:text-gray-700 transition-colors"
+                          title={tCommon("buttons.cancel")}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleStartEditPrice(supplier)}
+                        className="group flex items-center gap-1 hover:text-primary-600 transition-colors"
+                        title={t("suppliers.editPrice")}
+                      >
+                        {formatCurrency(supplier.purchase_price_ht)}
+                        <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    )}
                   </TableCell>
                   <TableCell>
                     <button
