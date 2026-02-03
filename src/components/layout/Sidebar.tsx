@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { getVersion } from "@tauri-apps/api/app";
+import { isTauri } from "@/lib/config";
 import {
   LayoutDashboard,
   Users,
@@ -33,7 +33,9 @@ export function Sidebar({ onClose }: SidebarProps) {
   const { currentUser, hasPermission, clearUser } = useAuthStore();
 
   useEffect(() => {
-    getVersion().then(setVersion);
+    if (isTauri()) {
+      import("@tauri-apps/api/app").then((mod) => mod.getVersion()).then(setVersion);
+    }
   }, []);
 
   const handleLogout = async () => {

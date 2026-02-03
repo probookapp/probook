@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { open } from "@tauri-apps/plugin-dialog";
+import { isTauri } from "@/lib/config";
 import { toast } from "@/stores/useToastStore";
 import { Camera, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui";
@@ -22,7 +22,9 @@ export function ProductPhotoUpload({ productId }: ProductPhotoUploadProps) {
   const deletePhoto = useDeleteProductPhoto();
 
   const handleUpload = async () => {
+    if (!isTauri()) return;
     try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
       const selected = await open({
         multiple: false,
         filters: [

@@ -8,9 +8,7 @@ import { InvoicePDF } from "./InvoicePDF";
 import { QuotePDF } from "./QuotePDF";
 import { DeliveryNotePDF } from "./DeliveryNotePDF";
 import { useLogoBase64 } from "@/features/settings";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { save } from "@tauri-apps/plugin-dialog";
-import { writeFile } from "@tauri-apps/plugin-fs";
+import { isTauri } from "@/lib/config";
 import type { Invoice, Quote, DeliveryNote, CompanySettings } from "@/types";
 
 interface InvoicePDFViewerProps {
@@ -35,7 +33,7 @@ interface DeliveryNotePDFViewerProps {
 type PDFViewerProps = InvoicePDFViewerProps | QuotePDFViewerProps | DeliveryNotePDFViewerProps;
 
 export function PDFViewer(props: PDFViewerProps) {
-  const { type, document, company } = props;
+  const { type, document: doc, company } = props;
   const { t } = useTranslation("common");
   const [isOpening, setIsOpening] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -44,13 +42,13 @@ export function PDFViewer(props: PDFViewerProps) {
   // Get filename based on document type
   const fileName = useMemo(() => {
     if (type === "invoice") {
-      return `${(document as Invoice).invoice_number}.pdf`;
+      return `${(doc as Invoice).invoice_number}.pdf`;
     } else if (type === "quote") {
-      return `${(document as Quote).quote_number}.pdf`;
+      return `${(doc as Quote).quote_number}.pdf`;
     } else {
-      return `${(document as DeliveryNote).delivery_note_number}.pdf`;
+      return `${(doc as DeliveryNote).delivery_note_number}.pdf`;
     }
-  }, [type, document]);
+  }, [type, doc]);
 
   // Determine which logo to use:
   // - For invoices: use stored logo_snapshot if issued/paid, otherwise use current logo
@@ -58,13 +56,13 @@ export function PDFViewer(props: PDFViewerProps) {
   // - For delivery notes: use passed logoBase64 or current logo
   const logoToUse = useMemo(() => {
     if (type === "invoice") {
-      const invoice = document as Invoice;
+      const invoice = doc as Invoice;
       // Use stored snapshot for issued/paid invoices, current logo for drafts
       if (invoice.status !== "DRAFT" && invoice.logo_snapshot) {
         return invoice.logo_snapshot;
       }
     } else if (type === "quote") {
-      const quote = document as Quote;
+      const quote = doc as Quote;
       // Use stored snapshot for sent/accepted quotes, current logo for drafts
       if (quote.status !== "DRAFT" && quote.logo_snapshot) {
         return quote.logo_snapshot;
@@ -77,48 +75,50 @@ export function PDFViewer(props: PDFViewerProps) {
       }
     }
     return currentLogo;
-  }, [type, document, currentLogo, props]);
+  }, [type, doc, currentLogo, props]);
 
   // Memoize the PDF document
   const PDFDocument = useMemo(() => {
     if (type === "invoice") {
-      return <InvoicePDF invoice={document as Invoice} company={company} logoBase64={logoToUse} />;
+      return <InvoicePDF invoice={doc as Invoice} company={company} logoBase64={logoToUse} />;
     } else if (type === "quote") {
-      return <QuotePDF quote={document as Quote} company={company} logoBase64={logoToUse} />;
+      return <QuotePDF quote={doc as Quote} company={company} logoBase64={logoToUse} />;
     } else {
-      return <DeliveryNotePDF deliveryNote={document as DeliveryNote} company={company} logoBase64={logoToUse} />;
+      return <DeliveryNotePDF deliveryNote={doc as DeliveryNote} company={company} logoBase64={logoToUse} />;
     }
-  }, [type, document, company, logoToUse]);
+  }, [type, doc, company, logoToUse]);
 
-  // Open PDF in a new Tauri window for preview/print
+  // Open PDF in a new window for preview/print
   const handleOpenPreview = useCallback(async () => {
     setIsOpening(true);
     try {
       const blob = await pdf(PDFDocument).toBlob();
       const url = URL.createObjectURL(blob);
 
-      // Create a unique window label
-      const windowLabel = `pdf-preview-${Date.now()}`;
+      if (isTauri()) {
+        const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+        const windowLabel = `pdf-preview-${Date.now()}`;
+        const previewWindow = new WebviewWindow(windowLabel, {
+          url: url,
+          title: fileName,
+          width: 900,
+          height: 700,
+          center: true,
+          resizable: true,
+        });
 
-      // Create a new Tauri window with the PDF
-      const previewWindow = new WebviewWindow(windowLabel, {
-        url: url,
-        title: fileName,
-        width: 900,
-        height: 700,
-        center: true,
-        resizable: true,
-      });
+        previewWindow.once("tauri://destroyed", () => {
+          URL.revokeObjectURL(url);
+        });
 
-      // Cleanup URL when window is closed
-      previewWindow.once("tauri://destroyed", () => {
-        URL.revokeObjectURL(url);
-      });
-
-      previewWindow.once("tauri://error", () => {
-        toast.error(t("pdfViewer.errorPreview"));
-        URL.revokeObjectURL(url);
-      });
+        previewWindow.once("tauri://error", () => {
+          toast.error(t("pdfViewer.errorPreview"));
+          URL.revokeObjectURL(url);
+        });
+      } else {
+        // Web mode: open PDF in a new browser tab
+        window.open(url, "_blank");
+      }
     } catch (error) {
       toast.error(t("pdfViewer.errorPreview"));
     } finally {
@@ -126,25 +126,38 @@ export function PDFViewer(props: PDFViewerProps) {
     }
   }, [PDFDocument, fileName, t]);
 
-  // Download PDF with save dialog
+  // Download PDF with save dialog (Tauri) or browser download (web)
   const handleDownload = useCallback(async () => {
     setIsDownloading(true);
     try {
-      // Generate PDF blob
       const blob = await pdf(PDFDocument).toBlob();
-      const arrayBuffer = await blob.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
 
-      // Open save dialog
-      const filePath = await save({
-        defaultPath: fileName,
-        filters: [{ name: "PDF", extensions: ["pdf"] }],
-      });
+      if (isTauri()) {
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const { writeFile } = await import("@tauri-apps/plugin-fs");
+        const arrayBuffer = await blob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
 
-      if (filePath) {
-        // Write file
-        await writeFile(filePath, uint8Array);
-        toast.success(t("pdfViewer.downloadSuccess", { path: filePath }));
+        const filePath = await save({
+          defaultPath: fileName,
+          filters: [{ name: "PDF", extensions: ["pdf"] }],
+        });
+
+        if (filePath) {
+          await writeFile(filePath, uint8Array);
+          toast.success(t("pdfViewer.downloadSuccess", { path: filePath }));
+        }
+      } else {
+        // Web mode: trigger browser download
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success(t("pdfViewer.downloadSuccess", { path: fileName }));
       }
     } catch (error) {
       toast.error(t("pdfViewer.downloadError"));
@@ -155,8 +168,8 @@ export function PDFViewer(props: PDFViewerProps) {
 
   // Only wait for logo loading if we're showing a draft document or delivery note
   const needsCurrentLogo =
-    (type === "invoice" && (document as Invoice).status === "DRAFT") ||
-    (type === "quote" && (document as Quote).status === "DRAFT") ||
+    (type === "invoice" && (doc as Invoice).status === "DRAFT") ||
+    (type === "quote" && (doc as Quote).status === "DRAFT") ||
     (type === "delivery_note" && !(props as DeliveryNotePDFViewerProps).logoBase64);
   if (needsCurrentLogo && isLoadingLogo) {
     return (

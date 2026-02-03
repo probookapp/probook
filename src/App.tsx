@@ -16,7 +16,7 @@ import { ReportsPage } from "@/features/reports";
 import { ExpensesPage } from "@/features/expenses";
 import { SuppliersPage } from "@/features/suppliers";
 import { SettingsPage } from "@/features/settings";
-import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { isTauri } from "@/lib/config";
 
 function App() {
   const { isLoading, needsDbSetup, needsSetup, isAuthenticated } = useAuthStore();
@@ -25,15 +25,18 @@ function App() {
   useEffect(() => {
     if (!isLoading && !splashClosed.current) {
       splashClosed.current = true;
-      (async () => {
-        try {
-          await getCurrentWebviewWindow().show();
-          const splash = await WebviewWindow.getByLabel("splashscreen");
-          await splash?.close();
-        } catch {
-          // Splash window may not exist in dev mode
-        }
-      })();
+      if (isTauri()) {
+        (async () => {
+          try {
+            const { getCurrentWebviewWindow, WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+            await getCurrentWebviewWindow().show();
+            const splash = await WebviewWindow.getByLabel("splashscreen");
+            await splash?.close();
+          } catch {
+            // Splash window may not exist in dev mode
+          }
+        })();
+      }
     }
   }, [isLoading]);
 

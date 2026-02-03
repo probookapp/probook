@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Upload, FileDown, CheckCircle2, AlertCircle, FileSpreadsheet } from "lucide-react";
-import { open } from "@tauri-apps/plugin-dialog";
+import { isTauri } from "@/lib/config";
 import { Button, Modal } from "@/components/ui";
 import { importApi } from "@/lib/tauri";
 import type { ImportResult } from "@/types";
@@ -31,19 +31,22 @@ export function ImportDialog({
   const [result, setResult] = useState<ImportResult | null>(null);
 
   const handleSelectFile = async () => {
-    const file = await open({
-      multiple: false,
-      filters: [
-        {
-          name: "Spreadsheet",
-          extensions: ["csv", "xlsx"],
-        },
-      ],
-    });
+    if (isTauri()) {
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const file = await open({
+        multiple: false,
+        filters: [
+          {
+            name: "Spreadsheet",
+            extensions: ["csv", "xlsx"],
+          },
+        ],
+      });
 
-    if (file) {
-      setSelectedFile(file);
-      setResult(null);
+      if (file) {
+        setSelectedFile(file);
+        setResult(null);
+      }
     }
   };
 
