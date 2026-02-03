@@ -1,18 +1,20 @@
 import { useEffect } from "react";
 import { useBlocker } from "react-router-dom";
 
-export function useUnsavedChangesGuard(when: boolean) {
-  const blocker = useBlocker(when);
+export function useUnsavedChangesGuard(when: boolean | (() => boolean)) {
+  const shouldBlock = typeof when === "function" ? when : () => when;
+  const blocker = useBlocker(shouldBlock);
 
   // Browser close / refresh
   useEffect(() => {
-    if (!when) return;
     const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
+      if (shouldBlock()) {
+        e.preventDefault();
+      }
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [when]);
+  }, [shouldBlock]);
 
   return blocker;
 }

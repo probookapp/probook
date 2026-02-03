@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm, useFieldArray, useWatch, Controller, type Resolver } from "react-hook-form";
 import { toast } from "@/stores/useToastStore";
@@ -115,8 +115,8 @@ export function DeliveryNoteFormPage() {
     return watchedLines.some((_, index) => getStockError(index) !== null);
   }, [watchedLines, products]);
 
-  const [submitted, setSubmitted] = useState(false);
-  const blocker = useUnsavedChangesGuard(isDirty && !submitted);
+  const submittedRef = useRef(false);
+  const blocker = useUnsavedChangesGuard(() => isDirty && !submittedRef.current);
 
   // Load existing delivery note data when editing
   useEffect(() => {
@@ -171,11 +171,11 @@ export function DeliveryNoteFormPage() {
           ...input,
           status: data.status || "DRAFT",
         });
-        setSubmitted(true);
+        submittedRef.current = true;
         navigate(`/delivery-notes/${id}`);
       } else {
         const newNote = await createDeliveryNote.mutateAsync(input);
-        setSubmitted(true);
+        submittedRef.current = true;
         navigate(`/delivery-notes/${newNote.id}`);
       }
     } catch (error) {

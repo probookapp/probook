@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useForm, useFieldArray, useWatch, Controller, type Resolver } from "react-hook-form";
@@ -65,7 +65,7 @@ export function QuoteFormPage() {
   const updateQuote = useUpdateQuote();
   const [notesHtml, setNotesHtml] = useState("");
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(new Set());
-  const [submitted, setSubmitted] = useState(false);
+  const submittedRef = useRef(false);
 
   const {
     register,
@@ -126,7 +126,7 @@ export function QuoteFormPage() {
     defaultValue: 0,
   });
 
-  const blocker = useUnsavedChangesGuard(isDirty && !submitted);
+  const blocker = useUnsavedChangesGuard(() => isDirty && !submittedRef.current);
 
   useEffect(() => {
     if (quote && isEditing) {
@@ -281,7 +281,7 @@ export function QuoteFormPage() {
     } else {
       await createQuote.mutateAsync(formData);
     }
-    setSubmitted(true);
+    submittedRef.current = true;
     navigate("/quotes");
   };
 

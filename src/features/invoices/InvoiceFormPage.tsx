@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useForm, useFieldArray, useWatch, Controller, type Resolver } from "react-hook-form";
@@ -65,7 +65,7 @@ export function InvoiceFormPage() {
   const updateInvoice = useUpdateInvoice();
   const [notesHtml, setNotesHtml] = useState("");
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(new Set());
-  const [submitted, setSubmitted] = useState(false);
+  const submittedRef = useRef(false);
 
   const {
     register,
@@ -133,7 +133,7 @@ export function InvoiceFormPage() {
     }
   }, [invoice, isEditing, id, navigate]);
 
-  const blocker = useUnsavedChangesGuard(isDirty && !submitted);
+  const blocker = useUnsavedChangesGuard(() => isDirty && !submittedRef.current);
 
   useEffect(() => {
     if (invoice && isEditing) {
@@ -287,7 +287,7 @@ export function InvoiceFormPage() {
     } else {
       await createInvoice.mutateAsync(formData);
     }
-    setSubmitted(true);
+    submittedRef.current = true;
     navigate("/invoices");
   };
 
