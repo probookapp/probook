@@ -1185,6 +1185,30 @@ pub async fn update_app_settings(
     get_company_settings(pool).await
 }
 
+pub async fn update_backup_settings(
+    pool: &PgPool,
+    auto_backup_enabled: bool,
+    backup_schedule: &str,
+) -> Result<CompanySettings, sqlx::Error> {
+    let now = Utc::now();
+    sqlx::query(
+        r#"
+        UPDATE company_settings SET
+            auto_backup_enabled = $1,
+            backup_schedule = $2,
+            updated_at = $3
+        WHERE id = 'default'
+        "#,
+    )
+    .bind(auto_backup_enabled)
+    .bind(backup_schedule)
+    .bind(&now)
+    .execute(pool)
+    .await?;
+
+    get_company_settings(pool).await
+}
+
 // Dashboard Stats
 pub async fn get_dashboard_stats(pool: &PgPool) -> Result<DashboardStats, sqlx::Error> {
     let total_clients: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM clients")

@@ -30,6 +30,7 @@ import {
   useDeleteLogo,
   useCreateLocalBackup,
   useOpenBackupsFolder,
+  useUpdateBackupSettings,
 } from "./hooks/useSettings";
 import { useSettingsStore, type AppLanguage, type AppTheme } from "@/stores/useSettingsStore";
 import { useEffect, useState } from "react";
@@ -88,6 +89,7 @@ export function SettingsPage() {
   const createLocalBackup = useCreateLocalBackup();
   const openBackupsFolder = useOpenBackupsFolder();
   const updateAppSettings = useUpdateAppSettings();
+  const updateBackupSettings = useUpdateBackupSettings();
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [backupSuccess, setBackupSuccess] = useState(false);
 
@@ -715,6 +717,65 @@ export function SettingsPage() {
                 {t("backup.viewBackups")}
               </Button>
             </div>
+          </div>
+
+          {/* Auto-Backup Settings */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t("backup.autoBackup")}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t("backup.autoBackupDescription")}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings?.auto_backup_enabled ?? false}
+                onClick={() => {
+                  const newEnabled = !(settings?.auto_backup_enabled ?? false);
+                  updateBackupSettings.mutate({
+                    autoBackupEnabled: newEnabled,
+                    backupSchedule: settings?.backup_schedule || "daily",
+                  });
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  settings?.auto_backup_enabled
+                    ? "bg-primary-600"
+                    : "bg-gray-300 dark:bg-gray-600"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    settings?.auto_backup_enabled ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+            {settings?.auto_backup_enabled && (
+              <div className="flex items-center gap-3">
+                <label htmlFor="backup-schedule" className="text-sm text-gray-600 dark:text-gray-400">
+                  {t("backup.schedule")}
+                </label>
+                <select
+                  id="backup-schedule"
+                  value={settings?.backup_schedule || "daily"}
+                  onChange={(e) => {
+                    updateBackupSettings.mutate({
+                      autoBackupEnabled: true,
+                      backupSchedule: e.target.value,
+                    });
+                  }}
+                  className="px-3 py-1.5 text-sm border rounded-lg shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="daily">{t("backup.daily")}</option>
+                  <option value="weekly">{t("backup.weekly")}</option>
+                  <option value="monthly">{t("backup.monthly")}</option>
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Manual Export/Import */}

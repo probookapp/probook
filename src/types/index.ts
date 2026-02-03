@@ -350,6 +350,11 @@ export interface UpdateAppSettingsInput {
   auto_update_enabled: boolean;
 }
 
+export interface UpdateBackupSettingsInput {
+  auto_backup_enabled: boolean;
+  backup_schedule: string;
+}
+
 // Expense types
 export interface Expense {
   id: string;

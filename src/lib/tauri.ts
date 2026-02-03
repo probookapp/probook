@@ -143,6 +143,8 @@ export const settingsApi = {
     apiCall<CompanySettings>("update_company_settings", { input }),
   updateAppSettings: (appLanguage: string, appTheme: string, autoUpdateEnabled: boolean) =>
     apiCall<CompanySettings>("update_app_settings", { appLanguage, appTheme, autoUpdateEnabled }),
+  updateBackupSettings: (autoBackupEnabled: boolean, backupSchedule: string) =>
+    apiCall<CompanySettings>("update_backup_settings", { autoBackupEnabled, backupSchedule }),
   uploadLogo: async (filePath: string) => {
     if (isTauri()) {
       const { invoke } = await import("@tauri-apps/api/core");

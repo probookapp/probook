@@ -77,6 +77,12 @@ pub struct UpdateAppSettingsInput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateBackupSettingsInput {
+    pub auto_backup_enabled: bool,
+    pub backup_schedule: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DashboardStats {
     pub total_clients: i64,
     pub total_invoices: i64,

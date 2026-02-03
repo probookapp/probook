@@ -167,6 +167,14 @@ const COMMAND_MAP: Record<string, EndpointDef> = {
       auto_update_enabled: a.autoUpdateEnabled,
     }),
   },
+  update_backup_settings: {
+    method: "PUT",
+    path: "/api/settings/backup",
+    body: (a) => ({
+      auto_backup_enabled: a.autoBackupEnabled,
+      backup_schedule: a.backupSchedule,
+    }),
+  },
   get_dashboard_stats: { method: "GET", path: "/api/settings/dashboard" },
 
   // Expenses

@@ -12,16 +12,23 @@ use probook_core::db::repository;
 use probook_core::models::*;
 
 #[derive(Deserialize)]
-pub struct UpdateAppSettingsInput {
+pub struct UpdateAppSettingsBody {
     pub app_language: String,
     pub app_theme: String,
     pub auto_update_enabled: bool,
+}
+
+#[derive(Deserialize)]
+pub struct UpdateBackupSettingsBody {
+    pub auto_backup_enabled: bool,
+    pub backup_schedule: String,
 }
 
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/settings", get(get_company_settings).put(update_company_settings))
         .route("/settings/app", put(update_app_settings))
+        .route("/settings/backup", put(update_backup_settings))
 }
 
 async fn get_company_settings(
@@ -45,13 +52,27 @@ async fn update_company_settings(
 
 async fn update_app_settings(
     State(state): State<Arc<AppState>>,
-    Json(input): Json<UpdateAppSettingsInput>,
+    Json(input): Json<UpdateAppSettingsBody>,
 ) -> Result<Json<CompanySettings>, (StatusCode, String)> {
     let settings = repository::update_app_settings(
         &state.pool,
         &input.app_language,
         &input.app_theme,
         input.auto_update_enabled,
+    )
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    Ok(Json(settings))
+}
+
+async fn update_backup_settings(
+    State(state): State<Arc<AppState>>,
+    Json(input): Json<UpdateBackupSettingsBody>,
+) -> Result<Json<CompanySettings>, (StatusCode, String)> {
+    let settings = repository::update_backup_settings(
+        &state.pool,
+        input.auto_backup_enabled,
+        &input.backup_schedule,
     )
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;

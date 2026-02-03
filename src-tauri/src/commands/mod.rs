@@ -916,6 +916,18 @@ pub async fn update_app_settings(
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+pub async fn update_backup_settings(
+    auto_backup_enabled: bool,
+    backup_schedule: String,
+    state: State<'_, AppState>,
+) -> Result<CompanySettings, String> {
+    require_auth(&state)?;
+    repository::update_backup_settings(&state.pool, auto_backup_enabled, &backup_schedule)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 // Local Backup Commands
 
 /// Backup info returned to frontend

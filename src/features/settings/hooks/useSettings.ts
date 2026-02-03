@@ -63,6 +63,18 @@ export function useDeleteLogo() {
   });
 }
 
+export function useUpdateBackupSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ autoBackupEnabled, backupSchedule }: { autoBackupEnabled: boolean; backupSchedule: string }) =>
+      settingsApi.updateBackupSettings(autoBackupEnabled, backupSchedule),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["company-settings"] });
+    },
+  });
+}
+
 export function useExportBackup() {
   return useMutation({
     mutationFn: ({ filePath, password }: { filePath: string; password: string }) =>

@@ -84,6 +84,7 @@ pub fn run() {
             commands::get_company_settings,
             commands::update_company_settings,
             commands::update_app_settings,
+            commands::update_backup_settings,
             commands::upload_logo,
             commands::get_logo_base64,
             commands::delete_logo,

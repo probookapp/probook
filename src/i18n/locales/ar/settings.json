@@ -69,7 +69,13 @@
     "exportEncrypted": "تصدير مشفر",
     "importDecrypt": "فك التشفير والاستيراد",
     "showPassword": "إظهار كلمة المرور",
-    "hidePassword": "إخفاء كلمة المرور"
+    "hidePassword": "إخفاء كلمة المرور",
+    "autoBackup": "النسخ الاحتياطي التلقائي",
+    "autoBackupDescription": "إنشاء نسخ احتياطية محلية تلقائياً حسب جدول زمني",
+    "schedule": "التكرار",
+    "daily": "يومي",
+    "weekly": "أسبوعي",
+    "monthly": "شهري"
   },
   "appearance": {
     "title": "المظهر",

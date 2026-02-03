@@ -69,7 +69,13 @@
     "exportEncrypted": "Export Encrypted",
     "importDecrypt": "Decrypt & Import",
     "showPassword": "Show password",
-    "hidePassword": "Hide password"
+    "hidePassword": "Hide password",
+    "autoBackup": "Automatic Backup",
+    "autoBackupDescription": "Automatically create local backups on a schedule",
+    "schedule": "Frequency",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly"
   },
   "appearance": {
     "title": "Appearance",
