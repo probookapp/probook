@@ -72,7 +72,7 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
                 </span>
               </div>
               {product.quantity !== null && product.quantity <= 5 && !product.is_service && (
-                <p className={`text-xs mt-1 ${product.quantity === 0 ? "text-red-600 dark:text-red-400" : "text-orange-500"}`}>
+                <p className={`text-xs mt-1 ${product.quantity === 0 ? "text-red-600 dark:text-red-400" : "text-orange-500 dark:text-orange-400"}`}>
                   {product.quantity === 0
                     ? t("outOfStock")
                     : t("lowStock", { count: product.quantity })}
