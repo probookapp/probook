@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Monitor, MapPin, Store, ArrowLeft, Lock, Unlock } from "lucide-react";
 import { usePosStore } from "./stores/usePosStore";
 import { useBarcodeScanner } from "./hooks/useBarcodeScanner";
 import {
@@ -18,15 +19,16 @@ import { ProductSearch } from "./components/ProductSearch";
 import { CartDisplay } from "./components/CartDisplay";
 import { CartTotals } from "./components/CartTotals";
 import { PaymentModal } from "./components/PaymentModal";
-import { OpenSessionModal } from "./components/OpenSessionModal";
 import { CloseSessionModal } from "./components/CloseSessionModal";
 import { SessionControls } from "./components/SessionControls";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 import { toast } from "@/stores/useToastStore";
 
 export function POSPage() {
   const { t } = useTranslation("pos");
+  const navigate = useNavigate();
+  const currency = useSettingsStore((state) => state.currency);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showOpenSessionModal, setShowOpenSessionModal] = useState(false);
   const [showCloseSessionModal, setShowCloseSessionModal] = useState(false);
 
   const {
@@ -54,6 +56,9 @@ export function POSPage() {
   const [showCreateRegister, setShowCreateRegister] = useState(false);
   const [newRegisterName, setNewRegisterName] = useState("");
   const [newRegisterLocation, setNewRegisterLocation] = useState("");
+
+  // Inline session opening
+  const [openingFloat, setOpeningFloat] = useState("0");
 
   // Barcode scanner
   useBarcodeScanner({
@@ -94,17 +99,18 @@ export function POSPage() {
     }
   }, [registers, currentRegister, setSession]);
 
-  const handleOpenSession = async (openingFloat: number) => {
+  const handleOpenSession = async () => {
     if (!currentRegister) return;
     try {
+      const amount = parseFloat(openingFloat) || 0;
       const session = await openSession.mutateAsync({
         register_id: currentRegister.id,
-        opening_float: openingFloat,
+        opening_float: amount,
       });
       setSession(session, currentRegister);
-      setShowOpenSessionModal(false);
+      setOpeningFloat("0");
       toast.success(t("sessionOpened"));
-    } catch (err) {
+    } catch {
       toast.error(t("errors.openSessionFailed"));
     }
   };
@@ -121,7 +127,7 @@ export function POSPage() {
       clearCart();
       setShowCloseSessionModal(false);
       toast.success(t("sessionClosed"));
-    } catch (err) {
+    } catch {
       toast.error(t("errors.closeSessionFailed"));
     }
   };
@@ -157,7 +163,7 @@ export function POSPage() {
       clearCart();
       setShowPaymentModal(false);
       toast.success(t("transactionComplete"));
-    } catch (err) {
+    } catch {
       toast.error(t("errors.transactionFailed"));
     }
   };
@@ -179,117 +185,185 @@ export function POSPage() {
     }
   };
 
-  // Show register selection or session opening if needed
+  // ─── Register selection screen ───
   if (!currentRegister) {
     const activeRegisters = registers?.filter((r) => r.is_active) ?? [];
 
     return (
-      <div className="h-screen flex items-center justify-center bg-muted">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">
-            {activeRegisters.length > 0 ? t("selectRegister") : t("noRegisters")}
-          </h1>
-          <div className="space-y-2">
-            {activeRegisters.map((register) => (
-              <button
-                key={register.id}
-                onClick={() => setSession(null, register)}
-                className="block w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
-              >
-                {register.name}
-                {register.location && (
-                  <span className="text-sm opacity-75 ml-2">
-                    ({register.location})
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+      <div className="h-screen flex flex-col bg-background">
+        {/* Top bar */}
+        <div className="h-14 border-b flex items-center px-4 shrink-0">
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t("backToOffice")}
+          </button>
+        </div>
 
-          {showCreateRegister ? (
-            <div className="mt-4 p-4 bg-background rounded-lg border text-left max-w-sm mx-auto">
-              <label className="block text-sm font-medium mb-1">
-                {t("registerName")}
-              </label>
-              <input
-                type="text"
-                value={newRegisterName}
-                onChange={(e) => setNewRegisterName(e.target.value)}
-                placeholder={t("registerNamePlaceholder")}
-                className="w-full px-3 py-2 border rounded-lg bg-background mb-3"
-                autoFocus
-                onKeyDown={(e) => e.key === "Enter" && handleCreateRegister()}
-              />
-              <label className="block text-sm font-medium mb-1">
-                {t("registerLocation")}
-              </label>
-              <input
-                type="text"
-                value={newRegisterLocation}
-                onChange={(e) => setNewRegisterLocation(e.target.value)}
-                placeholder={t("registerLocationPlaceholder")}
-                className="w-full px-3 py-2 border rounded-lg bg-background mb-4"
-                onKeyDown={(e) => e.key === "Enter" && handleCreateRegister()}
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowCreateRegister(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-muted"
-                >
-                  {t("cancel")}
-                </button>
-                <button
-                  onClick={handleCreateRegister}
-                  disabled={!newRegisterName.trim() || createRegister.isPending}
-                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {t("createRegister")}
-                </button>
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="w-full max-w-md">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary mb-4">
+                <Store className="h-8 w-8" />
               </div>
+              <h1 className="text-2xl font-bold">
+                {activeRegisters.length > 0 ? t("selectRegister") : t("noRegisters")}
+              </h1>
             </div>
-          ) : (
-            <button
-              onClick={() => setShowCreateRegister(true)}
-              className="mt-4 px-6 py-3 border-2 border-dashed border-muted-foreground/30 rounded-lg hover:border-primary hover:text-primary text-muted-foreground flex items-center gap-2 mx-auto"
-            >
-              <Plus className="h-5 w-5" />
-              {t("createRegister")}
-            </button>
-          )}
+
+            <div className="space-y-2">
+              {activeRegisters.map((register) => (
+                <button
+                  key={register.id}
+                  onClick={() => setSession(null, register)}
+                  className="w-full flex items-center gap-4 p-4 bg-muted hover:bg-muted/80 border rounded-xl transition-colors text-left"
+                >
+                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary shrink-0">
+                    <Monitor className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold truncate">{register.name}</p>
+                    {register.location && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {register.location}
+                      </p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {showCreateRegister ? (
+              <div className="mt-4 p-5 bg-muted rounded-xl border space-y-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    {t("registerName")}
+                  </label>
+                  <input
+                    type="text"
+                    value={newRegisterName}
+                    onChange={(e) => setNewRegisterName(e.target.value)}
+                    placeholder={t("registerNamePlaceholder")}
+                    className="w-full px-3 py-2.5 border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    autoFocus
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateRegister()}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    {t("registerLocation")}
+                  </label>
+                  <input
+                    type="text"
+                    value={newRegisterLocation}
+                    onChange={(e) => setNewRegisterLocation(e.target.value)}
+                    placeholder={t("registerLocationPlaceholder")}
+                    className="w-full px-3 py-2.5 border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateRegister()}
+                  />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => setShowCreateRegister(false)}
+                    className="flex-1 px-4 py-2.5 border rounded-lg hover:bg-background font-medium transition-colors"
+                  >
+                    {t("cancel")}
+                  </button>
+                  <button
+                    onClick={handleCreateRegister}
+                    disabled={!newRegisterName.trim() || createRegister.isPending}
+                    className="flex-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium disabled:opacity-50 transition-colors"
+                  >
+                    {createRegister.isPending ? t("loading") : t("createRegister")}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowCreateRegister(true)}
+                className="w-full mt-3 px-4 py-3 border-2 border-dashed border-muted-foreground/25 rounded-xl hover:border-primary hover:text-primary text-muted-foreground flex items-center justify-center gap-2 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                {t("createRegister")}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
+  // ─── Session closed screen (inline opening float) ───
   if (!currentSession) {
     return (
-      <>
-        <div className="h-screen flex items-center justify-center bg-muted">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-2">
-              {currentRegister.name}
-            </h1>
-            <p className="text-muted-foreground mb-6">
-              {t("sessionClosed")}
-            </p>
-            <button
-              onClick={() => setShowOpenSessionModal(true)}
-              className="px-8 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 text-lg font-medium"
-            >
-              {t("openSession")}
-            </button>
+      <div className="h-screen flex flex-col bg-background">
+        {/* Top bar */}
+        <div className="h-14 border-b flex items-center justify-between px-4 shrink-0">
+          <button
+            onClick={() => {
+              setSession(null, null);
+            }}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t("selectRegister")}
+          </button>
+          <button
+            onClick={() => navigate("/")}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {t("backToOffice")}
+          </button>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="w-full max-w-sm text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 mb-4">
+              <Lock className="h-8 w-8" />
+            </div>
+            <h1 className="text-2xl font-bold mb-1">{currentRegister.name}</h1>
+            <p className="text-muted-foreground mb-8">{t("sessionClosed")}</p>
+
+            {/* Inline opening float form */}
+            <div className="bg-muted rounded-xl border p-5 text-left space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {t("openingFloatDescription")}
+              </p>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">
+                  {t("openingFloat")} ({currency})
+                </label>
+                <input
+                  type="number"
+                  value={openingFloat}
+                  onChange={(e) => setOpeningFloat(e.target.value)}
+                  className="w-full px-4 py-3 border rounded-lg text-2xl text-center font-bold bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  autoFocus
+                  onKeyDown={(e) => e.key === "Enter" && handleOpenSession()}
+                />
+              </div>
+              <button
+                onClick={handleOpenSession}
+                disabled={openSession.isPending}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-semibold text-lg disabled:opacity-50 transition-colors"
+              >
+                <Unlock className="h-5 w-5" />
+                {openSession.isPending ? t("loading") : t("openSession")}
+              </button>
+            </div>
           </div>
         </div>
-        <OpenSessionModal
-          open={showOpenSessionModal}
-          onClose={() => setShowOpenSessionModal(false)}
-          onConfirm={handleOpenSession}
-          isLoading={openSession.isPending}
-        />
-      </>
+      </div>
     );
   }
 
+  // ─── Active session: main POS layout ───
   return (
     <div className="h-screen flex flex-col bg-muted">
       {/* Header */}
@@ -316,7 +390,7 @@ export function POSPage() {
             <button
               onClick={() => setShowPaymentModal(true)}
               disabled={items.length === 0}
-              className="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {t("pay")} - {getFinalAmount().toFixed(2)}
             </button>
