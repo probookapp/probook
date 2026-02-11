@@ -1,0 +1,82 @@
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { X } from "lucide-react";
+import { useSettingsStore } from "@/stores/useSettingsStore";
+
+interface OpenSessionModalProps {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (openingFloat: number) => void;
+  isLoading: boolean;
+}
+
+export function OpenSessionModal({
+  open,
+  onClose,
+  onConfirm,
+  isLoading,
+}: OpenSessionModalProps) {
+  const { t } = useTranslation();
+  const currency = useSettingsStore((state) => state.currency);
+  const [openingFloat, setOpeningFloat] = useState<string>("0");
+
+  if (!open) return null;
+
+  const handleConfirm = () => {
+    const amount = parseFloat(openingFloat) || 0;
+    onConfirm(amount);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-background rounded-xl shadow-xl w-full max-w-sm mx-4">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-xl font-bold">{t("pos.openSession")}</h2>
+          <button onClick={onClose} className="p-1 hover:bg-muted rounded">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 space-y-4">
+          <p className="text-muted-foreground text-sm">
+            {t("pos.openingFloatDescription")}
+          </p>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              {t("pos.openingFloat")} ({currency})
+            </label>
+            <input
+              type="number"
+              value={openingFloat}
+              onChange={(e) => setOpeningFloat(e.target.value)}
+              className="w-full px-4 py-3 border rounded-lg text-2xl text-center font-bold focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+              autoFocus
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-3 border rounded-lg hover:bg-muted font-medium"
+          >
+            {t("common.cancel")}
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={isLoading}
+            className="flex-1 px-4 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-bold disabled:opacity-50"
+          >
+            {isLoading ? t("common.loading") : t("pos.open")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

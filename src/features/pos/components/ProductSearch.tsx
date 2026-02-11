@@ -1,0 +1,93 @@
+import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { productApi } from "@/lib/tauri";
+import type { Product } from "@/types";
+import { formatCurrency } from "@/lib/utils";
+
+const formatAmount = formatCurrency;
+
+interface ProductSearchProps {
+  onProductSelect: (product: Product) => void;
+}
+
+export function ProductSearch({ onProductSelect }: ProductSearchProps) {
+  const { t } = useTranslation();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const { data: products } = useQuery({
+    queryKey: ["products"],
+    queryFn: productApi.getAll,
+  });
+
+  const filteredProducts = useMemo(() => {
+    if (!products) return [];
+    if (!searchTerm) return products.slice(0, 20); // Show first 20 if no search
+
+    const term = searchTerm.toLowerCase();
+    return products
+      .filter(
+        (p) =>
+          p.designation.toLowerCase().includes(term) ||
+          p.reference?.toLowerCase().includes(term) ||
+          p.barcode?.toLowerCase().includes(term)
+      )
+      .slice(0, 20);
+  }, [products, searchTerm]);
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Search input */}
+      <div className="p-4 border-b">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={t("pos.searchProducts")}
+            className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            data-barcode-input="true"
+          />
+        </div>
+      </div>
+
+      {/* Product grid */}
+      <div className="flex-1 overflow-auto p-4">
+        <div className="grid grid-cols-2 gap-2">
+          {filteredProducts.map((product) => (
+            <button
+              key={product.id}
+              onClick={() => onProductSelect(product)}
+              className="p-3 text-left border rounded-lg hover:bg-muted/50 transition-colors"
+            >
+              <p className="font-medium truncate">{product.designation}</p>
+              <div className="flex justify-between items-center mt-1">
+                <span className="text-xs text-muted-foreground">
+                  {product.reference || product.barcode || "-"}
+                </span>
+                <span className="font-bold text-primary">
+                  {formatAmount(product.unit_price_ht * (1 + product.vat_rate / 100))}
+                </span>
+              </div>
+              {product.quantity !== null && product.quantity <= 5 && !product.is_service && (
+                <p className={`text-xs mt-1 ${product.quantity === 0 ? "text-destructive" : "text-orange-500"}`}>
+                  {product.quantity === 0
+                    ? t("pos.outOfStock")
+                    : t("pos.lowStock", { count: product.quantity })}
+                </p>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {filteredProducts.length === 0 && (
+          <div className="text-center text-muted-foreground py-8">
+            {searchTerm ? t("pos.noProductsFound") : t("pos.noProducts")}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
