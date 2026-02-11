@@ -9,6 +9,7 @@ const MIGRATIONS: &[(&str, &str, &str)] = &[
     ("004", "users_permissions", include_str!("../../migrations/004_users_permissions.sql")),
     ("005", "reminders", include_str!("../../migrations/005_reminders.sql")),
     ("006", "indexes", include_str!("../../migrations/006_indexes.sql")),
+    ("007", "pos_module", include_str!("../../migrations/007_pos_module.sql")),
 ];
 
 pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
