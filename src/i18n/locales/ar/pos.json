@@ -77,6 +77,8 @@
   "addCashOut": "تسجيل سحب",
   "cashMovementCreated": "تم تسجيل حركة النقد",
   "recentMovements": "الحركات الاخيرة",
+  "darkMode": "الوضع الداكن",
+  "lightMode": "الوضع الفاتح",
   "cancel": "الغاء",
   "loading": "جاري التحميل...",
   "optional": "اختياري",

@@ -77,6 +77,8 @@
   "addCashOut": "Enregistrer la sortie",
   "cashMovementCreated": "Mouvement de caisse enregistre",
   "recentMovements": "Mouvements recents",
+  "darkMode": "Mode sombre",
+  "lightMode": "Mode clair",
   "cancel": "Annuler",
   "loading": "Chargement...",
   "optional": "optionnel",

@@ -77,6 +77,8 @@
   "addCashOut": "Record Cash Out",
   "cashMovementCreated": "Cash movement recorded",
   "recentMovements": "Recent Movements",
+  "darkMode": "Dark Mode",
+  "lightMode": "Light Mode",
   "cancel": "Cancel",
   "loading": "Loading...",
   "optional": "optional",

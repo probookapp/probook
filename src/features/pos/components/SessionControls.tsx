@@ -6,10 +6,13 @@ import {
   Briefcase,
   ChevronDown,
   Trash2,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePosStore } from "../stores/usePosStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 
 interface SessionControlsProps {
   onCloseSession: () => void;
@@ -25,7 +28,12 @@ export function SessionControls({
   const { t } = useTranslation("pos");
   const navigate = useNavigate();
   const { clearCart, items } = usePosStore();
+  const { resolvedTheme, setTheme } = useSettingsStore();
   const [showMenu, setShowMenu] = useState(false);
+
+  const toggleTheme = () => {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+  };
 
   return (
     <div className="relative">
@@ -76,6 +84,17 @@ export function SessionControls({
             >
               <DollarSign className="h-4 w-4 text-(--color-text-secondary)" />
               {t("cashMovement")}
+            </button>
+            <button
+              onClick={toggleTheme}
+              className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-(--color-bg-secondary) text-left text-sm transition-colors"
+            >
+              {resolvedTheme === "dark" ? (
+                <Sun className="h-4 w-4 text-(--color-text-secondary)" />
+              ) : (
+                <Moon className="h-4 w-4 text-(--color-text-secondary)" />
+              )}
+              {resolvedTheme === "dark" ? t("lightMode") : t("darkMode")}
             </button>
             <div className="my-1 border-t border-(--color-border-primary)" />
             <button
