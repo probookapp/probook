@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { usePosStore } from "./stores/usePosStore";
 import { useBarcodeScanner } from "./hooks/useBarcodeScanner";
 import {
   useActiveSession,
   usePosRegisters,
+  useCreatePosRegister,
   useOpenSession,
   useCloseSession,
 } from "./hooks/usePosSession";
@@ -44,8 +46,14 @@ export function POSPage() {
   // Mutations
   const lookupProduct = useLookupProductByBarcode();
   const createTransaction = useCreateTransaction();
+  const createRegister = useCreatePosRegister();
   const openSession = useOpenSession();
   const closeSession = useCloseSession();
+
+  // Inline register creation
+  const [showCreateRegister, setShowCreateRegister] = useState(false);
+  const [newRegisterName, setNewRegisterName] = useState("");
+  const [newRegisterLocation, setNewRegisterLocation] = useState("");
 
   // Barcode scanner
   useBarcodeScanner({
@@ -154,14 +162,35 @@ export function POSPage() {
     }
   };
 
+  const handleCreateRegister = async () => {
+    if (!newRegisterName.trim()) return;
+    try {
+      const register = await createRegister.mutateAsync({
+        name: newRegisterName.trim(),
+        location: newRegisterLocation.trim() || undefined,
+      });
+      setSession(null, register);
+      setShowCreateRegister(false);
+      setNewRegisterName("");
+      setNewRegisterLocation("");
+      toast.success(t("registerCreated"));
+    } catch {
+      toast.error(t("errors.createRegisterFailed"));
+    }
+  };
+
   // Show register selection or session opening if needed
   if (!currentRegister) {
+    const activeRegisters = registers?.filter((r) => r.is_active) ?? [];
+
     return (
       <div className="h-screen flex items-center justify-center bg-muted">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">{t("selectRegister")}</h1>
+          <h1 className="text-2xl font-bold mb-4">
+            {activeRegisters.length > 0 ? t("selectRegister") : t("noRegisters")}
+          </h1>
           <div className="space-y-2">
-            {registers?.filter((r) => r.is_active).map((register) => (
+            {activeRegisters.map((register) => (
               <button
                 key={register.id}
                 onClick={() => setSession(null, register)}
@@ -176,6 +205,57 @@ export function POSPage() {
               </button>
             ))}
           </div>
+
+          {showCreateRegister ? (
+            <div className="mt-4 p-4 bg-background rounded-lg border text-left max-w-sm mx-auto">
+              <label className="block text-sm font-medium mb-1">
+                {t("registerName")}
+              </label>
+              <input
+                type="text"
+                value={newRegisterName}
+                onChange={(e) => setNewRegisterName(e.target.value)}
+                placeholder={t("registerNamePlaceholder")}
+                className="w-full px-3 py-2 border rounded-lg bg-background mb-3"
+                autoFocus
+                onKeyDown={(e) => e.key === "Enter" && handleCreateRegister()}
+              />
+              <label className="block text-sm font-medium mb-1">
+                {t("registerLocation")}
+              </label>
+              <input
+                type="text"
+                value={newRegisterLocation}
+                onChange={(e) => setNewRegisterLocation(e.target.value)}
+                placeholder={t("registerLocationPlaceholder")}
+                className="w-full px-3 py-2 border rounded-lg bg-background mb-4"
+                onKeyDown={(e) => e.key === "Enter" && handleCreateRegister()}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowCreateRegister(false)}
+                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-muted"
+                >
+                  {t("cancel", { ns: "common" })}
+                </button>
+                <button
+                  onClick={handleCreateRegister}
+                  disabled={!newRegisterName.trim() || createRegister.isPending}
+                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {t("createRegister")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowCreateRegister(true)}
+              className="mt-4 px-6 py-3 border-2 border-dashed border-muted-foreground/30 rounded-lg hover:border-primary hover:text-primary text-muted-foreground flex items-center gap-2 mx-auto"
+            >
+              <Plus className="h-5 w-5" />
+              {t("createRegister")}
+            </button>
+          )}
         </div>
       </div>
     );
