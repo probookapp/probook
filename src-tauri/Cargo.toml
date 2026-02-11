@@ -1,6 +1,6 @@
 [package]
 name = "probook"
-version = "0.4.3"
+version = "0.5.0"
 description = "Probook - Desktop invoicing and business management software"
 authors = ["you"]
 edition = "2021"
