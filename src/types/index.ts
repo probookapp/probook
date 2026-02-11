@@ -62,6 +62,7 @@ export interface Product {
   vat_rate: number;
   unit: string;
   reference: string | null;
+  barcode: string | null;
   is_service: boolean;
   // Phase 3: Category and photo
   category_id: string | null;
@@ -81,6 +82,7 @@ export interface CreateProductInput {
   vat_rate: number;
   unit: string;
   reference?: string | null;
+  barcode?: string | null;
   is_service: boolean;
   category_id?: string | null;
   quantity?: number | null;
@@ -659,7 +661,8 @@ export type PermissionKey =
   | 'phonebook'
   | 'reports'
   | 'expenses'
-  | 'settings';
+  | 'settings'
+  | 'pos';
 
 export const ALL_PERMISSIONS: PermissionKey[] = [
   'dashboard',
@@ -673,6 +676,7 @@ export const ALL_PERMISSIONS: PermissionKey[] = [
   'reports',
   'expenses',
   'settings',
+  'pos',
 ];
 
 export interface UserInfo {
@@ -729,4 +733,268 @@ export interface DatabaseConfigSafe {
   port: number;
   database: string;
   username: string;
+}
+
+// ========== POS Types ==========
+
+export interface PosRegister {
+  id: string;
+  name: string;
+  location: string | null;
+  machine_id: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePosRegisterInput {
+  name: string;
+  location?: string | null;
+  machine_id?: string | null;
+}
+
+export interface UpdatePosRegisterInput extends CreatePosRegisterInput {
+  id: string;
+  is_active: boolean;
+}
+
+export type PosSessionStatus = "OPEN" | "CLOSED";
+
+export interface PosSession {
+  id: string;
+  register_id: string;
+  user_id: string;
+  opened_at: string;
+  closed_at: string | null;
+  opening_float: number;
+  expected_cash: number | null;
+  actual_cash: number | null;
+  cash_difference: number | null;
+  status: PosSessionStatus;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface OpenSessionInput {
+  register_id: string;
+  opening_float: number;
+}
+
+export interface CloseSessionInput {
+  session_id: string;
+  actual_cash: number;
+  notes?: string | null;
+}
+
+export type PosTransactionStatus = "PENDING" | "COMPLETED" | "CANCELLED" | "REFUNDED";
+
+export interface PosTransaction {
+  id: string;
+  ticket_number: string;
+  register_id: string;
+  session_id: string;
+  client_id: string | null;
+  user_id: string;
+  invoice_id: string | null;
+  transaction_date: string;
+  subtotal_ht: number;
+  total_vat: number;
+  total_ttc: number;
+  discount_percent: number;
+  discount_amount: number;
+  final_amount: number;
+  status: PosTransactionStatus;
+  notes: string | null;
+  synced: boolean;
+  lines: PosTransactionLine[];
+  payments: PosPayment[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PosTransactionLine {
+  id: string;
+  transaction_id: string;
+  product_id: string | null;
+  barcode: string | null;
+  designation: string;
+  quantity: number;
+  unit_price_ht: number;
+  vat_rate: number;
+  total_ht: number;
+  total_vat: number;
+  total_ttc: number;
+  discount_percent: number;
+  position: number;
+  created_at: string;
+}
+
+export interface CreateTransactionLineInput {
+  product_id?: string | null;
+  barcode?: string | null;
+  designation: string;
+  quantity: number;
+  unit_price_ht: number;
+  vat_rate: number;
+  discount_percent?: number;
+}
+
+export type PosPaymentMethod = "CASH" | "CARD";
+
+export interface PosPayment {
+  id: string;
+  transaction_id: string;
+  payment_method: PosPaymentMethod;
+  amount: number;
+  cash_given: number | null;
+  change_given: number | null;
+  card_reference: string | null;
+  created_at: string;
+}
+
+export interface CreatePosPaymentInput {
+  payment_method: PosPaymentMethod;
+  amount: number;
+  cash_given?: number;
+  card_reference?: string;
+}
+
+export interface CreatePosTransactionInput {
+  register_id: string;
+  session_id: string;
+  client_id?: string | null;
+  lines: CreateTransactionLineInput[];
+  payments: CreatePosPaymentInput[];
+  discount_percent?: number;
+  discount_amount?: number;
+  notes?: string | null;
+}
+
+export type CashMovementType = "CASH_IN" | "CASH_OUT" | "PETTY_CASH";
+
+export interface PosCashMovement {
+  id: string;
+  session_id: string;
+  user_id: string;
+  movement_type: CashMovementType;
+  amount: number;
+  reason: string;
+  reference: string | null;
+  created_at: string;
+}
+
+export interface CreateCashMovementInput {
+  session_id: string;
+  movement_type: CashMovementType;
+  amount: number;
+  reason: string;
+  reference?: string | null;
+}
+
+export type PrinterConnectionType = "USB" | "Network" | "Serial" | "NETWORK" | "BLUETOOTH";
+
+export interface PosPrinterConfig {
+  id: string;
+  register_id: string | null;
+  printer_name: string;
+  connection_type: PrinterConnectionType;
+  connection_address: string;
+  paper_width: number;
+  is_default: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePrinterConfigInput {
+  register_id?: string | null;
+  printer_name: string;
+  connection_type: PrinterConnectionType;
+  connection_address: string;
+  paper_width: number;
+  is_default: boolean;
+}
+
+export interface UpdatePrinterConfigInput extends CreatePrinterConfigInput {
+  id: string;
+  is_active: boolean;
+}
+
+export interface SessionSummary {
+  session: PosSession;
+  register_name: string;
+  user_name: string;
+  transaction_count: number;
+  total_sales: number;
+  total_ht: number;
+  total_vat: number;
+  cash_sales: number;
+  card_sales: number;
+  cancelled_count: number;
+  cancelled_total: number;
+  cash_movements: PosCashMovement[];
+  net_cash_movement: number;
+}
+
+export interface DailyPosReport {
+  date: string;
+  register_id: string | null;
+  register_name: string | null;
+  session_count: number;
+  transaction_count: number;
+  total_sales: number;
+  total_ht: number;
+  total_vat: number;
+  cash_sales: number;
+  card_sales: number;
+  cancelled_count: number;
+  cancelled_total: number;
+}
+
+// Receipt types for thermal printing
+export interface ReceiptLine {
+  designation: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+  discount_percent?: number | null;
+}
+
+export interface ReceiptPayment {
+  method: string;
+  amount: number;
+  cash_given?: number | null;
+  change?: number | null;
+}
+
+export interface ReceiptData {
+  company_name: string;
+  company_address?: string | null;
+  company_phone?: string | null;
+  ticket_number: string;
+  date: string;
+  time: string;
+  cashier?: string | null;
+  register?: string | null;
+  lines: ReceiptLine[];
+  subtotal_ht: number;
+  total_vat: number;
+  total_ttc: number;
+  discount_amount?: number | null;
+  final_amount: number;
+  payments: ReceiptPayment[];
+  footer_message?: string | null;
+}
+
+// Offline Queue types
+export type QueuedTransactionStatus = "Pending" | "Syncing" | "Synced" | "Failed";
+
+export interface QueuedTransaction {
+  id: string;
+  transaction_data: string;
+  status: QueuedTransactionStatus;
+  retry_count: number;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
 }

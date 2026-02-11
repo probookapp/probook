@@ -53,6 +53,25 @@ import type {
   UpdateUserInput,
   DatabaseConfig,
   DatabaseConfigSafe,
+  // POS types
+  PosRegister,
+  CreatePosRegisterInput,
+  UpdatePosRegisterInput,
+  PosSession,
+  OpenSessionInput,
+  CloseSessionInput,
+  PosTransaction,
+  CreatePosTransactionInput,
+  PosCashMovement,
+  CreateCashMovementInput,
+  PosPrinterConfig,
+  CreatePrinterConfigInput,
+  UpdatePrinterConfigInput,
+  SessionSummary,
+  DailyPosReport,
+  ReceiptData,
+  PrinterConnectionType,
+  QueuedTransaction,
 } from "@/types";
 import { isTauri } from "./config";
 
@@ -376,4 +395,92 @@ export const authApi = {
   deleteUser: (id: string) => apiCall<void>("delete_user_account", { id }),
   changeOwnPassword: (currentPassword: string, newPassword: string) =>
     apiCall<void>("change_own_password", { currentPassword, newPassword }),
+};
+
+// POS commands
+export const posApi = {
+  // Registers
+  getRegisters: () => apiCall<PosRegister[]>("get_pos_registers"),
+  getRegister: (id: string) => apiCall<PosRegister>("get_pos_register", { id }),
+  createRegister: (input: CreatePosRegisterInput) =>
+    apiCall<PosRegister>("create_pos_register", { input }),
+  updateRegister: (input: UpdatePosRegisterInput) =>
+    apiCall<PosRegister>("update_pos_register", { input }),
+  deleteRegister: (id: string) => apiCall<void>("delete_pos_register", { id }),
+
+  // Sessions
+  getActiveSession: (registerId: string) =>
+    apiCall<PosSession | null>("get_active_pos_session", { registerId }),
+  openSession: (input: OpenSessionInput) =>
+    apiCall<PosSession>("open_pos_session", { input }),
+  closeSession: (input: CloseSessionInput) =>
+    apiCall<PosSession>("close_pos_session", { input }),
+  getSessionSummary: (sessionId: string) =>
+    apiCall<SessionSummary>("get_pos_session_summary", { sessionId }),
+
+  // Transactions
+  lookupProductByBarcode: (barcode: string) =>
+    apiCall<Product | null>("lookup_product_by_barcode", { barcode }),
+  createTransaction: (input: CreatePosTransactionInput) =>
+    apiCall<PosTransaction>("create_pos_transaction", { input }),
+  getTransaction: (id: string) =>
+    apiCall<PosTransaction>("get_pos_transaction", { id }),
+  cancelTransaction: (id: string, reason: string) =>
+    apiCall<PosTransaction>("cancel_pos_transaction", { id, reason }),
+  getSessionTransactions: (sessionId: string) =>
+    apiCall<PosTransaction[]>("get_pos_session_transactions", { sessionId }),
+
+  // Cash movements
+  createCashMovement: (input: CreateCashMovementInput) =>
+    apiCall<PosCashMovement>("create_pos_cash_movement", { input }),
+  getSessionCashMovements: (sessionId: string) =>
+    apiCall<PosCashMovement[]>("get_pos_session_cash_movements", { sessionId }),
+
+  // Printer configs
+  getPrinterConfigs: () => apiCall<PosPrinterConfig[]>("get_pos_printer_configs"),
+  createPrinterConfig: (input: CreatePrinterConfigInput) =>
+    apiCall<PosPrinterConfig>("create_pos_printer_config", { input }),
+  updatePrinterConfig: (input: UpdatePrinterConfigInput) =>
+    apiCall<PosPrinterConfig>("update_pos_printer_config", { input }),
+  deletePrinterConfig: (id: string) =>
+    apiCall<void>("delete_pos_printer_config", { id }),
+
+  // Reports
+  getDailyReport: (date: string, registerId?: string) =>
+    apiCall<DailyPosReport>("get_daily_pos_report", { date, registerId }),
+
+  // Thermal Printer
+  listPrinterPorts: () => apiCall<string[]>("list_printer_ports"),
+  testPrinter: (connectionType: PrinterConnectionType, address: string, paperWidth: number) =>
+    apiCall<void>("test_thermal_printer", { connectionType, address, paperWidth }),
+  printReceipt: (
+    connectionType: PrinterConnectionType,
+    address: string,
+    paperWidth: number,
+    receipt: ReceiptData,
+    currency: string,
+    openDrawer: boolean
+  ) =>
+    apiCall<void>("print_pos_receipt", {
+      connectionType,
+      address,
+      paperWidth,
+      receipt,
+      currency,
+      openDrawer,
+    }),
+
+  // Offline Queue
+  queueOfflineTransaction: (id: string, transactionData: string) =>
+    apiCall<void>("queue_offline_transaction", { id, transactionData }),
+  getPendingOfflineCount: () => apiCall<number>("get_pending_offline_count"),
+  getPendingOfflineTransactions: () =>
+    apiCall<QueuedTransaction[]>("get_pending_offline_transactions"),
+  markOfflineTransactionSynced: (id: string) =>
+    apiCall<void>("mark_offline_transaction_synced", { id }),
+  markOfflineTransactionFailed: (id: string, error: string) =>
+    apiCall<void>("mark_offline_transaction_failed", { id, error }),
+  deleteOfflineTransaction: (id: string) =>
+    apiCall<void>("delete_offline_transaction", { id }),
+  checkDatabaseConnection: () => apiCall<boolean>("check_database_connection"),
 };
