@@ -1,6 +1,6 @@
 [package]
 name = "probook"
-version = "0.4.2"
+version = "0.4.3"
 description = "Probook - Desktop invoicing and business management software"
 authors = ["you"]
 edition = "2021"
@@ -39,6 +39,12 @@ chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }
 base64 = "0.22"
+
+# Thermal printer (USB serial)
+serialport = "4.5"
+
+# Offline queue (local SQLite storage)
+rusqlite = { version = "0.32", features = ["bundled"] }
 
 [features]
 default = ["custom-protocol"]
