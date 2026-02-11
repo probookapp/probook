@@ -3887,9 +3887,9 @@ pub async fn close_pos_session(pool: &PgPool, input: CloseSessionInput) -> Resul
     }
 
     // Calculate expected cash
-    let cash_sales: f64 = sqlx::query_scalar(
+    let cash_sales: Option<f64> = sqlx::query_scalar(
         r#"
-        SELECT COALESCE(SUM(pp.amount), 0)
+        SELECT SUM(pp.amount)
         FROM pos_payments pp
         JOIN pos_transactions pt ON pp.transaction_id = pt.id
         WHERE pt.session_id = $1 AND pt.status = 'COMPLETED' AND pp.payment_method = 'CASH'
@@ -3899,21 +3899,21 @@ pub async fn close_pos_session(pool: &PgPool, input: CloseSessionInput) -> Resul
     .fetch_one(pool)
     .await?;
 
-    let cash_in: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) FROM pos_cash_movements WHERE session_id = $1 AND movement_type = 'CASH_IN'"
+    let cash_in: Option<f64> = sqlx::query_scalar(
+        "SELECT SUM(amount) FROM pos_cash_movements WHERE session_id = $1 AND movement_type = 'CASH_IN'"
     )
     .bind(&input.session_id)
     .fetch_one(pool)
     .await?;
 
-    let cash_out: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) FROM pos_cash_movements WHERE session_id = $1 AND movement_type IN ('CASH_OUT', 'PETTY_CASH')"
+    let cash_out: Option<f64> = sqlx::query_scalar(
+        "SELECT SUM(amount) FROM pos_cash_movements WHERE session_id = $1 AND movement_type IN ('CASH_OUT', 'PETTY_CASH')"
     )
     .bind(&input.session_id)
     .fetch_one(pool)
     .await?;
 
-    let expected_cash = session.opening_float + cash_sales + cash_in - cash_out;
+    let expected_cash = session.opening_float + cash_sales.unwrap_or(0.0) + cash_in.unwrap_or(0.0) - cash_out.unwrap_or(0.0);
     let cash_difference = input.actual_cash - expected_cash;
     let now = Utc::now();
 
@@ -3941,19 +3941,19 @@ pub async fn get_session_summary(pool: &PgPool, session_id: &str) -> Result<Sess
     let register = get_pos_register_by_id(pool, &session.register_id).await?;
 
     // Get user name
-    let user: (String,) = sqlx::query_as("SELECT name FROM users WHERE id = $1")
+    let user: (String,) = sqlx::query_as("SELECT display_name FROM users WHERE id = $1")
         .bind(&session.user_id)
         .fetch_one(pool)
         .await?;
 
     // Transaction stats
-    let stats: (i64, f64, f64, f64) = sqlx::query_as(
+    let stats: (i64, Option<f64>, Option<f64>, Option<f64>) = sqlx::query_as(
         r#"
         SELECT
             COUNT(*),
-            COALESCE(SUM(final_amount), 0),
-            COALESCE(SUM(subtotal_ht), 0),
-            COALESCE(SUM(total_vat), 0)
+            SUM(final_amount),
+            SUM(subtotal_ht),
+            SUM(total_vat)
         FROM pos_transactions
         WHERE session_id = $1 AND status = 'COMPLETED'
         "#
@@ -3963,9 +3963,9 @@ pub async fn get_session_summary(pool: &PgPool, session_id: &str) -> Result<Sess
     .await?;
 
     // Payment breakdown
-    let cash_sales: f64 = sqlx::query_scalar(
+    let cash_sales: Option<f64> = sqlx::query_scalar(
         r#"
-        SELECT COALESCE(SUM(pp.amount), 0)
+        SELECT SUM(pp.amount)
         FROM pos_payments pp
         JOIN pos_transactions pt ON pp.transaction_id = pt.id
         WHERE pt.session_id = $1 AND pt.status = 'COMPLETED' AND pp.payment_method = 'CASH'
@@ -3975,9 +3975,9 @@ pub async fn get_session_summary(pool: &PgPool, session_id: &str) -> Result<Sess
     .fetch_one(pool)
     .await?;
 
-    let card_sales: f64 = sqlx::query_scalar(
+    let card_sales: Option<f64> = sqlx::query_scalar(
         r#"
-        SELECT COALESCE(SUM(pp.amount), 0)
+        SELECT SUM(pp.amount)
         FROM pos_payments pp
         JOIN pos_transactions pt ON pp.transaction_id = pt.id
         WHERE pt.session_id = $1 AND pt.status = 'COMPLETED' AND pp.payment_method = 'CARD'
@@ -3988,8 +3988,8 @@ pub async fn get_session_summary(pool: &PgPool, session_id: &str) -> Result<Sess
     .await?;
 
     // Cancelled transactions
-    let cancelled: (i64, f64) = sqlx::query_as(
-        "SELECT COUNT(*), COALESCE(SUM(final_amount), 0) FROM pos_transactions WHERE session_id = $1 AND status = 'CANCELLED'"
+    let cancelled: (i64, Option<f64>) = sqlx::query_as(
+        "SELECT COUNT(*), SUM(final_amount) FROM pos_transactions WHERE session_id = $1 AND status = 'CANCELLED'"
     )
     .bind(session_id)
     .fetch_one(pool)
@@ -4006,13 +4006,13 @@ pub async fn get_session_summary(pool: &PgPool, session_id: &str) -> Result<Sess
         register_name: register.name,
         user_name: user.0,
         transaction_count: stats.0,
-        total_sales: stats.1,
-        total_ht: stats.2,
-        total_vat: stats.3,
-        cash_sales,
-        card_sales,
+        total_sales: stats.1.unwrap_or(0.0),
+        total_ht: stats.2.unwrap_or(0.0),
+        total_vat: stats.3.unwrap_or(0.0),
+        cash_sales: cash_sales.unwrap_or(0.0),
+        card_sales: card_sales.unwrap_or(0.0),
         cancelled_count: cancelled.0,
-        cancelled_total: cancelled.1,
+        cancelled_total: cancelled.1.unwrap_or(0.0),
         cash_movements,
         net_cash_movement: net_movement,
     })
