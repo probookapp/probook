@@ -9,7 +9,7 @@ interface SessionControlsProps {
 }
 
 export function SessionControls({ onCloseSession }: SessionControlsProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation("pos");
   const navigate = useNavigate();
   const { clearCart, items } = usePosStore();
   const [showMenu, setShowMenu] = useState(false);
@@ -22,14 +22,14 @@ export function SessionControls({ onCloseSession }: SessionControlsProps) {
             onClick={clearCart}
             className="px-3 py-1.5 text-sm bg-white/20 hover:bg-white/30 rounded"
           >
-            {t("pos.clearCart")}
+            {t("clearCart")}
           </button>
         )}
         <button
           onClick={() => setShowMenu(!showMenu)}
           className="px-3 py-1.5 text-sm bg-white/20 hover:bg-white/30 rounded flex items-center gap-1"
         >
-          {t("pos.menu")}
+          {t("menu")}
         </button>
       </div>
 
@@ -48,7 +48,7 @@ export function SessionControls({ onCloseSession }: SessionControlsProps) {
               className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted text-left"
             >
               <History className="h-4 w-4" />
-              {t("pos.transactionHistory")}
+              {t("transactionHistory")}
             </button>
             <button
               onClick={() => {
@@ -58,7 +58,7 @@ export function SessionControls({ onCloseSession }: SessionControlsProps) {
               className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted text-left"
             >
               <DollarSign className="h-4 w-4" />
-              {t("pos.cashMovement")}
+              {t("cashMovement")}
             </button>
             <hr />
             <button
@@ -69,7 +69,7 @@ export function SessionControls({ onCloseSession }: SessionControlsProps) {
               className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted text-left"
             >
               <Briefcase className="h-4 w-4" />
-              {t("pos.backToOffice")}
+              {t("backToOffice")}
             </button>
             <button
               onClick={() => {
@@ -79,7 +79,7 @@ export function SessionControls({ onCloseSession }: SessionControlsProps) {
               className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted text-left text-destructive"
             >
               <LogOut className="h-4 w-4" />
-              {t("pos.closeSession")}
+              {t("closeSession")}
             </button>
           </div>
         </>

@@ -13,7 +13,7 @@ interface ProductSearchProps {
 }
 
 export function ProductSearch({ onProductSelect }: ProductSearchProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation("pos");
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: products } = useQuery({
@@ -46,7 +46,7 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={t("pos.searchProducts")}
+            placeholder={t("searchProducts")}
             className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             data-barcode-input="true"
           />
@@ -74,8 +74,8 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
               {product.quantity !== null && product.quantity <= 5 && !product.is_service && (
                 <p className={`text-xs mt-1 ${product.quantity === 0 ? "text-destructive" : "text-orange-500"}`}>
                   {product.quantity === 0
-                    ? t("pos.outOfStock")
-                    : t("pos.lowStock", { count: product.quantity })}
+                    ? t("outOfStock")
+                    : t("lowStock", { count: product.quantity })}
                 </p>
               )}
             </button>
@@ -84,7 +84,7 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
 
         {filteredProducts.length === 0 && (
           <div className="text-center text-muted-foreground py-8">
-            {searchTerm ? t("pos.noProductsFound") : t("pos.noProducts")}
+            {searchTerm ? t("noProductsFound") : t("noProducts")}
           </div>
         )}
       </div>

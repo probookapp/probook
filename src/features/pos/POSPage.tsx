@@ -22,7 +22,7 @@ import { SessionControls } from "./components/SessionControls";
 import { toast } from "@/stores/useToastStore";
 
 export function POSPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation("pos");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showOpenSessionModal, setShowOpenSessionModal] = useState(false);
   const [showCloseSessionModal, setShowCloseSessionModal] = useState(false);
@@ -51,7 +51,7 @@ export function POSPage() {
   useBarcodeScanner({
     onScan: async (barcode) => {
       if (!currentSession) {
-        toast.error(t("pos.errors.noSession"));
+        toast.error(t("errors.noSession"));
         return;
       }
 
@@ -59,12 +59,12 @@ export function POSPage() {
         const product = await lookupProduct.mutateAsync(barcode);
         if (product) {
           addItem(product);
-          toast.success(t("pos.productAdded", { name: product.designation }));
+          toast.success(t("productAdded", { name: product.designation }));
         } else {
-          toast.error(t("pos.errors.productNotFound", { barcode }));
+          toast.error(t("errors.productNotFound", { barcode }));
         }
       } catch {
-        toast.error(t("pos.errors.lookupFailed"));
+        toast.error(t("errors.lookupFailed"));
       }
     },
   });
@@ -95,9 +95,9 @@ export function POSPage() {
       });
       setSession(session, currentRegister);
       setShowOpenSessionModal(false);
-      toast.success(t("pos.sessionOpened"));
+      toast.success(t("sessionOpened"));
     } catch (err) {
-      toast.error(t("pos.errors.openSessionFailed"));
+      toast.error(t("errors.openSessionFailed"));
     }
   };
 
@@ -112,9 +112,9 @@ export function POSPage() {
       setSession(null, currentRegister);
       clearCart();
       setShowCloseSessionModal(false);
-      toast.success(t("pos.sessionClosed"));
+      toast.success(t("sessionClosed"));
     } catch (err) {
-      toast.error(t("pos.errors.closeSessionFailed"));
+      toast.error(t("errors.closeSessionFailed"));
     }
   };
 
@@ -148,9 +148,9 @@ export function POSPage() {
 
       clearCart();
       setShowPaymentModal(false);
-      toast.success(t("pos.transactionComplete"));
+      toast.success(t("transactionComplete"));
     } catch (err) {
-      toast.error(t("pos.errors.transactionFailed"));
+      toast.error(t("errors.transactionFailed"));
     }
   };
 
@@ -159,7 +159,7 @@ export function POSPage() {
     return (
       <div className="h-screen flex items-center justify-center bg-muted">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">{t("pos.selectRegister")}</h1>
+          <h1 className="text-2xl font-bold mb-4">{t("selectRegister")}</h1>
           <div className="space-y-2">
             {registers?.filter((r) => r.is_active).map((register) => (
               <button
@@ -190,13 +190,13 @@ export function POSPage() {
               {currentRegister.name}
             </h1>
             <p className="text-muted-foreground mb-6">
-              {t("pos.sessionClosed")}
+              {t("sessionClosed")}
             </p>
             <button
               onClick={() => setShowOpenSessionModal(true)}
               className="px-8 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 text-lg font-medium"
             >
-              {t("pos.openSession")}
+              {t("openSession")}
             </button>
           </div>
         </div>
@@ -217,7 +217,7 @@ export function POSPage() {
         <div className="flex items-center gap-4">
           <span className="font-bold">{currentRegister.name}</span>
           <span className="text-sm opacity-75">
-            {t("pos.ticket")}: {currentSession.id.slice(0, 8)}
+            {t("ticket")}: {currentSession.id.slice(0, 8)}
           </span>
         </div>
         <SessionControls
@@ -238,7 +238,7 @@ export function POSPage() {
               disabled={items.length === 0}
               className="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {t("pos.pay")} - {getFinalAmount().toFixed(2)}
+              {t("pay")} - {getFinalAmount().toFixed(2)}
             </button>
           </div>
         </div>

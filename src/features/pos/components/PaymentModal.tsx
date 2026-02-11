@@ -20,7 +20,7 @@ export function PaymentModal({
   totalAmount,
   isLoading,
 }: PaymentModalProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation("pos");
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD">("CASH");
   const [cashGiven, setCashGiven] = useState<string>("");
 
@@ -54,7 +54,7 @@ export function PaymentModal({
       <div className="bg-background rounded-xl shadow-xl w-full max-w-md mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-bold">{t("pos.payment")}</h2>
+          <h2 className="text-xl font-bold">{t("payment")}</h2>
           <button onClick={onClose} className="p-1 hover:bg-muted rounded">
             <X className="h-5 w-5" />
           </button>
@@ -64,7 +64,7 @@ export function PaymentModal({
         <div className="p-4 space-y-6">
           {/* Total */}
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">{t("pos.totalToPay")}</p>
+            <p className="text-sm text-muted-foreground">{t("totalToPay")}</p>
             <p className="text-4xl font-bold">{formatAmount(totalAmount)}</p>
           </div>
 
@@ -79,7 +79,7 @@ export function PaymentModal({
               }`}
             >
               <Banknote className="h-8 w-8" />
-              <span className="font-medium">{t("pos.cash")}</span>
+              <span className="font-medium">{t("cash")}</span>
             </button>
             <button
               onClick={() => setPaymentMethod("CARD")}
@@ -90,7 +90,7 @@ export function PaymentModal({
               }`}
             >
               <CreditCard className="h-8 w-8" />
-              <span className="font-medium">{t("pos.card")}</span>
+              <span className="font-medium">{t("card")}</span>
             </button>
           </div>
 
@@ -99,7 +99,7 @@ export function PaymentModal({
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  {t("pos.cashGiven")}
+                  {t("cashGiven")}
                 </label>
                 <input
                   type="number"
@@ -128,7 +128,7 @@ export function PaymentModal({
               {cashAmount >= totalAmount && (
                 <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-lg text-center">
                   <p className="text-sm text-green-700 dark:text-green-300">
-                    {t("pos.change")}
+                    {t("change")}
                   </p>
                   <p className="text-3xl font-bold text-green-700 dark:text-green-300">
                     {formatAmount(change)}
@@ -152,7 +152,7 @@ export function PaymentModal({
             disabled={!isValid || isLoading}
             className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? t("common.loading") : t("pos.confirm")}
+            {isLoading ? t("common.loading") : t("confirm")}
           </button>
         </div>
       </div>

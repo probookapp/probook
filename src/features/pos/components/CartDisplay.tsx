@@ -6,15 +6,15 @@ import { formatCurrency } from "@/lib/utils";
 const formatAmount = formatCurrency;
 
 export function CartDisplay() {
-  const { t } = useTranslation();
+  const { t } = useTranslation("pos");
   const { items, updateQuantity, removeItem } = usePosStore();
 
   if (items.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
         <div className="text-center">
-          <p className="text-lg">{t("pos.emptyCart")}</p>
-          <p className="text-sm">{t("pos.scanOrSearch")}</p>
+          <p className="text-lg">{t("emptyCart")}</p>
+          <p className="text-sm">{t("scanOrSearch")}</p>
         </div>
       </div>
     );
@@ -25,10 +25,10 @@ export function CartDisplay() {
       <table className="w-full">
         <thead className="sticky top-0 bg-background">
           <tr className="text-left text-sm text-muted-foreground border-b">
-            <th className="pb-2 font-medium">{t("pos.product")}</th>
-            <th className="pb-2 font-medium text-center w-32">{t("pos.quantity")}</th>
-            <th className="pb-2 font-medium text-right w-24">{t("pos.unitPrice")}</th>
-            <th className="pb-2 font-medium text-right w-24">{t("pos.total")}</th>
+            <th className="pb-2 font-medium">{t("product")}</th>
+            <th className="pb-2 font-medium text-center w-32">{t("quantity")}</th>
+            <th className="pb-2 font-medium text-right w-24">{t("unitPrice")}</th>
+            <th className="pb-2 font-medium text-right w-24">{t("total")}</th>
             <th className="pb-2 w-10"></th>
           </tr>
         </thead>

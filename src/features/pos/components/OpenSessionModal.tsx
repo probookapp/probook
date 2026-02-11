@@ -16,7 +16,7 @@ export function OpenSessionModal({
   onConfirm,
   isLoading,
 }: OpenSessionModalProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation("pos");
   const currency = useSettingsStore((state) => state.currency);
   const [openingFloat, setOpeningFloat] = useState<string>("0");
 
@@ -32,7 +32,7 @@ export function OpenSessionModal({
       <div className="bg-background rounded-xl shadow-xl w-full max-w-sm mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-bold">{t("pos.openSession")}</h2>
+          <h2 className="text-xl font-bold">{t("openSession")}</h2>
           <button onClick={onClose} className="p-1 hover:bg-muted rounded">
             <X className="h-5 w-5" />
           </button>
@@ -41,11 +41,11 @@ export function OpenSessionModal({
         {/* Content */}
         <div className="p-4 space-y-4">
           <p className="text-muted-foreground text-sm">
-            {t("pos.openingFloatDescription")}
+            {t("openingFloatDescription")}
           </p>
           <div>
             <label className="block text-sm font-medium mb-1">
-              {t("pos.openingFloat")} ({currency})
+              {t("openingFloat")} ({currency})
             </label>
             <input
               type="number"
@@ -73,7 +73,7 @@ export function OpenSessionModal({
             disabled={isLoading}
             className="flex-1 px-4 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-bold disabled:opacity-50"
           >
-            {isLoading ? t("common.loading") : t("pos.open")}
+            {isLoading ? t("common.loading") : t("open")}
           </button>
         </div>
       </div>

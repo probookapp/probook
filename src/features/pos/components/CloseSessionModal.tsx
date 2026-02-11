@@ -22,7 +22,7 @@ export function CloseSessionModal({
   sessionId,
   isLoading,
 }: CloseSessionModalProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation("pos");
   const currency = useSettingsStore((state) => state.currency);
   const [actualCash, setActualCash] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
@@ -50,7 +50,7 @@ export function CloseSessionModal({
       <div className="bg-background rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-background">
-          <h2 className="text-xl font-bold">{t("pos.closeSession")}</h2>
+          <h2 className="text-xl font-bold">{t("closeSession")}</h2>
           <button onClick={onClose} className="p-1 hover:bg-muted rounded">
             <X className="h-5 w-5" />
           </button>
@@ -66,22 +66,22 @@ export function CloseSessionModal({
             <>
               {/* Session summary */}
               <div className="space-y-2 text-sm">
-                <h3 className="font-bold text-lg">{t("pos.sessionSummary")}</h3>
+                <h3 className="font-bold text-lg">{t("sessionSummary")}</h3>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="p-3 bg-muted rounded-lg">
-                    <p className="text-muted-foreground">{t("pos.transactions")}</p>
+                    <p className="text-muted-foreground">{t("transactions")}</p>
                     <p className="text-2xl font-bold">{summary.transaction_count}</p>
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
-                    <p className="text-muted-foreground">{t("pos.totalSales")}</p>
+                    <p className="text-muted-foreground">{t("totalSales")}</p>
                     <p className="text-2xl font-bold">{formatAmount(summary.total_sales)}</p>
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
-                    <p className="text-muted-foreground">{t("pos.cashSales")}</p>
+                    <p className="text-muted-foreground">{t("cashSales")}</p>
                     <p className="text-xl font-bold">{formatAmount(summary.cash_sales)}</p>
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
-                    <p className="text-muted-foreground">{t("pos.cardSales")}</p>
+                    <p className="text-muted-foreground">{t("cardSales")}</p>
                     <p className="text-xl font-bold">{formatAmount(summary.card_sales)}</p>
                   </div>
                 </div>
@@ -89,16 +89,16 @@ export function CloseSessionModal({
                 {/* Expected cash breakdown */}
                 <div className="mt-4 p-3 border rounded-lg space-y-1">
                   <div className="flex justify-between">
-                    <span>{t("pos.openingFloat")}</span>
+                    <span>{t("openingFloat")}</span>
                     <span>{formatAmount(summary.session.opening_float)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>{t("pos.cashSales")}</span>
+                    <span>{t("cashSales")}</span>
                     <span>+{formatAmount(summary.cash_sales)}</span>
                   </div>
                   {summary.net_cash_movement !== 0 && (
                     <div className="flex justify-between">
-                      <span>{t("pos.cashMovements")}</span>
+                      <span>{t("cashMovements")}</span>
                       <span>
                         {summary.net_cash_movement >= 0 ? "+" : ""}
                         {formatAmount(summary.net_cash_movement)}
@@ -106,7 +106,7 @@ export function CloseSessionModal({
                     </div>
                   )}
                   <div className="flex justify-between font-bold border-t pt-1">
-                    <span>{t("pos.expectedCash")}</span>
+                    <span>{t("expectedCash")}</span>
                     <span>{formatAmount(expectedCash)}</span>
                   </div>
                 </div>
@@ -115,7 +115,7 @@ export function CloseSessionModal({
               {/* Cash count */}
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  {t("pos.actualCash")} ({currency})
+                  {t("actualCash")} ({currency})
                 </label>
                 <input
                   type="number"
@@ -147,10 +147,10 @@ export function CloseSessionModal({
                     <div>
                       <p className="text-sm font-medium">
                         {Math.abs(difference) < 0.01
-                          ? t("pos.cashBalanced")
+                          ? t("cashBalanced")
                           : difference < 0
-                          ? t("pos.cashShort")
-                          : t("pos.cashOver")}
+                          ? t("cashShort")
+                          : t("cashOver")}
                       </p>
                       {Math.abs(difference) >= 0.01 && (
                         <p className="text-2xl font-bold">
@@ -165,14 +165,14 @@ export function CloseSessionModal({
               {/* Notes */}
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  {t("pos.notes")} ({t("common.optional")})
+                  {t("notes")} ({t("common.optional")})
                 </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   rows={2}
-                  placeholder={t("pos.closeNotesPlaceholder")}
+                  placeholder={t("closeNotesPlaceholder")}
                 />
               </div>
             </>
@@ -192,7 +192,7 @@ export function CloseSessionModal({
             disabled={isLoading || !actualCash}
             className="flex-1 px-4 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-bold disabled:opacity-50"
           >
-            {isLoading ? t("common.loading") : t("pos.closeSession")}
+            {isLoading ? t("common.loading") : t("closeSession")}
           </button>
         </div>
       </div>

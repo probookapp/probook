@@ -5,7 +5,7 @@ import { formatCurrency } from "@/lib/utils";
 const formatAmount = formatCurrency;
 
 export function CartTotals() {
-  const { t } = useTranslation();
+  const { t } = useTranslation("pos");
   const { getSubtotalHt, getTotalVat, getTotalTtc, getFinalAmount, discountPercent, discountAmount, getItemCount } =
     usePosStore();
 
@@ -21,23 +21,23 @@ export function CartTotals() {
       <div className="space-y-1 text-sm">
         <div className="flex justify-between text-muted-foreground">
           <span>
-            {t("pos.subtotalHt")} ({itemCount} {t("pos.items")})
+            {t("subtotalHt")} ({itemCount} {t("items")})
           </span>
           <span>{formatAmount(subtotalHt)}</span>
         </div>
         <div className="flex justify-between text-muted-foreground">
-          <span>{t("pos.vat")}</span>
+          <span>{t("vat")}</span>
           <span>{formatAmount(totalVat)}</span>
         </div>
         {hasDiscount && (
           <>
             <div className="flex justify-between">
-              <span>{t("pos.totalTtc")}</span>
+              <span>{t("totalTtc")}</span>
               <span>{formatAmount(totalTtc)}</span>
             </div>
             <div className="flex justify-between text-green-600">
               <span>
-                {t("pos.discount")}
+                {t("discount")}
                 {discountPercent > 0 && ` (${discountPercent}%)`}
               </span>
               <span>-{formatAmount(totalTtc - finalAmount)}</span>
@@ -45,7 +45,7 @@ export function CartTotals() {
           </>
         )}
         <div className="flex justify-between text-xl font-bold pt-2 border-t">
-          <span>{t("pos.total")}</span>
+          <span>{t("total")}</span>
           <span>{formatAmount(finalAmount)}</span>
         </div>
       </div>
