@@ -16,6 +16,13 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
             tauri::async_runtime::block_on(async move {
+                // Initialize offline queue for POS
+                if let Some(app_data_dir) = handle.path().app_data_dir().ok() {
+                    if let Err(e) = services::offline_queue::init_offline_queue(app_data_dir) {
+                        eprintln!("Failed to initialize offline queue: {}", e);
+                    }
+                }
+
                 match db::init_database(&handle).await {
                     Ok(Some(pool)) => {
                         // Start backup scheduler
@@ -185,6 +192,45 @@ pub fn run() {
             commands::test_db_connection,
             commands::save_db_config,
             commands::get_db_config,
+            // POS Register commands
+            commands::get_pos_registers,
+            commands::get_pos_register,
+            commands::create_pos_register,
+            commands::update_pos_register,
+            commands::delete_pos_register,
+            // POS Session commands
+            commands::get_active_pos_session,
+            commands::open_pos_session,
+            commands::close_pos_session,
+            commands::get_pos_session_summary,
+            // POS Transaction commands
+            commands::lookup_product_by_barcode,
+            commands::create_pos_transaction,
+            commands::get_pos_transaction,
+            commands::cancel_pos_transaction,
+            commands::get_pos_session_transactions,
+            // POS Cash Movement commands
+            commands::create_pos_cash_movement,
+            commands::get_pos_session_cash_movements,
+            // POS Printer Config commands
+            commands::get_pos_printer_configs,
+            commands::create_pos_printer_config,
+            commands::update_pos_printer_config,
+            commands::delete_pos_printer_config,
+            // POS Report commands
+            commands::get_daily_pos_report,
+            // Thermal printer commands
+            commands::list_printer_ports,
+            commands::test_thermal_printer,
+            commands::print_pos_receipt,
+            // Offline queue commands
+            commands::queue_offline_transaction,
+            commands::get_pending_offline_count,
+            commands::get_pending_offline_transactions,
+            commands::mark_offline_transaction_synced,
+            commands::mark_offline_transaction_failed,
+            commands::delete_offline_transaction,
+            commands::check_database_connection,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -175,8 +175,8 @@ pub async fn create_product(pool: &PgPool, input: CreateProductInput) -> Result<
     let product = Product::new(input);
     sqlx::query(
         r#"
-        INSERT INTO products (id, designation, description, description_html, unit_price_ht, vat_rate, unit, reference, is_service, category_id, quantity, purchase_price_ht, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        INSERT INTO products (id, designation, description, description_html, unit_price_ht, vat_rate, unit, reference, barcode, is_service, category_id, quantity, purchase_price_ht, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         "#,
     )
     .bind(&product.id)
@@ -187,6 +187,7 @@ pub async fn create_product(pool: &PgPool, input: CreateProductInput) -> Result<
     .bind(&product.vat_rate)
     .bind(&product.unit)
     .bind(&product.reference)
+    .bind(&product.barcode)
     .bind(&product.is_service)
     .bind(&product.category_id)
     .bind(&product.quantity)
@@ -203,8 +204,8 @@ pub async fn update_product(pool: &PgPool, input: UpdateProductInput) -> Result<
     let now = Utc::now();
     sqlx::query(
         r#"
-        UPDATE products SET designation = $1, description = $2, description_html = $3, unit_price_ht = $4, vat_rate = $5, unit = $6, reference = $7, is_service = $8, category_id = $9, quantity = $10, purchase_price_ht = $11, updated_at = $12
-        WHERE id = $13
+        UPDATE products SET designation = $1, description = $2, description_html = $3, unit_price_ht = $4, vat_rate = $5, unit = $6, reference = $7, barcode = $8, is_service = $9, category_id = $10, quantity = $11, purchase_price_ht = $12, updated_at = $13
+        WHERE id = $14
         "#,
     )
     .bind(&input.designation)
@@ -214,6 +215,7 @@ pub async fn update_product(pool: &PgPool, input: UpdateProductInput) -> Result<
     .bind(&input.vat_rate)
     .bind(&input.unit)
     .bind(&input.reference)
+    .bind(&input.barcode)
     .bind(&input.is_service)
     .bind(&input.category_id)
     .bind(&input.quantity)
@@ -1613,8 +1615,8 @@ pub async fn restore_client(conn: &mut PgConnection, client: Client) -> Result<(
 pub async fn restore_product(conn: &mut PgConnection, product: Product) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
-        INSERT INTO products (id, designation, description, description_html, unit_price_ht, vat_rate, unit, reference, is_service, category_id, quantity, purchase_price_ht, photo_path, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        INSERT INTO products (id, designation, description, description_html, unit_price_ht, vat_rate, unit, reference, barcode, is_service, category_id, quantity, purchase_price_ht, photo_path, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         "#,
     )
     .bind(&product.id)
@@ -1625,6 +1627,7 @@ pub async fn restore_product(conn: &mut PgConnection, product: Product) -> Resul
     .bind(&product.vat_rate)
     .bind(&product.unit)
     .bind(&product.reference)
+    .bind(&product.barcode)
     .bind(&product.is_service)
     .bind(&product.category_id)
     .bind(&product.quantity)
@@ -3763,4 +3766,723 @@ pub async fn restore_product_category(conn: &mut PgConnection, category: Product
     .execute(&mut *conn)
     .await?;
     Ok(())
+}
+
+// ========== POS Register Functions ==========
+
+pub async fn get_all_pos_registers(pool: &PgPool) -> Result<Vec<PosRegister>, sqlx::Error> {
+    sqlx::query_as::<_, PosRegister>("SELECT * FROM pos_registers ORDER BY name")
+        .fetch_all(pool)
+        .await
+}
+
+pub async fn get_pos_register_by_id(pool: &PgPool, id: &str) -> Result<PosRegister, sqlx::Error> {
+    sqlx::query_as::<_, PosRegister>("SELECT * FROM pos_registers WHERE id = $1")
+        .bind(id)
+        .fetch_one(pool)
+        .await
+}
+
+pub async fn get_pos_register_by_machine_id(pool: &PgPool, machine_id: &str) -> Result<Option<PosRegister>, sqlx::Error> {
+    sqlx::query_as::<_, PosRegister>("SELECT * FROM pos_registers WHERE machine_id = $1")
+        .bind(machine_id)
+        .fetch_optional(pool)
+        .await
+}
+
+pub async fn create_pos_register(pool: &PgPool, input: CreatePosRegisterInput) -> Result<PosRegister, sqlx::Error> {
+    let register = PosRegister::new(input);
+    sqlx::query(
+        r#"
+        INSERT INTO pos_registers (id, name, location, machine_id, is_active, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        "#,
+    )
+    .bind(&register.id)
+    .bind(&register.name)
+    .bind(&register.location)
+    .bind(&register.machine_id)
+    .bind(&register.is_active)
+    .bind(&register.created_at)
+    .bind(&register.updated_at)
+    .execute(pool)
+    .await?;
+    Ok(register)
+}
+
+pub async fn update_pos_register(pool: &PgPool, input: UpdatePosRegisterInput) -> Result<PosRegister, sqlx::Error> {
+    let now = Utc::now();
+    sqlx::query(
+        r#"
+        UPDATE pos_registers SET name = $1, location = $2, machine_id = $3, is_active = $4, updated_at = $5
+        WHERE id = $6
+        "#,
+    )
+    .bind(&input.name)
+    .bind(&input.location)
+    .bind(&input.machine_id)
+    .bind(&input.is_active)
+    .bind(&now)
+    .bind(&input.id)
+    .execute(pool)
+    .await?;
+    get_pos_register_by_id(pool, &input.id).await
+}
+
+pub async fn delete_pos_register(pool: &PgPool, id: &str) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM pos_registers WHERE id = $1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+// ========== POS Session Functions ==========
+
+pub async fn get_active_session(pool: &PgPool, register_id: &str) -> Result<Option<PosSession>, sqlx::Error> {
+    sqlx::query_as::<_, PosSession>(
+        "SELECT * FROM pos_sessions WHERE register_id = $1 AND status = 'OPEN' ORDER BY opened_at DESC LIMIT 1"
+    )
+    .bind(register_id)
+    .fetch_optional(pool)
+    .await
+}
+
+pub async fn get_session_by_id(pool: &PgPool, id: &str) -> Result<PosSession, sqlx::Error> {
+    sqlx::query_as::<_, PosSession>("SELECT * FROM pos_sessions WHERE id = $1")
+        .bind(id)
+        .fetch_one(pool)
+        .await
+}
+
+pub async fn open_pos_session(pool: &PgPool, input: OpenSessionInput, user_id: &str) -> Result<PosSession, sqlx::Error> {
+    // Check if there's already an open session for this register
+    if let Some(_) = get_active_session(pool, &input.register_id).await? {
+        return Err(sqlx::Error::Protocol("A session is already open for this register".to_string()));
+    }
+
+    let session = PosSession::new(input.register_id, user_id.to_string(), input.opening_float);
+    sqlx::query(
+        r#"
+        INSERT INTO pos_sessions (id, register_id, user_id, opened_at, opening_float, status, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        "#,
+    )
+    .bind(&session.id)
+    .bind(&session.register_id)
+    .bind(&session.user_id)
+    .bind(&session.opened_at)
+    .bind(&session.opening_float)
+    .bind(&session.status)
+    .bind(&session.created_at)
+    .execute(pool)
+    .await?;
+    Ok(session)
+}
+
+pub async fn close_pos_session(pool: &PgPool, input: CloseSessionInput) -> Result<PosSession, sqlx::Error> {
+    let session = get_session_by_id(pool, &input.session_id).await?;
+    if session.status != "OPEN" {
+        return Err(sqlx::Error::Protocol("Session is not open".to_string()));
+    }
+
+    // Calculate expected cash
+    let cash_sales: f64 = sqlx::query_scalar(
+        r#"
+        SELECT COALESCE(SUM(pp.amount), 0)
+        FROM pos_payments pp
+        JOIN pos_transactions pt ON pp.transaction_id = pt.id
+        WHERE pt.session_id = $1 AND pt.status = 'COMPLETED' AND pp.payment_method = 'CASH'
+        "#
+    )
+    .bind(&input.session_id)
+    .fetch_one(pool)
+    .await?;
+
+    let cash_in: f64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(amount), 0) FROM pos_cash_movements WHERE session_id = $1 AND movement_type = 'CASH_IN'"
+    )
+    .bind(&input.session_id)
+    .fetch_one(pool)
+    .await?;
+
+    let cash_out: f64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(amount), 0) FROM pos_cash_movements WHERE session_id = $1 AND movement_type IN ('CASH_OUT', 'PETTY_CASH')"
+    )
+    .bind(&input.session_id)
+    .fetch_one(pool)
+    .await?;
+
+    let expected_cash = session.opening_float + cash_sales + cash_in - cash_out;
+    let cash_difference = input.actual_cash - expected_cash;
+    let now = Utc::now();
+
+    sqlx::query(
+        r#"
+        UPDATE pos_sessions
+        SET closed_at = $1, expected_cash = $2, actual_cash = $3, cash_difference = $4, status = 'CLOSED', notes = $5
+        WHERE id = $6
+        "#,
+    )
+    .bind(&now)
+    .bind(&expected_cash)
+    .bind(&input.actual_cash)
+    .bind(&cash_difference)
+    .bind(&input.notes)
+    .bind(&input.session_id)
+    .execute(pool)
+    .await?;
+
+    get_session_by_id(pool, &input.session_id).await
+}
+
+pub async fn get_session_summary(pool: &PgPool, session_id: &str) -> Result<SessionSummary, sqlx::Error> {
+    let session = get_session_by_id(pool, session_id).await?;
+    let register = get_pos_register_by_id(pool, &session.register_id).await?;
+
+    // Get user name
+    let user: (String,) = sqlx::query_as("SELECT name FROM users WHERE id = $1")
+        .bind(&session.user_id)
+        .fetch_one(pool)
+        .await?;
+
+    // Transaction stats
+    let stats: (i64, f64, f64, f64) = sqlx::query_as(
+        r#"
+        SELECT
+            COUNT(*),
+            COALESCE(SUM(final_amount), 0),
+            COALESCE(SUM(subtotal_ht), 0),
+            COALESCE(SUM(total_vat), 0)
+        FROM pos_transactions
+        WHERE session_id = $1 AND status = 'COMPLETED'
+        "#
+    )
+    .bind(session_id)
+    .fetch_one(pool)
+    .await?;
+
+    // Payment breakdown
+    let cash_sales: f64 = sqlx::query_scalar(
+        r#"
+        SELECT COALESCE(SUM(pp.amount), 0)
+        FROM pos_payments pp
+        JOIN pos_transactions pt ON pp.transaction_id = pt.id
+        WHERE pt.session_id = $1 AND pt.status = 'COMPLETED' AND pp.payment_method = 'CASH'
+        "#
+    )
+    .bind(session_id)
+    .fetch_one(pool)
+    .await?;
+
+    let card_sales: f64 = sqlx::query_scalar(
+        r#"
+        SELECT COALESCE(SUM(pp.amount), 0)
+        FROM pos_payments pp
+        JOIN pos_transactions pt ON pp.transaction_id = pt.id
+        WHERE pt.session_id = $1 AND pt.status = 'COMPLETED' AND pp.payment_method = 'CARD'
+        "#
+    )
+    .bind(session_id)
+    .fetch_one(pool)
+    .await?;
+
+    // Cancelled transactions
+    let cancelled: (i64, f64) = sqlx::query_as(
+        "SELECT COUNT(*), COALESCE(SUM(final_amount), 0) FROM pos_transactions WHERE session_id = $1 AND status = 'CANCELLED'"
+    )
+    .bind(session_id)
+    .fetch_one(pool)
+    .await?;
+
+    // Cash movements
+    let cash_movements = get_session_cash_movements(pool, session_id).await?;
+    let net_movement: f64 = cash_movements.iter().map(|m| {
+        if m.movement_type == "CASH_IN" { m.amount } else { -m.amount }
+    }).sum();
+
+    Ok(SessionSummary {
+        session,
+        register_name: register.name,
+        user_name: user.0,
+        transaction_count: stats.0,
+        total_sales: stats.1,
+        total_ht: stats.2,
+        total_vat: stats.3,
+        cash_sales,
+        card_sales,
+        cancelled_count: cancelled.0,
+        cancelled_total: cancelled.1,
+        cash_movements,
+        net_cash_movement: net_movement,
+    })
+}
+
+// ========== POS Transaction Functions ==========
+
+pub async fn get_product_by_barcode(pool: &PgPool, barcode: &str) -> Result<Option<Product>, sqlx::Error> {
+    sqlx::query_as::<_, Product>("SELECT * FROM products WHERE barcode = $1")
+        .bind(barcode)
+        .fetch_optional(pool)
+        .await
+}
+
+pub async fn create_pos_transaction(pool: &PgPool, input: CreatePosTransactionInput, user_id: &str) -> Result<PosTransaction, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+
+    // Verify session is open
+    let session: PosSession = sqlx::query_as("SELECT * FROM pos_sessions WHERE id = $1")
+        .bind(&input.session_id)
+        .fetch_one(&mut *tx)
+        .await?;
+
+    if session.status != "OPEN" {
+        return Err(sqlx::Error::Protocol("Session is not open".to_string()));
+    }
+
+    // Generate ticket number
+    let today = Utc::now().format("%Y%m%d").to_string();
+    let count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM pos_transactions WHERE register_id = $1 AND DATE(transaction_date) = CURRENT_DATE"
+    )
+    .bind(&input.register_id)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    let ticket_number = format!("TK-{}-{:04}", today, count + 1);
+
+    // Create transaction record
+    let transaction_id = Uuid::new_v4().to_string();
+    let now = Utc::now();
+
+    // Calculate line totals first
+    let mut lines = Vec::new();
+    let mut subtotal_ht = 0.0;
+    let mut total_vat = 0.0;
+
+    for (pos, line_input) in input.lines.iter().enumerate() {
+        let line = PosTransactionLine::new(&transaction_id, line_input.clone(), pos as i32);
+        subtotal_ht += line.total_ht;
+        total_vat += line.total_vat;
+        lines.push(line);
+    }
+
+    let total_ttc = subtotal_ht + total_vat;
+
+    // Apply transaction-level discount
+    let discount_percent = input.discount_percent.unwrap_or(0.0);
+    let discount_amount = input.discount_amount.unwrap_or(0.0);
+    let final_amount = total_ttc * (1.0 - discount_percent / 100.0) - discount_amount;
+
+    // Insert transaction
+    sqlx::query(
+        r#"
+        INSERT INTO pos_transactions (id, ticket_number, register_id, session_id, client_id, user_id, transaction_date,
+            subtotal_ht, total_vat, total_ttc, discount_percent, discount_amount, final_amount, status, notes, synced, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'COMPLETED', $14, TRUE, $15, $16)
+        "#,
+    )
+    .bind(&transaction_id)
+    .bind(&ticket_number)
+    .bind(&input.register_id)
+    .bind(&input.session_id)
+    .bind(&input.client_id)
+    .bind(user_id)
+    .bind(&now)
+    .bind(&subtotal_ht)
+    .bind(&total_vat)
+    .bind(&total_ttc)
+    .bind(&discount_percent)
+    .bind(&discount_amount)
+    .bind(&final_amount)
+    .bind(&input.notes)
+    .bind(&now)
+    .bind(&now)
+    .execute(&mut *tx)
+    .await?;
+
+    // Insert lines and deduct stock
+    for line in &lines {
+        sqlx::query(
+            r#"
+            INSERT INTO pos_transaction_lines (id, transaction_id, product_id, barcode, designation, quantity,
+                unit_price_ht, vat_rate, total_ht, total_vat, total_ttc, discount_percent, position, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            "#,
+        )
+        .bind(&line.id)
+        .bind(&line.transaction_id)
+        .bind(&line.product_id)
+        .bind(&line.barcode)
+        .bind(&line.designation)
+        .bind(&line.quantity)
+        .bind(&line.unit_price_ht)
+        .bind(&line.vat_rate)
+        .bind(&line.total_ht)
+        .bind(&line.total_vat)
+        .bind(&line.total_ttc)
+        .bind(&line.discount_percent)
+        .bind(&line.position)
+        .bind(&line.created_at)
+        .execute(&mut *tx)
+        .await?;
+
+        // Deduct stock for products (not services)
+        if let Some(product_id) = &line.product_id {
+            sqlx::query(
+                r#"
+                UPDATE products SET quantity = GREATEST(0, COALESCE(quantity, 0) - $1), updated_at = $2
+                WHERE id = $3 AND is_service = FALSE
+                "#
+            )
+            .bind(line.quantity as i32)
+            .bind(&now)
+            .bind(product_id)
+            .execute(&mut *tx)
+            .await?;
+        }
+    }
+
+    // Insert payments
+    let mut payments = Vec::new();
+    for payment_input in input.payments {
+        let payment = PosPayment::new(&transaction_id, payment_input);
+        sqlx::query(
+            r#"
+            INSERT INTO pos_payments (id, transaction_id, payment_method, amount, cash_given, change_given, card_reference, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            "#,
+        )
+        .bind(&payment.id)
+        .bind(&payment.transaction_id)
+        .bind(&payment.payment_method)
+        .bind(&payment.amount)
+        .bind(&payment.cash_given)
+        .bind(&payment.change_given)
+        .bind(&payment.card_reference)
+        .bind(&payment.created_at)
+        .execute(&mut *tx)
+        .await?;
+        payments.push(payment);
+    }
+
+    tx.commit().await?;
+
+    Ok(PosTransaction {
+        id: transaction_id,
+        ticket_number,
+        register_id: input.register_id,
+        session_id: input.session_id,
+        client_id: input.client_id,
+        user_id: user_id.to_string(),
+        invoice_id: None,
+        transaction_date: now,
+        subtotal_ht,
+        total_vat,
+        total_ttc,
+        discount_percent,
+        discount_amount,
+        final_amount,
+        status: "COMPLETED".to_string(),
+        notes: input.notes,
+        synced: true,
+        lines,
+        payments,
+        created_at: now,
+        updated_at: now,
+    })
+}
+
+pub async fn get_pos_transaction_by_id(pool: &PgPool, id: &str) -> Result<PosTransaction, sqlx::Error> {
+    let row: PosTransactionRow = sqlx::query_as("SELECT * FROM pos_transactions WHERE id = $1")
+        .bind(id)
+        .fetch_one(pool)
+        .await?;
+
+    let lines: Vec<PosTransactionLine> = sqlx::query_as(
+        "SELECT * FROM pos_transaction_lines WHERE transaction_id = $1 ORDER BY position"
+    )
+    .bind(id)
+    .fetch_all(pool)
+    .await?;
+
+    let payments: Vec<PosPayment> = sqlx::query_as(
+        "SELECT * FROM pos_payments WHERE transaction_id = $1"
+    )
+    .bind(id)
+    .fetch_all(pool)
+    .await?;
+
+    let mut transaction = PosTransaction::from(row);
+    transaction.lines = lines;
+    transaction.payments = payments;
+    Ok(transaction)
+}
+
+pub async fn get_session_transactions(pool: &PgPool, session_id: &str) -> Result<Vec<PosTransaction>, sqlx::Error> {
+    let rows: Vec<PosTransactionRow> = sqlx::query_as(
+        "SELECT * FROM pos_transactions WHERE session_id = $1 ORDER BY transaction_date DESC"
+    )
+    .bind(session_id)
+    .fetch_all(pool)
+    .await?;
+
+    let mut transactions = Vec::new();
+    for row in rows {
+        let id = row.id.clone();
+        let mut transaction = PosTransaction::from(row);
+
+        transaction.lines = sqlx::query_as(
+            "SELECT * FROM pos_transaction_lines WHERE transaction_id = $1 ORDER BY position"
+        )
+        .bind(&id)
+        .fetch_all(pool)
+        .await?;
+
+        transaction.payments = sqlx::query_as(
+            "SELECT * FROM pos_payments WHERE transaction_id = $1"
+        )
+        .bind(&id)
+        .fetch_all(pool)
+        .await?;
+
+        transactions.push(transaction);
+    }
+    Ok(transactions)
+}
+
+pub async fn cancel_pos_transaction(pool: &PgPool, id: &str, reason: &str) -> Result<PosTransaction, sqlx::Error> {
+    let transaction = get_pos_transaction_by_id(pool, id).await?;
+    if transaction.status != "COMPLETED" {
+        return Err(sqlx::Error::Protocol("Only completed transactions can be cancelled".to_string()));
+    }
+
+    let mut tx = pool.begin().await?;
+    let now = Utc::now();
+
+    // Update transaction status
+    sqlx::query("UPDATE pos_transactions SET status = 'CANCELLED', notes = $1, updated_at = $2 WHERE id = $3")
+        .bind(reason)
+        .bind(&now)
+        .bind(id)
+        .execute(&mut *tx)
+        .await?;
+
+    // Restore stock for cancelled items
+    for line in &transaction.lines {
+        if let Some(product_id) = &line.product_id {
+            sqlx::query(
+                r#"
+                UPDATE products SET quantity = COALESCE(quantity, 0) + $1, updated_at = $2
+                WHERE id = $3 AND is_service = FALSE
+                "#
+            )
+            .bind(line.quantity as i32)
+            .bind(&now)
+            .bind(product_id)
+            .execute(&mut *tx)
+            .await?;
+        }
+    }
+
+    tx.commit().await?;
+    get_pos_transaction_by_id(pool, id).await
+}
+
+// ========== Cash Movement Functions ==========
+
+pub async fn create_cash_movement(pool: &PgPool, input: CreateCashMovementInput, user_id: &str) -> Result<PosCashMovement, sqlx::Error> {
+    let movement = PosCashMovement::new(input, user_id.to_string());
+    sqlx::query(
+        r#"
+        INSERT INTO pos_cash_movements (id, session_id, user_id, movement_type, amount, reason, reference, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        "#,
+    )
+    .bind(&movement.id)
+    .bind(&movement.session_id)
+    .bind(&movement.user_id)
+    .bind(&movement.movement_type)
+    .bind(&movement.amount)
+    .bind(&movement.reason)
+    .bind(&movement.reference)
+    .bind(&movement.created_at)
+    .execute(pool)
+    .await?;
+    Ok(movement)
+}
+
+pub async fn get_session_cash_movements(pool: &PgPool, session_id: &str) -> Result<Vec<PosCashMovement>, sqlx::Error> {
+    sqlx::query_as::<_, PosCashMovement>(
+        "SELECT * FROM pos_cash_movements WHERE session_id = $1 ORDER BY created_at"
+    )
+    .bind(session_id)
+    .fetch_all(pool)
+    .await
+}
+
+// ========== Printer Config Functions ==========
+
+pub async fn get_all_printer_configs(pool: &PgPool) -> Result<Vec<PosPrinterConfig>, sqlx::Error> {
+    sqlx::query_as::<_, PosPrinterConfig>("SELECT * FROM pos_printer_configs ORDER BY printer_name")
+        .fetch_all(pool)
+        .await
+}
+
+pub async fn get_printer_config_by_id(pool: &PgPool, id: &str) -> Result<PosPrinterConfig, sqlx::Error> {
+    sqlx::query_as::<_, PosPrinterConfig>("SELECT * FROM pos_printer_configs WHERE id = $1")
+        .bind(id)
+        .fetch_one(pool)
+        .await
+}
+
+pub async fn get_default_printer(pool: &PgPool) -> Result<Option<PosPrinterConfig>, sqlx::Error> {
+    sqlx::query_as::<_, PosPrinterConfig>(
+        "SELECT * FROM pos_printer_configs WHERE is_default = TRUE AND is_active = TRUE LIMIT 1"
+    )
+    .fetch_optional(pool)
+    .await
+}
+
+pub async fn create_printer_config(pool: &PgPool, input: CreatePrinterConfigInput) -> Result<PosPrinterConfig, sqlx::Error> {
+    let config = PosPrinterConfig::new(input);
+
+    // If this is set as default, unset other defaults
+    if config.is_default {
+        sqlx::query("UPDATE pos_printer_configs SET is_default = FALSE")
+            .execute(pool)
+            .await?;
+    }
+
+    sqlx::query(
+        r#"
+        INSERT INTO pos_printer_configs (id, register_id, printer_name, connection_type, connection_address, paper_width, is_default, is_active, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        "#,
+    )
+    .bind(&config.id)
+    .bind(&config.register_id)
+    .bind(&config.printer_name)
+    .bind(&config.connection_type)
+    .bind(&config.connection_address)
+    .bind(&config.paper_width)
+    .bind(&config.is_default)
+    .bind(&config.is_active)
+    .bind(&config.created_at)
+    .bind(&config.updated_at)
+    .execute(pool)
+    .await?;
+    Ok(config)
+}
+
+pub async fn update_printer_config(pool: &PgPool, input: UpdatePrinterConfigInput) -> Result<PosPrinterConfig, sqlx::Error> {
+    // If this is set as default, unset other defaults
+    if input.is_default {
+        sqlx::query("UPDATE pos_printer_configs SET is_default = FALSE WHERE id != $1")
+            .bind(&input.id)
+            .execute(pool)
+            .await?;
+    }
+
+    let now = Utc::now();
+    sqlx::query(
+        r#"
+        UPDATE pos_printer_configs
+        SET register_id = $1, printer_name = $2, connection_type = $3, connection_address = $4,
+            paper_width = $5, is_default = $6, is_active = $7, updated_at = $8
+        WHERE id = $9
+        "#,
+    )
+    .bind(&input.register_id)
+    .bind(&input.printer_name)
+    .bind(&input.connection_type)
+    .bind(&input.connection_address)
+    .bind(&input.paper_width)
+    .bind(&input.is_default)
+    .bind(&input.is_active)
+    .bind(&now)
+    .bind(&input.id)
+    .execute(pool)
+    .await?;
+    get_printer_config_by_id(pool, &input.id).await
+}
+
+pub async fn delete_printer_config(pool: &PgPool, id: &str) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM pos_printer_configs WHERE id = $1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+// ========== Daily Report Functions ==========
+
+pub async fn get_daily_pos_report(pool: &PgPool, date: &str, register_id: Option<&str>) -> Result<DailyPosReport, sqlx::Error> {
+    let date_parsed = chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d")
+        .map_err(|_| sqlx::Error::Protocol("Invalid date format".to_string()))?;
+
+    let register_filter = register_id.map(|id| format!("AND register_id = '{}'", id)).unwrap_or_default();
+
+    let register_name: Option<String> = if let Some(rid) = register_id {
+        sqlx::query_scalar("SELECT name FROM pos_registers WHERE id = $1")
+            .bind(rid)
+            .fetch_optional(pool)
+            .await?
+    } else {
+        None
+    };
+
+    let query = format!(
+        r#"
+        SELECT
+            COUNT(DISTINCT session_id) as session_count,
+            COUNT(*) FILTER (WHERE status = 'COMPLETED') as transaction_count,
+            COALESCE(SUM(final_amount) FILTER (WHERE status = 'COMPLETED'), 0) as total_sales,
+            COALESCE(SUM(subtotal_ht) FILTER (WHERE status = 'COMPLETED'), 0) as total_ht,
+            COALESCE(SUM(total_vat) FILTER (WHERE status = 'COMPLETED'), 0) as total_vat,
+            COUNT(*) FILTER (WHERE status = 'CANCELLED') as cancelled_count,
+            COALESCE(SUM(final_amount) FILTER (WHERE status = 'CANCELLED'), 0) as cancelled_total
+        FROM pos_transactions
+        WHERE DATE(transaction_date) = $1 {}
+        "#,
+        register_filter
+    );
+
+    let stats: (i64, i64, f64, f64, f64, i64, f64) = sqlx::query_as(&query)
+        .bind(&date_parsed)
+        .fetch_one(pool)
+        .await?;
+
+    // Get payment breakdown
+    let payment_query = format!(
+        r#"
+        SELECT
+            COALESCE(SUM(pp.amount) FILTER (WHERE pp.payment_method = 'CASH'), 0) as cash_sales,
+            COALESCE(SUM(pp.amount) FILTER (WHERE pp.payment_method = 'CARD'), 0) as card_sales
+        FROM pos_payments pp
+        JOIN pos_transactions pt ON pp.transaction_id = pt.id
+        WHERE DATE(pt.transaction_date) = $1 AND pt.status = 'COMPLETED' {}
+        "#,
+        register_filter
+    );
+
+    let payments: (f64, f64) = sqlx::query_as(&payment_query)
+        .bind(&date_parsed)
+        .fetch_one(pool)
+        .await?;
+
+    Ok(DailyPosReport {
+        date: date_parsed,
+        register_id: register_id.map(|s| s.to_string()),
+        register_name,
+        session_count: stats.0,
+        transaction_count: stats.1,
+        total_sales: stats.2,
+        total_ht: stats.3,
+        total_vat: stats.4,
+        cash_sales: payments.0,
+        card_sales: payments.1,
+        cancelled_count: stats.5,
+        cancelled_total: stats.6,
+    })
 }

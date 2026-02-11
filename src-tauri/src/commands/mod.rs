@@ -1794,6 +1794,7 @@ pub async fn import_products(file_path: String, state: State<'_, AppState>) -> R
             vat_rate,
             unit: import::get_field(&headers, row, "unit").unwrap_or_else(|| "unite".to_string()),
             reference,
+            barcode: import::get_field(&headers, row, "barcode"),
             is_service,
             category_id: None,
             quantity,
@@ -2194,4 +2195,302 @@ pub async fn save_db_config(config: DbConfig, app: AppHandle) -> Result<String, 
 pub async fn get_db_config(app: AppHandle) -> Result<Option<DbConfigSafe>, String> {
     let config = db::connection::load_db_config(&app).map_err(|e| e.to_string())?;
     Ok(config.map(|c| c.to_safe()))
+}
+
+// ========== POS Register Commands ==========
+
+#[tauri::command]
+pub async fn get_pos_registers(state: State<'_, AppState>) -> Result<Vec<PosRegister>, String> {
+    require_auth(&state)?;
+    repository::get_all_pos_registers(&state.pool)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_pos_register(id: String, state: State<'_, AppState>) -> Result<PosRegister, String> {
+    require_auth(&state)?;
+    repository::get_pos_register_by_id(&state.pool, &id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn create_pos_register(input: CreatePosRegisterInput, state: State<'_, AppState>) -> Result<PosRegister, String> {
+    require_auth(&state)?;
+    repository::create_pos_register(&state.pool, input)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn update_pos_register(input: UpdatePosRegisterInput, state: State<'_, AppState>) -> Result<PosRegister, String> {
+    require_auth(&state)?;
+    repository::update_pos_register(&state.pool, input)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn delete_pos_register(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
+    repository::delete_pos_register(&state.pool, &id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// ========== POS Session Commands ==========
+
+#[tauri::command]
+pub async fn get_active_pos_session(register_id: String, state: State<'_, AppState>) -> Result<Option<PosSession>, String> {
+    require_auth(&state)?;
+    repository::get_active_session(&state.pool, &register_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn open_pos_session(input: OpenSessionInput, state: State<'_, AppState>) -> Result<PosSession, String> {
+    let user_id = require_auth(&state)?;
+    repository::open_pos_session(&state.pool, input, &user_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn close_pos_session(input: CloseSessionInput, state: State<'_, AppState>) -> Result<PosSession, String> {
+    require_auth(&state)?;
+    repository::close_pos_session(&state.pool, input)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_pos_session_summary(session_id: String, state: State<'_, AppState>) -> Result<SessionSummary, String> {
+    require_auth(&state)?;
+    repository::get_session_summary(&state.pool, &session_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// ========== POS Transaction Commands ==========
+
+#[tauri::command]
+pub async fn lookup_product_by_barcode(barcode: String, state: State<'_, AppState>) -> Result<Option<Product>, String> {
+    require_auth(&state)?;
+    repository::get_product_by_barcode(&state.pool, &barcode)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn create_pos_transaction(input: CreatePosTransactionInput, state: State<'_, AppState>) -> Result<PosTransaction, String> {
+    let user_id = require_auth(&state)?;
+    repository::create_pos_transaction(&state.pool, input, &user_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_pos_transaction(id: String, state: State<'_, AppState>) -> Result<PosTransaction, String> {
+    require_auth(&state)?;
+    repository::get_pos_transaction_by_id(&state.pool, &id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn cancel_pos_transaction(id: String, reason: String, state: State<'_, AppState>) -> Result<PosTransaction, String> {
+    require_auth(&state)?;
+    repository::cancel_pos_transaction(&state.pool, &id, &reason)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_pos_session_transactions(session_id: String, state: State<'_, AppState>) -> Result<Vec<PosTransaction>, String> {
+    require_auth(&state)?;
+    repository::get_session_transactions(&state.pool, &session_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// ========== POS Cash Movement Commands ==========
+
+#[tauri::command]
+pub async fn create_pos_cash_movement(input: CreateCashMovementInput, state: State<'_, AppState>) -> Result<PosCashMovement, String> {
+    let user_id = require_auth(&state)?;
+    repository::create_cash_movement(&state.pool, input, &user_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_pos_session_cash_movements(session_id: String, state: State<'_, AppState>) -> Result<Vec<PosCashMovement>, String> {
+    require_auth(&state)?;
+    repository::get_session_cash_movements(&state.pool, &session_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// ========== POS Printer Config Commands ==========
+
+#[tauri::command]
+pub async fn get_pos_printer_configs(state: State<'_, AppState>) -> Result<Vec<PosPrinterConfig>, String> {
+    require_auth(&state)?;
+    repository::get_all_printer_configs(&state.pool)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn create_pos_printer_config(input: CreatePrinterConfigInput, state: State<'_, AppState>) -> Result<PosPrinterConfig, String> {
+    require_auth(&state)?;
+    repository::create_printer_config(&state.pool, input)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn update_pos_printer_config(input: UpdatePrinterConfigInput, state: State<'_, AppState>) -> Result<PosPrinterConfig, String> {
+    require_auth(&state)?;
+    repository::update_printer_config(&state.pool, input)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn delete_pos_printer_config(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    require_auth(&state)?;
+    repository::delete_printer_config(&state.pool, &id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// ========== POS Report Commands ==========
+
+#[tauri::command]
+pub async fn get_daily_pos_report(date: String, register_id: Option<String>, state: State<'_, AppState>) -> Result<DailyPosReport, String> {
+    require_auth(&state)?;
+    repository::get_daily_pos_report(&state.pool, &date, register_id.as_deref())
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// ========== Thermal Printer Commands ==========
+
+use crate::services::thermal_printer::{
+    self, PrinterConfig, ConnectionType, ReceiptData
+};
+
+#[tauri::command]
+pub fn list_printer_ports() -> Vec<String> {
+    thermal_printer::list_serial_ports()
+}
+
+#[tauri::command]
+pub fn test_thermal_printer(
+    connection_type: String,
+    address: String,
+    paper_width: u8,
+) -> Result<(), String> {
+    let config = PrinterConfig {
+        connection_type: match connection_type.as_str() {
+            "USB" => ConnectionType::USB,
+            "Network" => ConnectionType::Network,
+            "Serial" => ConnectionType::Serial,
+            _ => return Err("Invalid connection type".to_string()),
+        },
+        address,
+        paper_width,
+    };
+
+    thermal_printer::test_printer(&config).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn print_pos_receipt(
+    connection_type: String,
+    address: String,
+    paper_width: u8,
+    receipt: ReceiptData,
+    currency: String,
+    open_drawer: bool,
+) -> Result<(), String> {
+    let config = PrinterConfig {
+        connection_type: match connection_type.as_str() {
+            "USB" => ConnectionType::USB,
+            "Network" => ConnectionType::Network,
+            "Serial" => ConnectionType::Serial,
+            _ => return Err("Invalid connection type".to_string()),
+        },
+        address,
+        paper_width,
+    };
+
+    thermal_printer::print_receipt(&config, &receipt, &currency, open_drawer)
+        .map_err(|e| e.to_string())
+}
+
+// ========== Offline Queue Commands ==========
+
+use crate::services::offline_queue::{self, QueuedTransaction};
+
+#[tauri::command]
+pub fn queue_offline_transaction(id: String, transaction_data: String) -> Result<(), String> {
+    let queue = offline_queue::get_offline_queue()
+        .ok_or_else(|| "Offline queue not initialized".to_string())?;
+
+    queue.queue_transaction(&id, &transaction_data)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_pending_offline_count() -> Result<i64, String> {
+    let queue = offline_queue::get_offline_queue()
+        .ok_or_else(|| "Offline queue not initialized".to_string())?;
+
+    queue.get_pending_count()
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_pending_offline_transactions() -> Result<Vec<QueuedTransaction>, String> {
+    let queue = offline_queue::get_offline_queue()
+        .ok_or_else(|| "Offline queue not initialized".to_string())?;
+
+    queue.get_pending_transactions()
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn mark_offline_transaction_synced(id: String) -> Result<(), String> {
+    let queue = offline_queue::get_offline_queue()
+        .ok_or_else(|| "Offline queue not initialized".to_string())?;
+
+    queue.mark_synced(&id)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn mark_offline_transaction_failed(id: String, error: String) -> Result<(), String> {
+    let queue = offline_queue::get_offline_queue()
+        .ok_or_else(|| "Offline queue not initialized".to_string())?;
+
+    queue.mark_failed(&id, &error)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn delete_offline_transaction(id: String) -> Result<(), String> {
+    let queue = offline_queue::get_offline_queue()
+        .ok_or_else(|| "Offline queue not initialized".to_string())?;
+
+    queue.delete_transaction(&id)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn check_database_connection(state: State<'_, AppState>) -> Result<bool, String> {
+    Ok(offline_queue::check_db_connection(&state.pool).await)
 }
