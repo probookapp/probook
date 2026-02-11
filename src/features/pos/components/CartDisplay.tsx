@@ -11,7 +11,7 @@ export function CartDisplay() {
 
   if (items.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+      <div className="flex-1 flex items-center justify-center text-(--color-text-secondary)">
         <div className="text-center">
           <p className="text-lg">{t("emptyCart")}</p>
           <p className="text-sm">{t("scanOrSearch")}</p>
@@ -23,8 +23,8 @@ export function CartDisplay() {
   return (
     <div className="flex-1 overflow-auto p-4">
       <table className="w-full">
-        <thead className="sticky top-0 bg-background">
-          <tr className="text-left text-sm text-muted-foreground border-b">
+        <thead className="sticky top-0 bg-(--color-bg-primary)">
+          <tr className="text-left text-sm text-(--color-text-secondary) border-b border-(--color-border-primary)">
             <th className="pb-2 font-medium">{t("product")}</th>
             <th className="pb-2 font-medium text-center w-32">{t("quantity")}</th>
             <th className="pb-2 font-medium text-right w-24">{t("unitPrice")}</th>
@@ -41,12 +41,12 @@ export function CartDisplay() {
               (1 + item.vatRate / 100);
 
             return (
-              <tr key={item.id} className="border-b hover:bg-muted/50">
+              <tr key={item.id} className="border-b border-(--color-border-primary) hover:bg-(--color-bg-secondary)/50">
                 <td className="py-3">
                   <div>
                     <p className="font-medium">{item.designation}</p>
                     {item.barcode && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-(--color-text-secondary)">
                         {item.barcode}
                       </p>
                     )}
@@ -61,7 +61,7 @@ export function CartDisplay() {
                   <div className="flex items-center justify-center gap-2">
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="p-1 rounded hover:bg-muted"
+                      className="p-1 rounded hover:bg-(--color-bg-secondary)"
                     >
                       <Minus className="h-4 w-4" />
                     </button>
@@ -70,7 +70,7 @@ export function CartDisplay() {
                     </span>
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="p-1 rounded hover:bg-muted"
+                      className="p-1 rounded hover:bg-(--color-bg-secondary)"
                     >
                       <Plus className="h-4 w-4" />
                     </button>
@@ -85,7 +85,7 @@ export function CartDisplay() {
                 <td className="py-3">
                   <button
                     onClick={() => removeItem(item.id)}
-                    className="p-1 text-destructive hover:bg-destructive/10 rounded"
+                    className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

@@ -51,11 +51,11 @@ export function PaymentModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-background rounded-xl shadow-xl w-full max-w-md mx-4">
+      <div className="bg-(--color-bg-primary) rounded-xl shadow-xl w-full max-w-md mx-4">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center justify-between p-4 border-b border-(--color-border-primary)">
           <h2 className="text-xl font-bold">{t("payment")}</h2>
-          <button onClick={onClose} className="p-1 hover:bg-muted rounded">
+          <button onClick={onClose} className="p-1 hover:bg-(--color-bg-secondary) rounded">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -64,7 +64,7 @@ export function PaymentModal({
         <div className="p-4 space-y-6">
           {/* Total */}
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">{t("totalToPay")}</p>
+            <p className="text-sm text-(--color-text-secondary)">{t("totalToPay")}</p>
             <p className="text-4xl font-bold">{formatAmount(totalAmount)}</p>
           </div>
 
@@ -74,8 +74,8 @@ export function PaymentModal({
               onClick={() => setPaymentMethod("CASH")}
               className={`p-4 rounded-lg border-2 flex flex-col items-center gap-2 transition-colors ${
                 paymentMethod === "CASH"
-                  ? "border-primary bg-primary/10"
-                  : "border-muted hover:border-muted-foreground"
+                  ? "border-primary-600 bg-primary-50 dark:bg-primary-900/20"
+                  : "border-(--color-border-primary) hover:border-(--color-border-secondary)"
               }`}
             >
               <Banknote className="h-8 w-8" />
@@ -85,8 +85,8 @@ export function PaymentModal({
               onClick={() => setPaymentMethod("CARD")}
               className={`p-4 rounded-lg border-2 flex flex-col items-center gap-2 transition-colors ${
                 paymentMethod === "CARD"
-                  ? "border-primary bg-primary/10"
-                  : "border-muted hover:border-muted-foreground"
+                  ? "border-primary-600 bg-primary-50 dark:bg-primary-900/20"
+                  : "border-(--color-border-primary) hover:border-(--color-border-secondary)"
               }`}
             >
               <CreditCard className="h-8 w-8" />
@@ -105,7 +105,7 @@ export function PaymentModal({
                   type="number"
                   value={cashGiven}
                   onChange={(e) => setCashGiven(e.target.value)}
-                  className="w-full px-4 py-3 border rounded-lg text-2xl text-center font-bold focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-4 py-3 border border-(--color-border-input) rounded-lg text-2xl text-center font-bold bg-(--color-bg-input) focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="0.00"
                   autoFocus
                 />
@@ -117,7 +117,7 @@ export function PaymentModal({
                   <button
                     key={amount}
                     onClick={() => setCashGiven(amount.toString())}
-                    className="px-4 py-2 border rounded-lg hover:bg-muted text-sm font-medium"
+                    className="px-4 py-2 border border-(--color-border-primary) rounded-lg hover:bg-(--color-bg-secondary) text-sm font-medium transition-colors"
                   >
                     {formatAmount(amount)}
                   </button>
@@ -140,17 +140,17 @@ export function PaymentModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t flex gap-3">
+        <div className="p-4 border-t border-(--color-border-primary) flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-3 border rounded-lg hover:bg-muted font-medium"
+            className="flex-1 px-4 py-3 border border-(--color-border-primary) rounded-lg hover:bg-(--color-bg-secondary) font-medium transition-colors"
           >
             {t("cancel")}
           </button>
           <button
             onClick={handleConfirm}
             disabled={!isValid || isLoading}
-            className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? t("loading") : t("confirm")}
           </button>

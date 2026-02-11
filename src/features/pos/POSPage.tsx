@@ -190,12 +190,12 @@ export function POSPage() {
     const activeRegisters = registers?.filter((r) => r.is_active) ?? [];
 
     return (
-      <div className="h-screen flex flex-col bg-background">
+      <div className="h-screen flex flex-col bg-(--color-bg-primary)">
         {/* Top bar */}
-        <div className="h-14 border-b flex items-center px-4 shrink-0">
+        <div className="h-14 border-b border-(--color-border-primary) flex items-center px-4 shrink-0">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 text-sm text-(--color-text-secondary) hover:text-(--color-text-primary) transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             {t("backToOffice")}
@@ -205,7 +205,7 @@ export function POSPage() {
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="w-full max-w-md">
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-50 dark:bg-primary-900/20 text-primary-600 mb-4">
                 <Store className="h-8 w-8" />
               </div>
               <h1 className="text-2xl font-bold">
@@ -218,15 +218,15 @@ export function POSPage() {
                 <button
                   key={register.id}
                   onClick={() => setSession(null, register)}
-                  className="w-full flex items-center gap-4 p-4 bg-muted hover:bg-muted/80 border rounded-xl transition-colors text-left"
+                  className="w-full flex items-center gap-4 p-4 bg-(--color-bg-secondary) hover:bg-(--color-bg-tertiary) border border-(--color-border-primary) rounded-xl transition-colors text-left"
                 >
-                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary shrink-0">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 shrink-0">
                     <Monitor className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold truncate">{register.name}</p>
                     {register.location && (
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <p className="text-sm text-(--color-text-secondary) flex items-center gap-1">
                         <MapPin className="h-3 w-3" />
                         {register.location}
                       </p>
@@ -237,7 +237,7 @@ export function POSPage() {
             </div>
 
             {showCreateRegister ? (
-              <div className="mt-4 p-5 bg-muted rounded-xl border space-y-3">
+              <div className="mt-4 p-5 bg-(--color-bg-secondary) rounded-xl border border-(--color-border-primary) space-y-3">
                 <div>
                   <label className="block text-sm font-medium mb-1.5">
                     {t("registerName")}
@@ -247,7 +247,7 @@ export function POSPage() {
                     value={newRegisterName}
                     onChange={(e) => setNewRegisterName(e.target.value)}
                     placeholder={t("registerNamePlaceholder")}
-                    className="w-full px-3 py-2.5 border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2.5 border border-(--color-border-input) rounded-lg bg-(--color-bg-input) focus:outline-none focus:ring-2 focus:ring-primary-500"
                     autoFocus
                     onKeyDown={(e) => e.key === "Enter" && handleCreateRegister()}
                   />
@@ -261,21 +261,21 @@ export function POSPage() {
                     value={newRegisterLocation}
                     onChange={(e) => setNewRegisterLocation(e.target.value)}
                     placeholder={t("registerLocationPlaceholder")}
-                    className="w-full px-3 py-2.5 border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2.5 border border-(--color-border-input) rounded-lg bg-(--color-bg-input) focus:outline-none focus:ring-2 focus:ring-primary-500"
                     onKeyDown={(e) => e.key === "Enter" && handleCreateRegister()}
                   />
                 </div>
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={() => setShowCreateRegister(false)}
-                    className="flex-1 px-4 py-2.5 border rounded-lg hover:bg-background font-medium transition-colors"
+                    className="flex-1 px-4 py-2.5 border border-(--color-border-primary) rounded-lg hover:bg-(--color-bg-secondary) font-medium transition-colors"
                   >
                     {t("cancel")}
                   </button>
                   <button
                     onClick={handleCreateRegister}
                     disabled={!newRegisterName.trim() || createRegister.isPending}
-                    className="flex-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium disabled:opacity-50 transition-colors"
+                    className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50 transition-colors"
                   >
                     {createRegister.isPending ? t("loading") : t("createRegister")}
                   </button>
@@ -284,7 +284,7 @@ export function POSPage() {
             ) : (
               <button
                 onClick={() => setShowCreateRegister(true)}
-                className="w-full mt-3 px-4 py-3 border-2 border-dashed border-muted-foreground/25 rounded-xl hover:border-primary hover:text-primary text-muted-foreground flex items-center justify-center gap-2 transition-colors"
+                className="w-full mt-3 px-4 py-3 border-2 border-dashed border-(--color-border-secondary) rounded-xl hover:border-primary-600 hover:text-primary-600 text-(--color-text-secondary) flex items-center justify-center gap-2 transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 {t("createRegister")}
@@ -299,21 +299,21 @@ export function POSPage() {
   // ─── Session closed screen (inline opening float) ───
   if (!currentSession) {
     return (
-      <div className="h-screen flex flex-col bg-background">
+      <div className="h-screen flex flex-col bg-(--color-bg-primary)">
         {/* Top bar */}
-        <div className="h-14 border-b flex items-center justify-between px-4 shrink-0">
+        <div className="h-14 border-b border-(--color-border-primary) flex items-center justify-between px-4 shrink-0">
           <button
             onClick={() => {
               setSession(null, null);
             }}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 text-sm text-(--color-text-secondary) hover:text-(--color-text-primary) transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             {t("selectRegister")}
           </button>
           <button
             onClick={() => navigate("/")}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-sm text-(--color-text-secondary) hover:text-(--color-text-primary) transition-colors"
           >
             {t("backToOffice")}
           </button>
@@ -325,11 +325,11 @@ export function POSPage() {
               <Lock className="h-8 w-8" />
             </div>
             <h1 className="text-2xl font-bold mb-1">{currentRegister.name}</h1>
-            <p className="text-muted-foreground mb-8">{t("sessionClosed")}</p>
+            <p className="text-(--color-text-secondary) mb-8">{t("sessionClosed")}</p>
 
             {/* Inline opening float form */}
-            <div className="bg-muted rounded-xl border p-5 text-left space-y-4">
-              <p className="text-sm text-muted-foreground">
+            <div className="bg-(--color-bg-secondary) rounded-xl border border-(--color-border-primary) p-5 text-left space-y-4">
+              <p className="text-sm text-(--color-text-secondary)">
                 {t("openingFloatDescription")}
               </p>
               <div>
@@ -340,7 +340,7 @@ export function POSPage() {
                   type="number"
                   value={openingFloat}
                   onChange={(e) => setOpeningFloat(e.target.value)}
-                  className="w-full px-4 py-3 border rounded-lg text-2xl text-center font-bold bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-4 py-3 border border-(--color-border-input) rounded-lg text-2xl text-center font-bold bg-(--color-bg-input) focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="0.00"
                   min="0"
                   step="0.01"
@@ -351,7 +351,7 @@ export function POSPage() {
               <button
                 onClick={handleOpenSession}
                 disabled={openSession.isPending}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-semibold text-lg disabled:opacity-50 transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-semibold text-lg disabled:opacity-50 transition-colors"
               >
                 <Unlock className="h-5 w-5" />
                 {openSession.isPending ? t("loading") : t("openSession")}
@@ -365,9 +365,9 @@ export function POSPage() {
 
   // ─── Active session: main POS layout ───
   return (
-    <div className="h-screen flex flex-col bg-muted">
+    <div className="h-screen flex flex-col bg-(--color-bg-secondary)">
       {/* Header */}
-      <header className="h-14 bg-primary text-primary-foreground flex items-center justify-between px-4 shrink-0">
+      <header className="h-14 bg-primary-600 text-white flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-4">
           <span className="font-bold">{currentRegister.name}</span>
           <span className="text-sm opacity-75">
@@ -382,11 +382,11 @@ export function POSPage() {
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Cart section (60%) */}
-        <div className="w-3/5 flex flex-col bg-background border-r">
+        <div className="w-3/5 flex flex-col bg-(--color-bg-primary) border-r border-(--color-border-primary)">
           <CartDisplay />
           <CartTotals />
           {/* Payment bar */}
-          <div className="p-4 border-t shrink-0">
+          <div className="p-4 border-t border-(--color-border-primary) shrink-0">
             <button
               onClick={() => setShowPaymentModal(true)}
               disabled={items.length === 0}

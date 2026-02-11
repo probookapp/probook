@@ -17,15 +17,15 @@ export function CartTotals() {
   const hasDiscount = discountPercent > 0 || discountAmount > 0;
 
   return (
-    <div className="border-t p-4 bg-muted/30 shrink-0">
+    <div className="border-t border-(--color-border-primary) p-4 bg-(--color-bg-secondary)/30 shrink-0">
       <div className="space-y-1 text-sm">
-        <div className="flex justify-between text-muted-foreground">
+        <div className="flex justify-between text-(--color-text-secondary)">
           <span>
             {t("subtotalHt")} ({itemCount} {t("items")})
           </span>
           <span>{formatAmount(subtotalHt)}</span>
         </div>
-        <div className="flex justify-between text-muted-foreground">
+        <div className="flex justify-between text-(--color-text-secondary)">
           <span>{t("vat")}</span>
           <span>{formatAmount(totalVat)}</span>
         </div>
@@ -44,7 +44,7 @@ export function CartTotals() {
             </div>
           </>
         )}
-        <div className="flex justify-between text-xl font-bold pt-2 border-t">
+        <div className="flex justify-between text-xl font-bold pt-2 border-t border-(--color-border-primary)">
           <span>{t("total")}</span>
           <span>{formatAmount(finalAmount)}</span>
         </div>
