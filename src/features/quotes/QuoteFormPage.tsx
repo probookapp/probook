@@ -21,6 +21,7 @@ import { useClients } from "@/features/clients";
 import { useProducts } from "@/features/products";
 import { formatCurrency, formatDateISO, calculateLineTotal } from "@/lib/utils";
 import type { QuoteStatus } from "@/types";
+import { useCompanySettings } from "@/features/settings/hooks/useSettings";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 
@@ -63,6 +64,8 @@ export function QuoteFormPage() {
   const { data: products } = useProducts();
   const createQuote = useCreateQuote();
   const updateQuote = useUpdateQuote();
+  const { data: settings } = useCompanySettings();
+  const defaultVat = settings?.default_vat_rate ?? 20;
   const [notesHtml, setNotesHtml] = useState("");
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(new Set());
   const submittedRef = useRef(false);
@@ -83,10 +86,10 @@ export function QuoteFormPage() {
       notes: "",
       status: "DRAFT" as QuoteStatus,
       shipping_cost_ht: 0,
-      shipping_vat_rate: 20,
+      shipping_vat_rate: defaultVat,
       down_payment_percent: 0,
       down_payment_amount: 0,
-      lines: [{ description: "", quantity: 1, unit_price_ht: 0, vat_rate: 20 }],
+      lines: [{ description: "", quantity: 1, unit_price_ht: 0, vat_rate: defaultVat }],
     },
   });
 
@@ -99,7 +102,7 @@ export function QuoteFormPage() {
   const watchedLines = useWatch({
     control,
     name: "lines",
-    defaultValue: [{ description: "", quantity: 1, unit_price_ht: 0, vat_rate: 20 }],
+    defaultValue: [{ description: "", quantity: 1, unit_price_ht: 0, vat_rate: defaultVat }],
   });
 
   const watchedShippingCostHt = useWatch({
@@ -377,7 +380,7 @@ export function QuoteFormPage() {
                 variant="secondary"
                 size="sm"
                 onClick={() =>
-                  append({ description: "", quantity: 1, unit_price_ht: 0, vat_rate: 20 })
+                  append({ description: "", quantity: 1, unit_price_ht: 0, vat_rate: defaultVat })
                 }
               >
                 <Plus className="h-4 w-4 mr-2" />
