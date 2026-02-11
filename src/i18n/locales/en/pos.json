@@ -60,6 +60,9 @@
   "registerLocation": "Location (optional)",
   "registerLocationPlaceholder": "e.g. Front desk",
   "registerCreated": "Register created successfully",
+  "cancel": "Cancel",
+  "loading": "Loading...",
+  "optional": "optional",
   "errors": {
     "createRegisterFailed": "Failed to create register",
     "noSession": "No session open. Please open a session first.",

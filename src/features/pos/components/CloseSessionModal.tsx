@@ -60,7 +60,7 @@ export function CloseSessionModal({
         <div className="p-4 space-y-6">
           {summaryLoading ? (
             <div className="text-center py-8 text-muted-foreground">
-              {t("common.loading")}...
+              {t("loading")}...
             </div>
           ) : summary ? (
             <>
@@ -165,7 +165,7 @@ export function CloseSessionModal({
               {/* Notes */}
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  {t("notes")} ({t("common.optional")})
+                  {t("notes")} ({t("optional")})
                 </label>
                 <textarea
                   value={notes}
@@ -185,14 +185,14 @@ export function CloseSessionModal({
             onClick={onClose}
             className="flex-1 px-4 py-3 border rounded-lg hover:bg-muted font-medium"
           >
-            {t("common.cancel")}
+            {t("cancel")}
           </button>
           <button
             onClick={handleConfirm}
             disabled={isLoading || !actualCash}
             className="flex-1 px-4 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-bold disabled:opacity-50"
           >
-            {isLoading ? t("common.loading") : t("closeSession")}
+            {isLoading ? t("loading") : t("closeSession")}
           </button>
         </div>
       </div>

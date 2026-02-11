@@ -145,14 +145,14 @@ export function PaymentModal({
             onClick={onClose}
             className="flex-1 px-4 py-3 border rounded-lg hover:bg-muted font-medium"
           >
-            {t("common.cancel")}
+            {t("cancel")}
           </button>
           <button
             onClick={handleConfirm}
             disabled={!isValid || isLoading}
             className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? t("common.loading") : t("confirm")}
+            {isLoading ? t("loading") : t("confirm")}
           </button>
         </div>
       </div>

@@ -236,7 +236,7 @@ export function POSPage() {
                   onClick={() => setShowCreateRegister(false)}
                   className="flex-1 px-4 py-2 border rounded-lg hover:bg-muted"
                 >
-                  {t("cancel", { ns: "common" })}
+                  {t("cancel")}
                 </button>
                 <button
                   onClick={handleCreateRegister}

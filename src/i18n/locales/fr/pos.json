@@ -60,6 +60,9 @@
   "registerLocation": "Emplacement (optionnel)",
   "registerLocationPlaceholder": "ex. Accueil",
   "registerCreated": "Caisse creee avec succes",
+  "cancel": "Annuler",
+  "loading": "Chargement...",
+  "optional": "optionnel",
   "errors": {
     "createRegisterFailed": "Echec de la creation de la caisse",
     "noSession": "Aucune session ouverte. Veuillez d'abord ouvrir une session.",
