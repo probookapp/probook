@@ -13,9 +13,15 @@ import { usePosStore } from "../stores/usePosStore";
 
 interface SessionControlsProps {
   onCloseSession: () => void;
+  onTransactionHistory: () => void;
+  onCashMovement: () => void;
 }
 
-export function SessionControls({ onCloseSession }: SessionControlsProps) {
+export function SessionControls({
+  onCloseSession,
+  onTransactionHistory,
+  onCashMovement,
+}: SessionControlsProps) {
   const { t } = useTranslation("pos");
   const navigate = useNavigate();
   const { clearCart, items } = usePosStore();
@@ -54,7 +60,7 @@ export function SessionControls({ onCloseSession }: SessionControlsProps) {
             <button
               onClick={() => {
                 setShowMenu(false);
-                // TODO: Show transaction history
+                onTransactionHistory();
               }}
               className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-(--color-bg-secondary) text-left text-sm transition-colors"
             >
@@ -64,7 +70,7 @@ export function SessionControls({ onCloseSession }: SessionControlsProps) {
             <button
               onClick={() => {
                 setShowMenu(false);
-                // TODO: Show cash movement modal
+                onCashMovement();
               }}
               className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-(--color-bg-secondary) text-left text-sm transition-colors"
             >
