@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { isTauri } from "@/lib/config";
 import {
@@ -17,6 +17,7 @@ import {
   X,
   LogOut,
   Shield,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -29,6 +30,7 @@ interface SidebarProps {
 
 export function Sidebar({ onClose }: SidebarProps) {
   const { t } = useTranslation("navigation");
+  const navigate = useNavigate();
   const [version, setVersion] = useState("");
   const { currentUser, hasPermission, clearUser } = useAuthStore();
 
@@ -108,6 +110,16 @@ export function Sidebar({ onClose }: SidebarProps) {
         ))}
       </nav>
       <div className="p-4 border-t border-gray-800 space-y-3">
+        {/* POS Mode Button */}
+        {hasPermission("pos") && (
+          <button
+            onClick={() => navigate("/pos")}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-700 text-white transition-colors"
+          >
+            <Store className="h-5 w-5" />
+            {t("posMode")}
+          </button>
+        )}
         {currentUser && (
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-xs font-bold shrink-0">

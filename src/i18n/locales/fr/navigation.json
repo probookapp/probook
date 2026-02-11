@@ -13,5 +13,7 @@
   "logout": "Déconnexion",
   "closeSidebar": "Fermer le menu",
   "admin": "Administrateur",
-  "employee": "Employé"
+  "employee": "Employé",
+  "posMode": "Mode Caisse",
+  "officeMode": "Mode Bureau"
 }

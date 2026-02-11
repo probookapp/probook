@@ -16,7 +16,58 @@ import { ReportsPage } from "@/features/reports";
 import { ExpensesPage } from "@/features/expenses";
 import { SuppliersPage } from "@/features/suppliers";
 import { SettingsPage } from "@/features/settings";
+import { POSPage } from "@/features/pos";
 import { isTauri } from "@/lib/config";
+
+// Auth gate for full-screen POS mode (no sidebar)
+function POSAuthGate() {
+  const { isLoading, needsDbSetup, needsSetup, isAuthenticated } = useAuthStore();
+  const splashClosed = useRef(false);
+
+  useEffect(() => {
+    if (!isLoading && !splashClosed.current) {
+      splashClosed.current = true;
+      if (isTauri()) {
+        (async () => {
+          try {
+            const { getCurrentWebviewWindow, WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+            await getCurrentWebviewWindow().show();
+            const splash = await WebviewWindow.getByLabel("splashscreen");
+            await splash?.close();
+          } catch {
+            // Splash window may not exist in dev mode
+          }
+        })();
+      }
+    }
+  }, [isLoading]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+      </div>
+    );
+  }
+
+  if (needsDbSetup) {
+    return <DatabaseSetupPage />;
+  }
+
+  if (needsSetup) {
+    return <SetupPage />;
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  return (
+    <ErrorBoundary>
+      <POSPage />
+    </ErrorBoundary>
+  );
+}
 
 function AuthGate() {
   const { isLoading, needsDbSetup, needsSetup, isAuthenticated } = useAuthStore();
@@ -70,6 +121,10 @@ function AuthGate() {
 }
 
 export const router = createBrowserRouter([
+  {
+    path: "/pos",
+    element: <POSAuthGate />,
+  },
   {
     path: "/",
     element: <AuthGate />,

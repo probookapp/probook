@@ -13,5 +13,7 @@
   "logout": "Logout",
   "closeSidebar": "Close sidebar",
   "admin": "Admin",
-  "employee": "Employee"
+  "employee": "Employee",
+  "posMode": "POS Mode",
+  "officeMode": "Office Mode"
 }

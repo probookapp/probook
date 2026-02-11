@@ -13,5 +13,7 @@
   "logout": "تسجيل الخروج",
   "closeSidebar": "إغلاق القائمة",
   "admin": "مسؤول",
-  "employee": "موظف"
+  "employee": "موظف",
+  "posMode": "وضع الصندوق",
+  "officeMode": "وضع المكتب"
 }
