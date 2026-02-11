@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Plus, Monitor, MapPin, Store, ArrowLeft, Lock, Unlock } from "lucide-react";
@@ -20,6 +20,8 @@ import { CartDisplay } from "./components/CartDisplay";
 import { CartTotals } from "./components/CartTotals";
 import { PaymentModal } from "./components/PaymentModal";
 import { CloseSessionModal } from "./components/CloseSessionModal";
+import { TransactionHistoryDrawer } from "./components/TransactionHistoryDrawer";
+import { CashMovementModal } from "./components/CashMovementModal";
 import { SessionControls } from "./components/SessionControls";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { toast } from "@/stores/useToastStore";
@@ -30,6 +32,8 @@ export function POSPage() {
   const currency = useSettingsStore((state) => state.currency);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCloseSessionModal, setShowCloseSessionModal] = useState(false);
+  const [showTransactionHistory, setShowTransactionHistory] = useState(false);
+  const [showCashMovement, setShowCashMovement] = useState(false);
 
   const {
     currentSession,
@@ -89,12 +93,14 @@ export function POSPage() {
     }
   }, [activeSession, currentRegister, setSession]);
 
-  // Auto-select first register if none selected
+  // Auto-select first register only on initial mount (not after user navigates back)
+  const hasAutoSelected = useRef(false);
   useEffect(() => {
-    if (registers?.length && !currentRegister) {
+    if (!hasAutoSelected.current && registers?.length && !currentRegister) {
       const firstActive = registers.find((r) => r.is_active);
       if (firstActive) {
         setSession(null, firstActive);
+        hasAutoSelected.current = true;
       }
     }
   }, [registers, currentRegister, setSession]);
@@ -304,6 +310,7 @@ export function POSPage() {
         <div className="h-14 border-b border-(--color-border-primary) flex items-center justify-between px-4 shrink-0">
           <button
             onClick={() => {
+              hasAutoSelected.current = true; // Prevent auto-reselect
               setSession(null, null);
             }}
             className="flex items-center gap-2 text-sm text-(--color-text-secondary) hover:text-(--color-text-primary) transition-colors"
@@ -376,6 +383,8 @@ export function POSPage() {
         </div>
         <SessionControls
           onCloseSession={() => setShowCloseSessionModal(true)}
+          onTransactionHistory={() => setShowTransactionHistory(true)}
+          onCashMovement={() => setShowCashMovement(true)}
         />
       </header>
 
@@ -418,6 +427,18 @@ export function POSPage() {
         onConfirm={handleCloseSession}
         sessionId={currentSession.id}
         isLoading={closeSession.isPending}
+      />
+
+      <TransactionHistoryDrawer
+        open={showTransactionHistory}
+        onClose={() => setShowTransactionHistory(false)}
+        sessionId={currentSession.id}
+      />
+
+      <CashMovementModal
+        open={showCashMovement}
+        onClose={() => setShowCashMovement(false)}
+        sessionId={currentSession.id}
       />
     </div>
   );
