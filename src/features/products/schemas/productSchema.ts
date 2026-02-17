@@ -7,6 +7,7 @@ export const createProductSchema = (t: (key: string) => string) => z.object({
   vat_rate: z.coerce.number().min(0).max(100, t("products:validation.vatRateRange")),
   unit: z.string().min(1, t("products:validation.unitRequired")),
   reference: z.string().nullable().optional(),
+  barcode: z.string().nullable().optional(),
   is_service: z.boolean(),
   category_id: z.string().nullable().optional(),
   quantity: z.coerce.number().int().min(0).nullable().optional(),

@@ -29,15 +29,15 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
   const productSchema = useMemo(() => createProductSchema(t), [t]);
 
   const unitOptions = useMemo(() => [
-    { value: "unité", label: t("units.unit") },
-    { value: "heure", label: t("units.hour") },
-    { value: "jour", label: t("units.day") },
-    { value: "mois", label: t("units.month") },
-    { value: "forfait", label: t("units.flatRate") },
+    { value: "unit", label: t("units.unit") },
+    { value: "hour", label: t("units.hour") },
+    { value: "day", label: t("units.day") },
+    { value: "month", label: t("units.month") },
+    { value: "flat_rate", label: t("units.flatRate") },
     { value: "kg", label: t("units.kg") },
     { value: "m", label: t("units.meter") },
-    { value: "m²", label: t("units.squareMeter") },
-    { value: "m³", label: t("units.cubicMeter") },
+    { value: "sqm", label: t("units.squareMeter") },
+    { value: "cbm", label: t("units.cubicMeter") },
     { value: "l", label: t("units.liter") },
   ], [t]);
 
@@ -53,9 +53,10 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
       designation: product?.designation ?? "",
       description: product?.description ?? "",
       unit_price_ht: product?.unit_price_ht ?? 0,
-      vat_rate: product?.vat_rate ?? 20,
-      unit: product?.unit ?? "unité",
+      vat_rate: product?.vat_rate ?? 0,
+      unit: product?.unit ?? "unit",
       reference: product?.reference ?? "",
+      barcode: product?.barcode ?? "",
       is_service: product?.is_service ?? false,
       category_id: product?.category_id ?? "",
       quantity: product?.quantity ?? 0,
@@ -86,6 +87,14 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
           error={errors.reference?.message}
         />
       </div>
+
+      <Input
+        label={t("fields.barcode")}
+        autoComplete="off"
+        placeholder={t("fields.barcodePlaceholder")}
+        {...register("barcode")}
+        error={errors.barcode?.message}
+      />
 
       <Textarea
         label={t("fields.description")}

@@ -34,6 +34,8 @@
     "unit": "Unité",
     "unitRequired": "Unité *",
     "reference": "Référence",
+    "barcode": "Code-barres",
+    "barcodePlaceholder": "Scanner ou saisir le code-barres",
     "isService": "C'est un service",
     "isServiceDescription": "C'est un service (pas de gestion de stock)",
     "category": "Catégorie",

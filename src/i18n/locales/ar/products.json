@@ -34,6 +34,8 @@
     "unit": "الوحدة",
     "unitRequired": "الوحدة *",
     "reference": "المرجع",
+    "barcode": "الرمز الشريطي",
+    "barcodePlaceholder": "مسح أو كتابة الرمز الشريطي",
     "isService": "هذه خدمة",
     "isServiceDescription": "هذه خدمة (بدون إدارة المخزون)",
     "category": "الفئة",

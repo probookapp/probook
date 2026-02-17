@@ -34,6 +34,8 @@
     "unit": "Unit",
     "unitRequired": "Unit *",
     "reference": "Reference",
+    "barcode": "Barcode",
+    "barcodePlaceholder": "Scan or type barcode",
     "isService": "This is a service",
     "isServiceDescription": "This is a service (no stock management)",
     "category": "Category",

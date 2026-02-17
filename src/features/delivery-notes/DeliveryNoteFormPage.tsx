@@ -44,13 +44,13 @@ export function DeliveryNoteFormPage() {
   ];
 
   const unitOptions = [
-    { value: "unité", label: t("delivery:units.unit") },
-    { value: "pièce", label: t("delivery:units.piece") },
+    { value: "unit", label: t("delivery:units.unit") },
+    { value: "piece", label: t("delivery:units.piece") },
     { value: "carton", label: t("delivery:units.carton") },
-    { value: "palette", label: t("delivery:units.palette") },
+    { value: "pallet", label: t("delivery:units.palette") },
     { value: "kg", label: t("delivery:units.kg") },
     { value: "m", label: t("delivery:units.m") },
-    { value: "m²", label: t("delivery:units.m2") },
+    { value: "sqm", label: t("delivery:units.m2") },
     { value: "l", label: t("delivery:units.l") },
   ];
 
@@ -75,7 +75,7 @@ export function DeliveryNoteFormPage() {
       delivery_date: "",
       delivery_address: "",
       notes: "",
-      lines: [{ description: "", quantity: 1, unit: "unité", product_id: null }],
+      lines: [{ description: "", quantity: 1, unit: "unit", product_id: null }],
     },
   });
 
@@ -87,7 +87,7 @@ export function DeliveryNoteFormPage() {
   const watchedLines = useWatch({
     control,
     name: "lines",
-    defaultValue: [{ description: "", quantity: 1, unit: "unité", product_id: null }],
+    defaultValue: [{ description: "", quantity: 1, unit: "unit", product_id: null }],
   });
 
   const getStockError = (index: number): string | null => {
@@ -134,7 +134,7 @@ export function DeliveryNoteFormPage() {
           product_id: line.product_id,
           description: line.description,
           quantity: line.quantity,
-          unit: line.unit || "unité",
+          unit: line.unit || "unit",
         })),
       });
     }
@@ -190,7 +190,7 @@ export function DeliveryNoteFormPage() {
 
   const productOptions = [
     { value: "", label: t("delivery:selectProduct") },
-    ...(products?.filter((p) => p.is_service || (p.quantity ?? 0) > 0).map((p) => ({ value: p.id, label: `${p.designation}${p.reference ? ` [${p.reference}]` : ""}${!p.is_service ? ` (${p.quantity ?? 0})` : ""}` })) || []),
+    ...(products?.filter((p) => p.is_service || (p.quantity ?? 0) > 0).map((p) => ({ value: p.id, label: `${p.designation}${p.reference ? ` [${p.reference}]` : ""}${p.barcode ? ` - ${p.barcode}` : ""}${!p.is_service ? ` (${p.quantity ?? 0})` : ""}` })) || []),
   ];
 
   if (isEdit && isLoadingNote) {
@@ -284,7 +284,7 @@ export function DeliveryNoteFormPage() {
                 variant="secondary"
                 size="sm"
                 onClick={() =>
-                  append({ description: "", quantity: 1, unit: "unité", product_id: null })
+                  append({ description: "", quantity: 1, unit: "unit", product_id: null })
                 }
               >
                 <Plus className="h-4 w-4 mr-2" />
