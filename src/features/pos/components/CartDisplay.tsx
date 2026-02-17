@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Trash2, Plus, Minus } from "lucide-react";
 import { usePosStore } from "../stores/usePosStore";
@@ -5,9 +6,79 @@ import { formatCurrency } from "@/lib/utils";
 
 const formatAmount = formatCurrency;
 
+// Units that support decimal quantities (weight, length, volume)
+const DECIMAL_UNITS = new Set(["kg", "m", "sqm", "cbm", "l"]);
+
+function isDecimalUnit(unit: string) {
+  return DECIMAL_UNITS.has(unit);
+}
+
+function EditableCell({
+  value,
+  onCommit,
+  formatDisplay,
+  step,
+  min,
+  className,
+}: {
+  value: number;
+  onCommit: (val: number) => void;
+  formatDisplay: (val: number) => string;
+  step?: string;
+  min?: string;
+  className?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  const commit = () => {
+    const parsed = parseFloat(draft);
+    if (!isNaN(parsed) && parsed >= 0) {
+      onCommit(parsed);
+    }
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        type="number"
+        step={step}
+        min={min}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+          if (e.key === "Escape") setEditing(false);
+        }}
+        className="w-full bg-(--color-bg-input) border border-primary-500 rounded px-1.5 py-0.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary-500"
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={() => { setDraft(String(value)); setEditing(true); }}
+      className={`cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors border-b border-dashed border-transparent hover:border-primary-400 ${className ?? ""}`}
+    >
+      {formatDisplay(value)}
+    </button>
+  );
+}
+
 export function CartDisplay() {
   const { t } = useTranslation("pos");
-  const { items, updateQuantity, removeItem } = usePosStore();
+  const { items, updateQuantity, updateItemPrice, removeItem } = usePosStore();
 
   if (items.length === 0) {
     return (
@@ -34,6 +105,8 @@ export function CartDisplay() {
         </thead>
         <tbody>
           {items.map((item) => {
+            const decimal = isDecimalUnit(item.unit);
+            const qtyStep = decimal ? 0.1 : 1;
             const lineTotal =
               item.quantity *
               item.unitPriceHt *
@@ -60,16 +133,21 @@ export function CartDisplay() {
                 <td className="py-3">
                   <div className="flex items-center justify-center gap-2">
                     <button
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      onClick={() => updateQuantity(item.id, Math.round((item.quantity - qtyStep) * 100) / 100)}
                       className="p-1 rounded hover:bg-(--color-bg-secondary)"
                     >
                       <Minus className="h-4 w-4" />
                     </button>
-                    <span className="w-8 text-center font-medium">
-                      {item.quantity}
-                    </span>
+                    <EditableCell
+                      value={item.quantity}
+                      onCommit={(val) => updateQuantity(item.id, Math.max(decimal ? 0.01 : 1, decimal ? Math.round(val * 100) / 100 : Math.round(val)))}
+                      formatDisplay={(val) => decimal ? val.toFixed(2) : String(val)}
+                      step={decimal ? "0.01" : "1"}
+                      min={decimal ? "0.01" : "1"}
+                      className="w-12 text-center font-medium"
+                    />
                     <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      onClick={() => updateQuantity(item.id, Math.round((item.quantity + qtyStep) * 100) / 100)}
                       className="p-1 rounded hover:bg-(--color-bg-secondary)"
                     >
                       <Plus className="h-4 w-4" />
@@ -77,7 +155,13 @@ export function CartDisplay() {
                   </div>
                 </td>
                 <td className="py-3 text-right">
-                  {formatAmount(item.unitPriceHt * (1 + item.vatRate / 100))}
+                  <EditableCell
+                    value={item.unitPriceHt}
+                    onCommit={(val) => updateItemPrice(item.id, val)}
+                    formatDisplay={(val) => formatAmount(val * (1 + item.vatRate / 100))}
+                    step="0.01"
+                    min="0"
+                  />
                 </td>
                 <td className="py-3 text-right font-medium">
                   {formatAmount(lineTotal)}

@@ -9,6 +9,7 @@ export interface CartItem {
   quantity: number;
   unitPriceHt: number;
   vatRate: number;
+  unit: string;
   discountPercent: number;
 }
 
@@ -32,6 +33,7 @@ interface PosState {
   addCustomItem: (designation: string, unitPriceHt: number, vatRate: number, quantity?: number) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
+  updateItemPrice: (itemId: string, unitPriceHt: number) => void;
   updateItemDiscount: (itemId: string, discountPercent: number) => void;
   setTransactionDiscount: (percent: number, amount: number) => void;
   setClient: (clientId: string | null) => void;
@@ -90,6 +92,7 @@ export const usePosStore = create<PosState>((set, get) => ({
         quantity,
         unitPriceHt: product.unit_price_ht,
         vatRate: product.vat_rate,
+        unit: product.unit ?? "unit",
         discountPercent: 0,
       };
       set({ items: [...items, newItem] });
@@ -105,6 +108,7 @@ export const usePosStore = create<PosState>((set, get) => ({
       quantity,
       unitPriceHt,
       vatRate,
+      unit: "unit",
       discountPercent: 0,
     };
     set((state) => ({ items: [...state.items, newItem] }));
@@ -126,6 +130,13 @@ export const usePosStore = create<PosState>((set, get) => ({
       ),
     }));
   },
+
+  updateItemPrice: (itemId, unitPriceHt) =>
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === itemId ? { ...item, unitPriceHt } : item
+      ),
+    })),
 
   updateItemDiscount: (itemId, discountPercent) =>
     set((state) => ({
