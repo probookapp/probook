@@ -237,6 +237,8 @@ pub async fn delete_product(pool: &PgPool, id: &str) -> Result<(), sqlx::Error> 
         .bind(id).execute(&mut *tx).await?;
     sqlx::query("UPDATE delivery_note_lines SET product_id = NULL WHERE product_id = $1")
         .bind(id).execute(&mut *tx).await?;
+    sqlx::query("UPDATE pos_transaction_lines SET product_id = NULL WHERE product_id = $1")
+        .bind(id).execute(&mut *tx).await?;
     sqlx::query("DELETE FROM product_suppliers WHERE product_id = $1")
         .bind(id).execute(&mut *tx).await?;
     sqlx::query("DELETE FROM products WHERE id = $1")
@@ -256,6 +258,8 @@ pub async fn batch_delete_products(pool: &PgPool, ids: Vec<String>) -> Result<u6
         sqlx::query("UPDATE invoice_lines SET product_id = NULL WHERE product_id = $1")
             .bind(id).execute(&mut *tx).await?;
         sqlx::query("UPDATE delivery_note_lines SET product_id = NULL WHERE product_id = $1")
+            .bind(id).execute(&mut *tx).await?;
+        sqlx::query("UPDATE pos_transaction_lines SET product_id = NULL WHERE product_id = $1")
             .bind(id).execute(&mut *tx).await?;
         sqlx::query("DELETE FROM product_suppliers WHERE product_id = $1")
             .bind(id).execute(&mut *tx).await?;
@@ -316,7 +320,7 @@ pub async fn get_all_quotes(pool: &PgPool) -> Result<Vec<Quote>, sqlx::Error> {
             notes_html: row.notes_html,
             logo_snapshot: row.logo_snapshot,
             shipping_cost_ht: row.shipping_cost_ht.unwrap_or(0.0),
-            shipping_vat_rate: row.shipping_vat_rate.unwrap_or(20.0),
+            shipping_vat_rate: row.shipping_vat_rate.unwrap_or(0.0),
             down_payment_percent: row.down_payment_percent.unwrap_or(0.0),
             down_payment_amount: row.down_payment_amount.unwrap_or(0.0),
             lines,
@@ -357,7 +361,7 @@ pub async fn get_quote_by_id(pool: &PgPool, id: &str) -> Result<Quote, sqlx::Err
         notes_html: row.notes_html,
         logo_snapshot: row.logo_snapshot,
         shipping_cost_ht: row.shipping_cost_ht.unwrap_or(0.0),
-        shipping_vat_rate: row.shipping_vat_rate.unwrap_or(20.0),
+        shipping_vat_rate: row.shipping_vat_rate.unwrap_or(0.0),
         down_payment_percent: row.down_payment_percent.unwrap_or(0.0),
         down_payment_amount: row.down_payment_amount.unwrap_or(0.0),
         lines,
@@ -385,7 +389,7 @@ pub async fn create_quote(pool: &PgPool, input: CreateQuoteInput) -> Result<Quot
     let mut total_vat: f64 = lines.iter().map(|l| l.total_vat).sum();
     // Add shipping costs
     let shipping_ht = input.shipping_cost_ht.unwrap_or(0.0);
-    let shipping_vat_rate = input.shipping_vat_rate.unwrap_or(20.0);
+    let shipping_vat_rate = input.shipping_vat_rate.unwrap_or(0.0);
     let shipping_vat = shipping_ht * (shipping_vat_rate / 100.0);
     total_ht += shipping_ht;
     total_vat += shipping_vat;
@@ -499,7 +503,7 @@ pub async fn update_quote(pool: &PgPool, input: UpdateQuoteInput, logo_snapshot:
     let mut total_vat: f64 = lines.iter().map(|l| l.total_vat).sum();
     // Add shipping costs
     let shipping_ht = input.shipping_cost_ht.unwrap_or(0.0);
-    let shipping_vat_rate = input.shipping_vat_rate.unwrap_or(20.0);
+    let shipping_vat_rate = input.shipping_vat_rate.unwrap_or(0.0);
     let shipping_vat = shipping_ht * (shipping_vat_rate / 100.0);
     total_ht += shipping_ht;
     total_vat += shipping_vat;
@@ -640,7 +644,7 @@ pub async fn get_all_invoices(pool: &PgPool) -> Result<Vec<Invoice>, sqlx::Error
             integrity_hash: row.integrity_hash,
             logo_snapshot: row.logo_snapshot,
             shipping_cost_ht: row.shipping_cost_ht.unwrap_or(0.0),
-            shipping_vat_rate: row.shipping_vat_rate.unwrap_or(20.0),
+            shipping_vat_rate: row.shipping_vat_rate.unwrap_or(0.0),
             down_payment_percent: row.down_payment_percent.unwrap_or(0.0),
             down_payment_amount: row.down_payment_amount.unwrap_or(0.0),
             is_down_payment_invoice: row.is_down_payment_invoice.unwrap_or(false),
@@ -686,7 +690,7 @@ pub async fn get_invoice_by_id(pool: &PgPool, id: &str) -> Result<Invoice, sqlx:
         integrity_hash: row.integrity_hash,
         logo_snapshot: row.logo_snapshot,
         shipping_cost_ht: row.shipping_cost_ht.unwrap_or(0.0),
-        shipping_vat_rate: row.shipping_vat_rate.unwrap_or(20.0),
+        shipping_vat_rate: row.shipping_vat_rate.unwrap_or(0.0),
         down_payment_percent: row.down_payment_percent.unwrap_or(0.0),
         down_payment_amount: row.down_payment_amount.unwrap_or(0.0),
         is_down_payment_invoice: row.is_down_payment_invoice.unwrap_or(false),
@@ -721,7 +725,7 @@ async fn create_invoice_internal(pool: &PgPool, input: CreateInvoiceInput, decre
     let mut total_vat: f64 = lines.iter().map(|l| l.total_vat).sum();
     // Add shipping costs
     let shipping_ht = input.shipping_cost_ht.unwrap_or(0.0);
-    let shipping_vat_rate = input.shipping_vat_rate.unwrap_or(20.0);
+    let shipping_vat_rate = input.shipping_vat_rate.unwrap_or(0.0);
     let shipping_vat = shipping_ht * (shipping_vat_rate / 100.0);
     total_ht += shipping_ht;
     total_vat += shipping_vat;
@@ -829,7 +833,7 @@ pub async fn update_invoice(pool: &PgPool, input: UpdateInvoiceInput) -> Result<
     let mut total_vat: f64 = lines.iter().map(|l| l.total_vat).sum();
     // Add shipping costs
     let shipping_ht = input.shipping_cost_ht.unwrap_or(0.0);
-    let shipping_vat_rate = input.shipping_vat_rate.unwrap_or(20.0);
+    let shipping_vat_rate = input.shipping_vat_rate.unwrap_or(0.0);
     let shipping_vat = shipping_ht * (shipping_vat_rate / 100.0);
     total_ht += shipping_ht;
     total_vat += shipping_vat;
@@ -1269,7 +1273,7 @@ pub async fn get_dashboard_stats(pool: &PgPool) -> Result<DashboardStats, sqlx::
             status, issue_date: row.issue_date, due_date: row.due_date, total_ht: row.total_ht, total_vat: row.total_vat,
             total_ttc: row.total_ttc, notes: row.notes, notes_html: row.notes_html, integrity_hash: row.integrity_hash,
             logo_snapshot: row.logo_snapshot, shipping_cost_ht: row.shipping_cost_ht.unwrap_or(0.0),
-            shipping_vat_rate: row.shipping_vat_rate.unwrap_or(20.0), down_payment_percent: row.down_payment_percent.unwrap_or(0.0),
+            shipping_vat_rate: row.shipping_vat_rate.unwrap_or(0.0), down_payment_percent: row.down_payment_percent.unwrap_or(0.0),
             down_payment_amount: row.down_payment_amount.unwrap_or(0.0), is_down_payment_invoice: row.is_down_payment_invoice.unwrap_or(false),
             parent_quote_id: row.parent_quote_id, lines, payments, created_at: row.created_at, updated_at: row.updated_at,
         });
@@ -1293,7 +1297,7 @@ pub async fn get_dashboard_stats(pool: &PgPool) -> Result<DashboardStats, sqlx::
             issue_date: row.issue_date, validity_date: row.validity_date, total_ht: row.total_ht,
             total_vat: row.total_vat, total_ttc: row.total_ttc, notes: row.notes, notes_html: row.notes_html,
             logo_snapshot: row.logo_snapshot, shipping_cost_ht: row.shipping_cost_ht.unwrap_or(0.0),
-            shipping_vat_rate: row.shipping_vat_rate.unwrap_or(20.0), down_payment_percent: row.down_payment_percent.unwrap_or(0.0),
+            shipping_vat_rate: row.shipping_vat_rate.unwrap_or(0.0), down_payment_percent: row.down_payment_percent.unwrap_or(0.0),
             down_payment_amount: row.down_payment_amount.unwrap_or(0.0), lines, created_at: row.created_at, updated_at: row.updated_at,
         });
     }

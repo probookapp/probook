@@ -65,7 +65,7 @@ export function InvoiceFormPage() {
   const createInvoice = useCreateInvoice();
   const updateInvoice = useUpdateInvoice();
   const { data: settings } = useCompanySettings();
-  const defaultVat = settings?.default_vat_rate ?? 20;
+  const defaultVat = settings?.default_vat_rate ?? 0;
   const [notesHtml, setNotesHtml] = useState("");
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(new Set());
   const submittedRef = useRef(false);
@@ -114,7 +114,7 @@ export function InvoiceFormPage() {
   const watchedShippingVatRate = useWatch({
     control,
     name: "shipping_vat_rate",
-    defaultValue: 20,
+    defaultValue: 0,
   });
 
   const watchedDownPaymentPercent = useWatch({
@@ -147,7 +147,7 @@ export function InvoiceFormPage() {
         notes: invoice.notes ?? "",
         status: invoice.status,
         shipping_cost_ht: invoice.shipping_cost_ht ?? 0,
-        shipping_vat_rate: invoice.shipping_vat_rate ?? 20,
+        shipping_vat_rate: invoice.shipping_vat_rate ?? 0,
         down_payment_percent: invoice.down_payment_percent ?? 0,
         down_payment_amount: invoice.down_payment_amount ?? 0,
         lines: invoice.lines.map((line) => ({
@@ -309,7 +309,7 @@ export function InvoiceFormPage() {
 
   const productOptions = [
     { value: "", label: t("invoices:lines.product") + " (" + t("common:labels.optional") + ")" },
-    ...(products?.filter((p) => p.is_service || (p.quantity ?? 0) > 0).map((p) => ({ value: p.id, label: `${p.reference ? `[${p.reference}] ` : ""}${p.designation}${!p.is_service ? ` (${p.quantity ?? 0})` : ""}` })) ?? []),
+    ...(products?.filter((p) => p.is_service || (p.quantity ?? 0) > 0).map((p) => ({ value: p.id, label: `${p.reference ? `[${p.reference}] ` : ""}${p.designation}${p.barcode ? ` - ${p.barcode}` : ""}${!p.is_service ? ` (${p.quantity ?? 0})` : ""}` })) ?? []),
   ];
 
   const statusOptions = [

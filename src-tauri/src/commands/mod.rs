@@ -1775,7 +1775,7 @@ pub async fn import_products(file_path: String, state: State<'_, AppState>) -> R
 
         let vat_rate = import::get_field(&headers, row, "vat_rate")
             .and_then(|v| v.parse::<f64>().ok())
-            .unwrap_or(20.0);
+            .unwrap_or(0.0);
 
         let is_service = import::get_field(&headers, row, "is_service")
             .map(|v| v == "1" || v.to_lowercase() == "true" || v.to_lowercase() == "yes" || v.to_lowercase() == "oui")

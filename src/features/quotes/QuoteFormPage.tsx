@@ -65,7 +65,7 @@ export function QuoteFormPage() {
   const createQuote = useCreateQuote();
   const updateQuote = useUpdateQuote();
   const { data: settings } = useCompanySettings();
-  const defaultVat = settings?.default_vat_rate ?? 20;
+  const defaultVat = settings?.default_vat_rate ?? 0;
   const [notesHtml, setNotesHtml] = useState("");
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(new Set());
   const submittedRef = useRef(false);
@@ -114,7 +114,7 @@ export function QuoteFormPage() {
   const watchedShippingVatRate = useWatch({
     control,
     name: "shipping_vat_rate",
-    defaultValue: 20,
+    defaultValue: 0,
   });
 
   const watchedDownPaymentPercent = useWatch({
@@ -140,7 +140,7 @@ export function QuoteFormPage() {
         notes: quote.notes ?? "",
         status: quote.status,
         shipping_cost_ht: quote.shipping_cost_ht ?? 0,
-        shipping_vat_rate: quote.shipping_vat_rate ?? 20,
+        shipping_vat_rate: quote.shipping_vat_rate ?? 0,
         down_payment_percent: quote.down_payment_percent ?? 0,
         down_payment_amount: quote.down_payment_amount ?? 0,
         lines: quote.lines.map((line) => ({
@@ -303,7 +303,7 @@ export function QuoteFormPage() {
 
   const productOptions = [
     { value: "", label: t("quotes:lines.product") + " (" + t("common:labels.optional") + ")" },
-    ...(products?.filter((p) => p.is_service || (p.quantity ?? 0) > 0).map((p) => ({ value: p.id, label: `${p.reference ? `[${p.reference}] ` : ""}${p.designation}${!p.is_service ? ` (${p.quantity ?? 0})` : ""}` })) ?? []),
+    ...(products?.filter((p) => p.is_service || (p.quantity ?? 0) > 0).map((p) => ({ value: p.id, label: `${p.reference ? `[${p.reference}] ` : ""}${p.designation}${p.barcode ? ` - ${p.barcode}` : ""}${!p.is_service ? ` (${p.quantity ?? 0})` : ""}` })) ?? []),
   ];
 
   const statusOptions = [

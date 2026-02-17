@@ -167,7 +167,7 @@ export function SettingsPage() {
       website: "",
       siret: "",
       vat_number: "",
-      default_vat_rate: 20,
+      default_vat_rate: 0,
       default_payment_terms: 30,
       invoice_prefix: "FA-",
       quote_prefix: "DE-",
