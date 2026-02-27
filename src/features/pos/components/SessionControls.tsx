@@ -13,6 +13,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePosStore } from "../stores/usePosStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useLicenseStore } from "@/stores/useLicenseStore";
 
 interface SessionControlsProps {
   onCloseSession: () => void;
@@ -29,6 +30,7 @@ export function SessionControls({
   const navigate = useNavigate();
   const { clearCart, items } = usePosStore();
   const { resolvedTheme, setTheme } = useSettingsStore();
+  const canWrite = useLicenseStore(s => s.isWriteAllowed);
   const [showMenu, setShowMenu] = useState(false);
 
   const toggleTheme = () => {
@@ -80,7 +82,9 @@ export function SessionControls({
                 setShowMenu(false);
                 onCashMovement();
               }}
-              className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-(--color-bg-secondary) text-left text-sm transition-colors"
+              disabled={!canWrite}
+              title={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}
+              className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-(--color-bg-secondary) text-left text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <DollarSign className="h-4 w-4 text-(--color-text-secondary)" />
               {t("cashMovement")}

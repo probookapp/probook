@@ -24,6 +24,7 @@ import type { InvoiceStatus } from "@/types";
 import { useCompanySettings } from "@/features/settings/hooks/useSettings";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
+import { useLicenseStore } from "@/stores/useLicenseStore";
 
 const createLineSchema = (t: (key: string) => string) => z.object({
   product_id: z.string().nullable().optional(),
@@ -53,6 +54,7 @@ type InvoiceFormData = z.output<ReturnType<typeof createInvoiceFormSchema>>;
 
 export function InvoiceFormPage() {
   const { t } = useTranslation(["invoices", "common", "validation"]);
+  const canWrite = useLicenseStore(s => s.isWriteAllowed);
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = !!id;
@@ -716,7 +718,8 @@ export function InvoiceFormPage() {
           <Button
             type="submit"
             isLoading={createInvoice.isPending || updateInvoice.isPending}
-            disabled={hasStockErrors}
+            disabled={hasStockErrors || !canWrite}
+            disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}
           >
             {isEditing ? t("common:buttons.save") : t("invoices:createInvoice")}
           </Button>

@@ -3,10 +3,11 @@ import { useTranslation } from "react-i18next";
 import { AlertTriangle, Clock, FileText, AlertCircle, ChevronRight, X, Bell } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, Badge } from "@/components/ui";
 import { useAlertsSummary, useMarkQuoteExpired } from "../hooks/useAlerts";
+import { useLicenseStore } from "@/stores/useLicenseStore";
 import { formatCurrency } from "@/lib/utils";
 import type { Alert } from "@/types";
 
-function AlertItem({ alert, onMarkExpired }: { alert: Alert; onMarkExpired?: (id: string) => void }) {
+function AlertItem({ alert, onMarkExpired, canWrite = true }: { alert: Alert; onMarkExpired?: (id: string) => void; canWrite?: boolean }) {
   const { t } = useTranslation("dashboard");
 
   const getAlertMessage = () => {
@@ -92,8 +93,9 @@ function AlertItem({ alert, onMarkExpired }: { alert: Alert; onMarkExpired?: (id
           {alert.alert_type === "EXPIRED_QUOTE" && onMarkExpired && (
             <button
               onClick={() => onMarkExpired(alert.document_id)}
-              className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-              title={t("alerts.markExpired")}
+              disabled={!canWrite}
+              className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={canWrite ? t("alerts.markExpired") : t("licensing:tooltip.writeDisabled")}
               aria-label={t("alerts.markExpired")}
             >
               <X className="h-4 w-4" />
@@ -109,6 +111,7 @@ export function AlertsPanel() {
   const { t } = useTranslation("dashboard");
   const { data: alerts, isLoading } = useAlertsSummary();
   const markExpired = useMarkQuoteExpired();
+  const canWrite = useLicenseStore(s => s.isWriteAllowed);
 
   if (isLoading) {
     return (
@@ -224,6 +227,7 @@ export function AlertsPanel() {
                       key={alert.id}
                       alert={alert}
                       onMarkExpired={(id) => markExpired.mutate(id)}
+                      canWrite={canWrite}
                     />
                   ))}
                 </div>

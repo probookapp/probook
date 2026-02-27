@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Bell, AlertTriangle, Clock, FileText, Receipt, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, Button } from "@/components/ui";
 import { usePendingReminders, useCheckAndCreateReminders, useMarkReminderSent } from "../hooks/useReminders";
+import { useLicenseStore } from "@/stores/useLicenseStore";
 import { formatDate } from "@/lib/utils";
 import type { Reminder } from "@/types";
 
@@ -49,6 +50,7 @@ export function RemindersWidget() {
   const { data: reminders, isLoading } = usePendingReminders();
   const checkAndCreate = useCheckAndCreateReminders();
   const markSent = useMarkReminderSent();
+  const canWrite = useLicenseStore(s => s.isWriteAllowed);
 
   const getReminderLabel = (reminder: Reminder) => {
     switch (reminder.reminder_type) {
@@ -148,7 +150,9 @@ export function RemindersWidget() {
                     size="sm"
                     onClick={(e) => handleMarkDone(reminder.id, e)}
                     className="shrink-0"
-                    title={t("reminders.markAsDone")}
+                    disabled={!canWrite}
+                    disabledReason={!canWrite ? t("licensing:tooltip.writeDisabled") : undefined}
+                    title={canWrite ? t("reminders.markAsDone") : undefined}
                   >
                     <Check className="h-4 w-4 text-green-600" />
                   </Button>

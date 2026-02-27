@@ -5,14 +5,17 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "danger" | "ghost";
   size?: "sm" | "md" | "lg";
   isLoading?: boolean;
+  disabledReason?: string;
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", isLoading, disabled, children, ...props }, ref) => {
-    return (
+  ({ className, variant = "primary", size = "md", isLoading, disabled, disabledReason, children, ...props }, ref) => {
+    const isDisabled = disabled || isLoading;
+
+    const button = (
       <button
-        ref={ref}
-        disabled={disabled || isLoading}
+        ref={disabledReason && isDisabled ? undefined : ref}
+        disabled={isDisabled}
         className={cn(
           "inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed",
           {
@@ -58,6 +61,16 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {children}
       </button>
     );
+
+    if (disabledReason && isDisabled) {
+      return (
+        <span ref={ref as React.Ref<HTMLSpanElement>} title={disabledReason} className="inline-flex">
+          {button}
+        </span>
+      );
+    }
+
+    return button;
   }
 );
 

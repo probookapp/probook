@@ -26,9 +26,11 @@ import { useSelection } from "@/hooks/useSelection";
 import { useQuotes, useDeleteQuote, useConvertQuoteToInvoice, useDuplicateQuote, useBatchDeleteQuotes } from "./hooks/useQuotes";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Quote } from "@/types";
+import { useLicenseStore } from "@/stores/useLicenseStore";
 
 export function QuotesPage() {
   const { t } = useTranslation(["quotes", "common"]);
+  const canWrite = useLicenseStore(s => s.isWriteAllowed);
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -79,7 +81,7 @@ export function QuotesPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-(--color-text-primary)">{t("quotes:title")}</h1>
           <p className="text-sm sm:text-base text-(--color-text-secondary)">{t("quotes:subtitle")}</p>
         </div>
-        <Button onClick={() => navigate("/quotes/new")} size="sm" className="self-start sm:self-auto">
+        <Button onClick={() => navigate("/quotes/new")} size="sm" className="self-start sm:self-auto" disabled={!canWrite} disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
           <Plus className="h-4 w-4 mr-2" />
           {t("quotes:newQuote")}
         </Button>
@@ -134,7 +136,7 @@ export function QuotesPage() {
                       {quote.status === "ACCEPTED" && (
                         <button onClick={() => setConvertConfirm(quote)} className="p-1 text-gray-500 hover:text-green-600" title={t("quotes:actions.convertToInvoice")} aria-label={t("quotes:actions.convertToInvoice")}><ArrowRight className="h-4 w-4" /></button>
                       )}
-                      <button onClick={() => setDeleteConfirmId(quote.id)} className="p-1 text-gray-500 hover:text-red-600" title={t("common:buttons.delete")} aria-label={t("common:buttons.delete")}><Trash2 className="h-4 w-4" /></button>
+                      <button onClick={() => setDeleteConfirmId(quote.id)} className="p-1 text-gray-500 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canWrite} title={!canWrite ? t('licensing:tooltip.writeDisabled') : t("common:buttons.delete")} aria-label={t("common:buttons.delete")}><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </div>
                 </div>
@@ -234,8 +236,9 @@ export function QuotesPage() {
                         )}
                         <button
                           onClick={() => setDeleteConfirmId(quote.id)}
-                          className="p-1 text-gray-500 hover:text-red-600 transition-colors"
-                          title={t("common:buttons.delete")}
+                          className="p-1 text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={!canWrite}
+                          title={!canWrite ? t('licensing:tooltip.writeDisabled') : t("common:buttons.delete")}
                           aria-label={t("common:buttons.delete")}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -308,6 +311,8 @@ export function QuotesPage() {
         onDelete={() => setBulkDeleteOpen(true)}
         onClear={selection.clear}
         isDeleting={batchDeleteQuotes.isPending}
+        disabled={!canWrite}
+        disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}
       />
 
       <BulkDeleteModal

@@ -32,9 +32,11 @@ import {
 import { useToastStore } from "@/stores/useToastStore";
 import type { Supplier, CreateSupplierInput, UpdateSupplierInput } from "@/types";
 import type { SupplierFormData } from "./schemas/supplierSchema";
+import { useLicenseStore } from "@/stores/useLicenseStore";
 
 export function SuppliersPage() {
   const { t } = useTranslation("suppliers");
+  const canWrite = useLicenseStore(s => s.isWriteAllowed);
   const { t: tCommon } = useTranslation("common");
   const addToast = useToastStore((state) => state.addToast);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -128,11 +130,11 @@ export function SuppliersPage() {
           <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">{t("subtitle")}</p>
         </div>
         <div className="flex gap-2 self-start sm:self-auto">
-          <Button variant="secondary" onClick={() => setIsImportOpen(true)} size="sm">
+          <Button variant="secondary" onClick={() => setIsImportOpen(true)} size="sm" disabled={!canWrite} disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
             <Upload className="h-4 w-4 mr-2" />
             {tCommon("buttons.import")}
           </Button>
-          <Button onClick={() => handleOpenModal()} size="sm">
+          <Button onClick={() => handleOpenModal()} size="sm" disabled={!canWrite} disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
             <Plus className="h-4 w-4 mr-2" />
             {t("newSupplier")}
           </Button>
@@ -175,7 +177,7 @@ export function SuppliersPage() {
                       <div className="flex items-center gap-1 shrink-0">
                         <button onClick={() => setProductsSupplier(supplier)} className="p-1 text-gray-500 hover:text-primary-600 dark:hover:text-primary-400" title={t("products.title")} aria-label={t("products.title")}><Package className="h-4 w-4" /></button>
                         <button onClick={() => handleOpenModal(supplier)} className="p-1 text-gray-500 hover:text-primary-600 dark:hover:text-primary-400" title={tCommon("buttons.edit")} aria-label={tCommon("buttons.edit")}><Pencil className="h-4 w-4" /></button>
-                        <button onClick={() => setDeleteConfirmId(supplier.id)} className="p-1 text-gray-500 hover:text-red-600" title={tCommon("buttons.delete")} aria-label={tCommon("buttons.delete")}><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={() => setDeleteConfirmId(supplier.id)} className="p-1 text-gray-500 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canWrite} title={!canWrite ? t('licensing:tooltip.writeDisabled') : tCommon("buttons.delete")} aria-label={tCommon("buttons.delete")}><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </div>
                     {supplier.email && <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{supplier.email}</p>}
@@ -247,8 +249,9 @@ export function SuppliersPage() {
                         </button>
                         <button
                           onClick={() => setDeleteConfirmId(supplier.id)}
-                          className="p-1 text-gray-500 hover:text-red-600 transition-colors"
-                          title={tCommon("buttons.delete")}
+                          className="p-1 text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={!canWrite}
+                          title={!canWrite ? t('licensing:tooltip.writeDisabled') : tCommon("buttons.delete")}
                           aria-label={tCommon("buttons.delete")}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -333,6 +336,8 @@ export function SuppliersPage() {
         onDelete={() => setBulkDeleteOpen(true)}
         onClear={selection.clear}
         isDeleting={batchDeleteSuppliers.isPending}
+        disabled={!canWrite}
+        disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}
       />
       <BulkDeleteModal
         isOpen={bulkDeleteOpen}

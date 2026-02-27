@@ -8,6 +8,8 @@ interface BulkActionBarProps {
   onDelete: () => void;
   onClear: () => void;
   isDeleting?: boolean;
+  disabled?: boolean;
+  disabledReason?: string;
   children?: ReactNode;
 }
 
@@ -16,6 +18,8 @@ export function BulkActionBar({
   onDelete,
   onClear,
   isDeleting,
+  disabled,
+  disabledReason,
   children,
 }: BulkActionBarProps) {
   const { t } = useTranslation("common");
@@ -35,6 +39,8 @@ export function BulkActionBar({
             size="sm"
             onClick={onDelete}
             isLoading={isDeleting}
+            disabled={disabled}
+            disabledReason={disabledReason}
           >
             <Trash2 className="h-4 w-4 mr-2" />
             {t("bulk.deleteSelected")}

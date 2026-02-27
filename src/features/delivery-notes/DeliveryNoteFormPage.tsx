@@ -31,9 +31,12 @@ import type { DeliveryNoteStatus } from "@/types";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 
+import { useLicenseStore } from "@/stores/useLicenseStore";
+
 export function DeliveryNoteFormPage() {
   const { t } = useTranslation(["delivery", "common"]);
   const navigate = useNavigate();
+  const canWrite = useLicenseStore(s => s.isWriteAllowed);
   const { id } = useParams<{ id: string }>();
   const isEdit = !!id;
 
@@ -284,7 +287,7 @@ export function DeliveryNoteFormPage() {
                 variant="secondary"
                 size="sm"
                 onClick={() =>
-                  append({ description: "", quantity: 1, unit: "unit", product_id: null })
+                  append({ description: "", quantity: 1, unit: "unit", product_id: null }) 
                 }
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -378,7 +381,8 @@ export function DeliveryNoteFormPage() {
           <Button
             type="submit"
             isLoading={createDeliveryNote.isPending || updateDeliveryNote.isPending}
-            disabled={hasStockErrors}
+            disabled={hasStockErrors || !canWrite}
+            disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}
           >
             {isEdit ? t("common:buttons.save") : t("delivery:createDeliveryNote")}
           </Button>

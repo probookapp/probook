@@ -25,9 +25,11 @@ import { CashMovementModal } from "./components/CashMovementModal";
 import { SessionControls } from "./components/SessionControls";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { toast } from "@/stores/useToastStore";
+import { useLicenseStore } from "@/stores/useLicenseStore";
 
 export function POSPage() {
   const { t } = useTranslation("pos");
+  const canWrite = useLicenseStore(s => s.isWriteAllowed);
   const navigate = useNavigate();
   const currency = useSettingsStore((state) => state.currency);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -278,23 +280,28 @@ export function POSPage() {
                   >
                     {t("cancel")}
                   </button>
-                  <button
-                    onClick={handleCreateRegister}
-                    disabled={!newRegisterName.trim() || createRegister.isPending}
-                    className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50 transition-colors"
-                  >
-                    {createRegister.isPending ? t("loading") : t("createRegister")}
-                  </button>
+                  <span title={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
+                    <button
+                      onClick={handleCreateRegister}
+                      disabled={!newRegisterName.trim() || createRegister.isPending || !canWrite}
+                      className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50 transition-colors w-full"
+                    >
+                      {createRegister.isPending ? t("loading") : t("createRegister")}
+                    </button>
+                  </span>
                 </div>
               </div>
             ) : (
-              <button
-                onClick={() => setShowCreateRegister(true)}
-                className="w-full mt-3 px-4 py-3 border-2 border-dashed border-(--color-border-secondary) rounded-xl hover:border-primary-600 hover:text-primary-600 text-(--color-text-secondary) flex items-center justify-center gap-2 transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                {t("createRegister")}
-              </button>
+              <span title={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
+                <button
+                  onClick={() => setShowCreateRegister(true)}
+                  disabled={!canWrite}
+                  className="w-full mt-3 px-4 py-3 border-2 border-dashed border-(--color-border-secondary) rounded-xl hover:border-primary-600 hover:text-primary-600 text-(--color-text-secondary) flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Plus className="h-4 w-4" />
+                  {t("createRegister")}
+                </button>
+              </span>
             )}
           </div>
         </div>
@@ -355,14 +362,16 @@ export function POSPage() {
                   onKeyDown={(e) => e.key === "Enter" && handleOpenSession()}
                 />
               </div>
-              <button
-                onClick={handleOpenSession}
-                disabled={openSession.isPending}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-semibold text-lg disabled:opacity-50 transition-colors"
-              >
-                <Unlock className="h-5 w-5" />
-                {openSession.isPending ? t("loading") : t("openSession")}
-              </button>
+              <span title={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
+                <button
+                  onClick={handleOpenSession}
+                  disabled={openSession.isPending || !canWrite}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-semibold text-lg disabled:opacity-50 transition-colors"
+                >
+                  <Unlock className="h-5 w-5" />
+                  {openSession.isPending ? t("loading") : t("openSession")}
+                </button>
+              </span>
             </div>
           </div>
         </div>
@@ -396,13 +405,15 @@ export function POSPage() {
           <CartTotals />
           {/* Payment bar */}
           <div className="p-4 border-t border-(--color-border-primary) shrink-0">
-            <button
-              onClick={() => setShowPaymentModal(true)}
-              disabled={items.length === 0}
-              className="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {t("pay")} - {getFinalAmount().toFixed(2)}
-            </button>
+            <span title={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                disabled={items.length === 0 || !canWrite}
+                className="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {t("pay")} - {getFinalAmount().toFixed(2)}
+              </button>
+            </span>
           </div>
         </div>
 

@@ -35,9 +35,11 @@ import { BulkDeleteModal } from "@/components/shared/BulkDeleteModal";
 import { useSelection } from "@/hooks/useSelection";
 import { useInvoices, useDeleteInvoice, useMarkInvoicePaid, useDuplicateInvoice, useBatchDeleteInvoices } from "./hooks/useInvoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { useLicenseStore } from "@/stores/useLicenseStore";
 
 export function InvoicesPage() {
   const { t } = useTranslation(["invoices", "common"]);
+  const canWrite = useLicenseStore(s => s.isWriteAllowed);
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -90,7 +92,7 @@ export function InvoicesPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-(--color-text-primary)">{t("invoices:title")}</h1>
           <p className="text-sm sm:text-base text-(--color-text-secondary)">{t("invoices:subtitle")}</p>
         </div>
-        <Button onClick={() => navigate("/invoices/new")} size="sm" className="self-start sm:self-auto">
+        <Button onClick={() => navigate("/invoices/new")} size="sm" className="self-start sm:self-auto" disabled={!canWrite} disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
           <Plus className="h-4 w-4 mr-2" />
           {t("invoices:newInvoice")}
         </Button>
@@ -150,7 +152,7 @@ export function InvoicesPage() {
                       )}
                       <button onClick={() => duplicateInvoice.mutate(invoice.id)} className="p-1 text-gray-500 hover:text-blue-600" title={t("invoices:actions.duplicate")} aria-label={t("invoices:actions.duplicate")} disabled={duplicateInvoice.isPending}><Copy className="h-4 w-4" /></button>
                       {invoice.status === "DRAFT" && (
-                        <button onClick={() => setDeleteConfirmId(invoice.id)} className="p-1 text-gray-500 hover:text-red-600" title={t("common:buttons.delete")} aria-label={t("common:buttons.delete")}><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={() => setDeleteConfirmId(invoice.id)} className="p-1 text-gray-500 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canWrite} title={!canWrite ? t('licensing:tooltip.writeDisabled') : t("common:buttons.delete")} aria-label={t("common:buttons.delete")}><Trash2 className="h-4 w-4" /></button>
                       )}
                     </div>
                   </div>
@@ -265,8 +267,9 @@ export function InvoicesPage() {
                         {invoice.status === "DRAFT" && (
                           <button
                             onClick={() => setDeleteConfirmId(invoice.id)}
-                            className="p-1 text-gray-500 hover:text-red-600 transition-colors"
-                            title={t("common:buttons.delete")}
+                            className="p-1 text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!canWrite}
+                            title={!canWrite ? t('licensing:tooltip.writeDisabled') : t("common:buttons.delete")}
                             aria-label={t("common:buttons.delete")}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -340,6 +343,8 @@ export function InvoicesPage() {
         onDelete={() => setBulkDeleteOpen(true)}
         onClear={selection.clear}
         isDeleting={batchDeleteInvoices.isPending}
+        disabled={!canWrite}
+        disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}
       />
       <BulkDeleteModal
         isOpen={bulkDeleteOpen}

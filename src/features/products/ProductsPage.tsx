@@ -37,11 +37,13 @@ import { formatCurrency } from "@/lib/utils";
 import { productSupplierApi } from "@/lib/tauri";
 import type { Product } from "@/types";
 import type { ProductFormData } from "./schemas/productSchema";
+import { useLicenseStore } from "@/stores/useLicenseStore";
 
 type TabType = "products" | "categories";
 
 export function ProductsPage() {
   const { t } = useTranslation("products");
+  const canWrite = useLicenseStore(s => s.isWriteAllowed);
   const { t: tCommon } = useTranslation("common");
   const [activeTab, setActiveTab] = useState<TabType>("products");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -141,11 +143,11 @@ export function ProductsPage() {
         </div>
         {activeTab === "products" && (
           <div className="flex gap-2 self-start sm:self-auto">
-            <Button variant="secondary" onClick={() => setIsImportOpen(true)} size="sm">
+            <Button variant="secondary" onClick={() => setIsImportOpen(true)} size="sm" disabled={!canWrite} disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
               <Upload className="h-4 w-4 mr-2" />
               {tCommon("buttons.import")}
             </Button>
-            <Button onClick={() => handleOpenModal()} size="sm">
+            <Button onClick={() => handleOpenModal()} size="sm" disabled={!canWrite} disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
               <Plus className="h-4 w-4 mr-2" />
               {t("newProduct")}
             </Button>
@@ -245,7 +247,7 @@ export function ProductsPage() {
                         <div className="flex items-center gap-1 shrink-0">
                           <button onClick={() => setSupplierProductId(product.id)} className="p-1 text-gray-500 hover:text-amber-600 dark:hover:text-amber-400" aria-label={t("fields.suppliers")} title={t("fields.suppliers")}><Truck className="h-4 w-4" /></button>
                           <button onClick={() => handleOpenModal(product)} className="p-1 text-gray-500 hover:text-primary-600 dark:hover:text-primary-400" aria-label={tCommon("buttons.edit")}><Pencil className="h-4 w-4" /></button>
-                          <button onClick={() => setDeleteConfirmId(product.id)} className="p-1 text-gray-500 hover:text-red-600" aria-label={tCommon("buttons.delete")}><Trash2 className="h-4 w-4" /></button>
+                          <button onClick={() => setDeleteConfirmId(product.id)} className="p-1 text-gray-500 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canWrite} title={!canWrite ? t('licensing:tooltip.writeDisabled') : tCommon("buttons.delete")} aria-label={tCommon("buttons.delete")}><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -368,7 +370,9 @@ export function ProductsPage() {
                           <button
                             onClick={() => setDeleteConfirmId(product.id)}
                             aria-label={tCommon("buttons.delete")}
-                            className="p-1 text-gray-500 hover:text-red-600 transition-colors"
+                            className="p-1 text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!canWrite}
+                            title={!canWrite ? t('licensing:tooltip.writeDisabled') : tCommon("buttons.delete")}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -452,6 +456,8 @@ export function ProductsPage() {
         onDelete={() => setBulkDeleteOpen(true)}
         onClear={selection.clear}
         isDeleting={batchDeleteProducts.isPending}
+        disabled={!canWrite}
+        disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}
       />
       <BulkDeleteModal
         isOpen={bulkDeleteOpen}

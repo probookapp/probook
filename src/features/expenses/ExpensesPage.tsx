@@ -26,9 +26,11 @@ import { useToastStore } from "@/stores/useToastStore";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Expense, CreateExpenseInput, UpdateExpenseInput } from "@/types";
 import type { ExpenseFormData } from "./schemas/expenseSchema";
+import { useLicenseStore } from "@/stores/useLicenseStore";
 
 export function ExpensesPage() {
   const { t } = useTranslation("expenses");
+  const canWrite = useLicenseStore(s => s.isWriteAllowed);
   const { t: tCommon } = useTranslation("common");
   const queryClient = useQueryClient();
   const addToast = useToastStore((state) => state.addToast);
@@ -145,7 +147,7 @@ export function ExpensesPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{t("title")}</h1>
           <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">{t("subtitle")}</p>
         </div>
-        <Button onClick={() => handleOpenModal()} size="sm" className="self-start sm:self-auto">
+        <Button onClick={() => handleOpenModal()} size="sm" className="self-start sm:self-auto" disabled={!canWrite} disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
           <Plus className="h-4 w-4 mr-2" />
           {t("newExpense")}
         </Button>
@@ -190,7 +192,7 @@ export function ExpensesPage() {
                     {expense.notes && <p className="text-sm text-gray-400 dark:text-gray-500 truncate mt-0.5">{expense.notes}</p>}
                     <div className="flex justify-end gap-1 mt-2">
                       <button onClick={() => handleOpenModal(expense)} className="p-1 text-gray-500 hover:text-primary-600 dark:hover:text-primary-400" title={tCommon("buttons.edit")} aria-label={tCommon("buttons.edit")}><Pencil className="h-4 w-4" /></button>
-                      <button onClick={() => setDeleteConfirmId(expense.id)} className="p-1 text-gray-500 hover:text-red-600" title={tCommon("buttons.delete")} aria-label={tCommon("buttons.delete")}><Trash2 className="h-4 w-4" /></button>
+                      <button onClick={() => setDeleteConfirmId(expense.id)} className="p-1 text-gray-500 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canWrite} title={!canWrite ? t('licensing:tooltip.writeDisabled') : tCommon("buttons.delete")} aria-label={tCommon("buttons.delete")}><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </div>
                 </div>
@@ -248,8 +250,9 @@ export function ExpensesPage() {
                         </button>
                         <button
                           onClick={() => setDeleteConfirmId(expense.id)}
-                          className="p-1 text-gray-500 hover:text-red-600 transition-colors"
-                          title={tCommon("buttons.delete")}
+                          className="p-1 text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={!canWrite}
+                          title={!canWrite ? t('licensing:tooltip.writeDisabled') : tCommon("buttons.delete")}
                           aria-label={tCommon("buttons.delete")}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -313,6 +316,8 @@ export function ExpensesPage() {
         onDelete={() => setBulkDeleteOpen(true)}
         onClear={selection.clear}
         isDeleting={batchDeleteExpense.isPending}
+        disabled={!canWrite}
+        disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}
       />
 
       <BulkDeleteModal

@@ -2,7 +2,8 @@ import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
-import { Save, Upload, Download, AlertCircle, Image, Trash2, Clock, Sun, Moon, Monitor, Globe, HardDrive, FolderOpen, RefreshCw, Lock, Eye, EyeOff, Users } from "lucide-react";
+import { Save, Upload, Download, AlertCircle, Image, Trash2, Clock, Sun, Moon, Monitor, Globe, HardDrive, FolderOpen, RefreshCw, Lock, Eye, EyeOff, Users, KeyRound } from "lucide-react";
+import { LicenseSettingsSection } from "@/features/licensing/LicenseSettingsSection";
 import { isTauri } from "@/lib/config";
 import { toast } from "@/stores/useToastStore";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -34,6 +35,7 @@ import {
 } from "./hooks/useSettings";
 import { useSettingsStore, type AppLanguage, type AppTheme } from "@/stores/useSettingsStore";
 import { useEffect, useState } from "react";
+import { useLicenseStore } from "@/stores/useLicenseStore";
 
 const createSettingsSchema = (t: (key: string) => string) => z.object({
   company_name: z.string().min(1, t("validation.companyNameRequired")),
@@ -78,6 +80,7 @@ const currencyOptions = [
 
 export function SettingsPage() {
   const { t, i18n } = useTranslation("settings");
+  const canWrite = useLicenseStore(s => s.isWriteAllowed);
   const settingsSchema = createSettingsSchema(t);
   const { data: settings, isLoading } = useCompanySettings();
   const { data: logoBase64 } = useLogoBase64();
@@ -328,6 +331,19 @@ export function SettingsPage() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t("title")}</h1>
         <p className="text-gray-500 dark:text-gray-400">{t("subtitle")}</p>
       </div>
+
+      {/* License */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <KeyRound className="h-5 w-5" />
+            {t("license.title")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LicenseSettingsSection />
+        </CardContent>
+      </Card>
 
       {/* User Management (Admin only) */}
       {currentUser?.role === 'admin' && (
@@ -659,7 +675,7 @@ export function SettingsPage() {
                 </span>
               )}
               <div className="flex-1" />
-              <Button type="submit" isLoading={updateSettings.isPending} disabled={!isDirty}>
+              <Button type="submit" isLoading={updateSettings.isPending} disabled={!isDirty || !canWrite} disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
                 <Save className="h-4 w-4 mr-2" />
                 {t("buttons.save")}
               </Button>

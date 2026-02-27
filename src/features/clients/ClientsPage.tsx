@@ -31,9 +31,11 @@ import {
 } from "./hooks/useClients";
 import type { Client } from "@/types";
 import type { ClientFormData } from "./schemas/clientSchema";
+import { useLicenseStore } from "@/stores/useLicenseStore";
 
 export function ClientsPage() {
   const { t } = useTranslation("clients");
+  const canWrite = useLicenseStore(s => s.isWriteAllowed);
   const { t: tCommon } = useTranslation("common");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | undefined>();
@@ -101,11 +103,11 @@ export function ClientsPage() {
           <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">{t("subtitle")}</p>
         </div>
         <div className="flex gap-2 self-start sm:self-auto">
-          <Button variant="secondary" onClick={() => setIsImportOpen(true)} size="sm">
+          <Button variant="secondary" onClick={() => setIsImportOpen(true)} size="sm" disabled={!canWrite} disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
             <Upload className="h-4 w-4 mr-2" />
             {tCommon("buttons.import")}
           </Button>
-          <Button onClick={() => handleOpenModal()} size="sm">
+          <Button onClick={() => handleOpenModal()} size="sm" disabled={!canWrite} disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
             <Plus className="h-4 w-4 mr-2" />
             {t("newClient")}
           </Button>
@@ -148,7 +150,7 @@ export function ClientsPage() {
                       <div className="flex items-center gap-1 shrink-0">
                         <button onClick={() => setViewingClient(client)} className="p-1 text-gray-500 hover:text-primary-600 dark:hover:text-primary-400" title={t("viewContacts")} aria-label={t("viewContacts")}><Eye className="h-4 w-4" /></button>
                         <button onClick={() => handleOpenModal(client)} className="p-1 text-gray-500 hover:text-primary-600 dark:hover:text-primary-400" title={tCommon("buttons.edit")} aria-label={tCommon("buttons.edit")}><Pencil className="h-4 w-4" /></button>
-                        <button onClick={() => setDeleteConfirmId(client.id)} className="p-1 text-gray-500 hover:text-red-600" title={tCommon("buttons.delete")} aria-label={tCommon("buttons.delete")}><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={() => setDeleteConfirmId(client.id)} className="p-1 text-gray-500 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canWrite} title={!canWrite ? t('licensing:tooltip.writeDisabled') : tCommon("buttons.delete")} aria-label={tCommon("buttons.delete")}><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </div>
                     {client.email && <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{client.email}</p>}
@@ -220,8 +222,9 @@ export function ClientsPage() {
                         </button>
                         <button
                           onClick={() => setDeleteConfirmId(client.id)}
-                          className="p-1 text-gray-500 hover:text-red-600 transition-colors"
-                          title={tCommon("buttons.delete")}
+                          className="p-1 text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={!canWrite}
+                          title={!canWrite ? t('licensing:tooltip.writeDisabled') : tCommon("buttons.delete")}
                           aria-label={tCommon("buttons.delete")}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -298,6 +301,8 @@ export function ClientsPage() {
         onDelete={() => setBulkDeleteOpen(true)}
         onClear={selection.clear}
         isDeleting={batchDeleteClients.isPending}
+        disabled={!canWrite}
+        disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}
       />
 
       <BulkDeleteModal

@@ -40,9 +40,11 @@ import { BulkDeleteModal } from "@/components/shared/BulkDeleteModal";
 import { useSelection } from "@/hooks/useSelection";
 import type { DeliveryNote, DeliveryNoteStatus } from "@/types";
 import { formatDate } from "@/lib/utils";
+import { useLicenseStore } from "@/stores/useLicenseStore";
 
 export function DeliveryNotesPage() {
   const { t } = useTranslation(["delivery", "common"]);
+  const canWrite = useLicenseStore(s => s.isWriteAllowed);
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -130,7 +132,7 @@ export function DeliveryNotesPage() {
           <p className="text-sm sm:text-base text-(--color-text-secondary)">{t("delivery:subtitle", "Manage your delivery notes")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Button onClick={() => navigate("/delivery-notes/new")} size="sm">
+          <Button onClick={() => navigate("/delivery-notes/new")} size="sm" disabled={!canWrite} disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}>
             <Plus className="h-4 w-4 mr-2" />
             {t("delivery:newDeliveryNote")}
           </Button>
@@ -194,7 +196,7 @@ export function DeliveryNotesPage() {
                         <Link to={`/delivery-notes/${note.id}/edit`} className="p-1 text-gray-500 hover:text-primary-600" title={t("common:buttons.edit")} aria-label={t("common:buttons.edit")}><Pencil className="h-4 w-4" /></Link>
                       )}
                       <button onClick={() => handleDuplicate(note)} className="p-1 text-gray-500 hover:text-primary-600" title={t("delivery:actions.duplicate", "Duplicate")} aria-label={t("delivery:actions.duplicate", "Duplicate")}><Copy className="h-4 w-4" /></button>
-                      <button onClick={() => setDeleteConfirmId(note.id)} className="p-1 text-gray-500 hover:text-red-600" title={t("common:buttons.delete")} aria-label={t("common:buttons.delete")}><Trash2 className="h-4 w-4" /></button>
+                      <button onClick={() => setDeleteConfirmId(note.id)} className="p-1 text-gray-500 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canWrite} title={!canWrite ? t('licensing:tooltip.writeDisabled') : t("common:buttons.delete")} aria-label={t("common:buttons.delete")}><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </div>
                 </div>
@@ -295,8 +297,9 @@ export function DeliveryNotesPage() {
                         </button>
                         <button
                           onClick={() => setDeleteConfirmId(note.id)}
-                          className="p-1 text-gray-500 hover:text-red-600 transition-colors"
-                          title={t("common:buttons.delete")}
+                          className="p-1 text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={!canWrite}
+                          title={!canWrite ? t('licensing:tooltip.writeDisabled') : t("common:buttons.delete")}
                           aria-label={t("common:buttons.delete")}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -346,6 +349,8 @@ export function DeliveryNotesPage() {
         onDelete={() => setBulkDeleteOpen(true)}
         onClear={selection.clear}
         isDeleting={batchDeleteDNs.isPending}
+        disabled={!canWrite}
+        disabledReason={!canWrite ? t('licensing:tooltip.writeDisabled') : undefined}
       >
         {canCreateInvoiceFromSelection && (
           <Button
