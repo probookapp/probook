@@ -998,3 +998,23 @@ export interface QueuedTransaction {
   created_at: string;
   updated_at: string;
 }
+
+// Licensing types
+export type LicenseStatusType =
+  | "loading"
+  | "no_license"
+  | "trial_active"
+  | "licensed"
+  | "grace_period"
+  | "expired"
+  | "clock_tampered";
+
+export interface LicenseStatusInfo {
+  status: LicenseStatusType;
+  days_remaining: number | null;
+  expires_at: string | null;
+  is_write_allowed: boolean;
+  customer_name: string | null;
+  license_id: string | null;
+  license_type: string | null;
+}

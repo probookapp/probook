@@ -43,6 +43,9 @@
     "bankDetails": "Bank Details",
     "bankDetailsPlaceholder": "IBAN, BIC, etc."
   },
+  "license": {
+    "title": "License"
+  },
   "backup": {
     "title": "Backup & Restore",
     "description": "Create backups of your data to protect against data loss. Backups are stored locally and kept automatically (last 10).",

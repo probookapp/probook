@@ -4,7 +4,11 @@ import { Layout } from "@/components/layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ProtectedRoute } from "@/components/shared/ProtectedRoute";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useLicenseStore } from "@/stores/useLicenseStore";
 import { LoginPage, SetupPage, DatabaseSetupPage } from "@/features/auth";
+import { LicenseActivationPage } from "@/features/licensing/LicenseActivationPage";
+import { LicenseExpiredPage } from "@/features/licensing/LicenseExpiredPage";
+import { LicenseWarningBanner } from "@/features/licensing/LicenseWarningBanner";
 import { DashboardPage } from "@/features/dashboard";
 import { ClientsPage } from "@/features/clients";
 import { ProductsPage } from "@/features/products";
@@ -22,10 +26,11 @@ import { isTauri } from "@/lib/config";
 // Auth gate for full-screen POS mode (no sidebar)
 function POSAuthGate() {
   const { isLoading, needsDbSetup, needsSetup, isAuthenticated } = useAuthStore();
+  const { status: licenseStatus, isLoading: licenseLoading } = useLicenseStore();
   const splashClosed = useRef(false);
 
   useEffect(() => {
-    if (!isLoading && !splashClosed.current) {
+    if (!isLoading && !licenseLoading && !splashClosed.current) {
       splashClosed.current = true;
       if (isTauri()) {
         (async () => {
@@ -40,14 +45,23 @@ function POSAuthGate() {
         })();
       }
     }
-  }, [isLoading]);
+  }, [isLoading, licenseLoading]);
 
-  if (isLoading) {
+  if (isLoading || licenseLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
       </div>
     );
+  }
+
+  // License check — before DB setup
+  if (licenseStatus === 'no_license') {
+    return <LicenseActivationPage />;
+  }
+
+  if (licenseStatus === 'expired' || licenseStatus === 'clock_tampered') {
+    return <LicenseExpiredPage />;
   }
 
   if (needsDbSetup) {
@@ -71,10 +85,11 @@ function POSAuthGate() {
 
 function AuthGate() {
   const { isLoading, needsDbSetup, needsSetup, isAuthenticated } = useAuthStore();
+  const { status: licenseStatus, isLoading: licenseLoading } = useLicenseStore();
   const splashClosed = useRef(false);
 
   useEffect(() => {
-    if (!isLoading && !splashClosed.current) {
+    if (!isLoading && !licenseLoading && !splashClosed.current) {
       splashClosed.current = true;
       if (isTauri()) {
         (async () => {
@@ -89,14 +104,23 @@ function AuthGate() {
         })();
       }
     }
-  }, [isLoading]);
+  }, [isLoading, licenseLoading]);
 
-  if (isLoading) {
+  if (isLoading || licenseLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
       </div>
     );
+  }
+
+  // License check — before DB setup
+  if (licenseStatus === 'no_license') {
+    return <LicenseActivationPage />;
+  }
+
+  if (licenseStatus === 'expired' || licenseStatus === 'clock_tampered') {
+    return <LicenseExpiredPage />;
   }
 
   if (needsDbSetup) {
@@ -113,6 +137,7 @@ function AuthGate() {
 
   return (
     <ErrorBoundary>
+      <LicenseWarningBanner />
       <Layout>
         <Outlet />
       </Layout>

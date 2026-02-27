@@ -1,0 +1,62 @@
+{
+  "activation": {
+    "title": "Get Started",
+    "subtitle": "Professional invoicing software",
+    "description": "Start your free 30-day trial or import an existing license to get started.",
+    "startTrial": "Start 30-Day Free Trial",
+    "or": "or",
+    "importLicense": "Import License File",
+    "deviceId": "Device ID",
+    "copyDeviceId": "Copy device ID"
+  },
+  "expired": {
+    "title": "License Expired",
+    "description": "Your Probook license has expired. Please renew your license to continue creating and editing documents.",
+    "readOnlyNotice": "You can still view and export your existing data.",
+    "importLicense": "Import New License",
+    "contactSupport": "Contact support to renew your license",
+    "licenseId": "License ID"
+  },
+  "clockTampered": {
+    "title": "Clock Change Detected",
+    "description": "Probook detected that the system clock was set to an earlier date. This security measure protects your license validity.",
+    "resolution": "Please ensure your system clock is correct, then click Retry to restore access.",
+    "retry": "Retry License Check"
+  },
+  "banner": {
+    "graceMessage": "Your license has expired. You have {{days}} days left to renew before access is restricted.",
+    "trialEndingMessage": "Your free trial ends in {{days}} days. Contact us to purchase a license."
+  },
+  "status": {
+    "trial": "Trial",
+    "annual": "Annual",
+    "lifetime": "Lifetime",
+    "active": "Active",
+    "gracePeriod": "Grace Period",
+    "expired": "Expired",
+    "daysLeft": "days left"
+  },
+  "settings": {
+    "title": "License",
+    "licenseType": "License Type",
+    "customer": "Licensed To",
+    "expiresAt": "Expires",
+    "licenseId": "License ID",
+    "deviceId": "Device ID",
+    "importLicense": "Import License"
+  },
+  "tooltip": {
+    "writeDisabled": "License expired — renew your license to create or edit records"
+  },
+  "errors": {
+    "trialFailed": "Failed to start trial. Please restart the application.",
+    "importFailed": "Failed to import license. The file may be invalid or corrupted.",
+    "retryFailed": "License check failed. Please ensure your system clock is correct and try again.",
+    "init": {
+      "network": "Could not connect to the license server. Check your internet connection.",
+      "engine": "License engine failed to initialize. Try restarting the application.",
+      "file": "License data is invalid or corrupted. Please re-import your license file.",
+      "unknown": "An unexpected error occurred while loading license information."
+    }
+  }
+}

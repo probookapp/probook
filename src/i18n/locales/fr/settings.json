@@ -43,6 +43,9 @@
     "bankDetails": "Coordonnées bancaires",
     "bankDetailsPlaceholder": "IBAN, BIC, etc."
   },
+  "license": {
+    "title": "Licence"
+  },
   "backup": {
     "title": "Sauvegarde & Restauration",
     "description": "Créez des sauvegardes de vos données pour vous protéger contre la perte de données. Les sauvegardes sont stockées localement (les 10 dernières sont conservées).",

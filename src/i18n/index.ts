@@ -18,6 +18,7 @@ import frExpenses from './locales/fr/expenses.json';
 import frSuppliers from './locales/fr/suppliers.json';
 import frAuth from './locales/fr/auth.json';
 import frPos from './locales/fr/pos.json';
+import frLicensing from './locales/fr/licensing.json';
 
 // English translations
 import enCommon from './locales/en/common.json';
@@ -36,6 +37,7 @@ import enExpenses from './locales/en/expenses.json';
 import enSuppliers from './locales/en/suppliers.json';
 import enAuth from './locales/en/auth.json';
 import enPos from './locales/en/pos.json';
+import enLicensing from './locales/en/licensing.json';
 
 // Arabic translations
 import arCommon from './locales/ar/common.json';
@@ -54,6 +56,7 @@ import arExpenses from './locales/ar/expenses.json';
 import arSuppliers from './locales/ar/suppliers.json';
 import arAuth from './locales/ar/auth.json';
 import arPos from './locales/ar/pos.json';
+import arLicensing from './locales/ar/licensing.json';
 
 const resources = {
   fr: {
@@ -73,6 +76,7 @@ const resources = {
     suppliers: frSuppliers,
     auth: frAuth,
     pos: frPos,
+    licensing: frLicensing,
   },
   en: {
     common: enCommon,
@@ -91,6 +95,7 @@ const resources = {
     suppliers: enSuppliers,
     auth: enAuth,
     pos: enPos,
+    licensing: enLicensing,
   },
   ar: {
     common: arCommon,
@@ -109,6 +114,7 @@ const resources = {
     suppliers: arSuppliers,
     auth: arAuth,
     pos: arPos,
+    licensing: arLicensing,
   },
 };
 
@@ -136,6 +142,7 @@ i18n
       'suppliers',
       'auth',
       'pos',
+      'licensing',
     ],
     interpolation: {
       escapeValue: false,

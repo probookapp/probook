@@ -386,6 +386,12 @@ const COMMAND_MAP: Record<string, EndpointDef> = {
     path: (a) => `/api/alerts/mark-quote-expired/${a.quoteId}`,
   },
 
+  // License
+  check_license_status: { method: "GET", path: "/api/license/status" },
+  initialize_license: { method: "POST", path: "/api/license/initialize" },
+  start_trial: { method: "POST", path: "/api/license/start-trial" },
+  get_device_id: { method: "GET", path: "/api/license/device-id" },
+
   // Auth (web mode)
   check_setup_required: { method: "GET", path: "/api/auth/setup-required" },
   setup_admin: {

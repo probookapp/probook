@@ -1,0 +1,62 @@
+{
+  "activation": {
+    "title": "Commencer",
+    "subtitle": "Logiciel de facturation professionnel",
+    "description": "Commencez votre essai gratuit de 30 jours ou importez une licence existante.",
+    "startTrial": "Essai gratuit de 30 jours",
+    "or": "ou",
+    "importLicense": "Importer un fichier de licence",
+    "deviceId": "ID de l'appareil",
+    "copyDeviceId": "Copier l'ID de l'appareil"
+  },
+  "expired": {
+    "title": "Licence expirée",
+    "description": "Votre licence Probook a expiré. Veuillez renouveler votre licence pour continuer à créer et modifier des documents.",
+    "readOnlyNotice": "Vous pouvez toujours consulter et exporter vos données existantes.",
+    "importLicense": "Importer une nouvelle licence",
+    "contactSupport": "Contactez le support pour renouveler votre licence",
+    "licenseId": "ID de licence"
+  },
+  "clockTampered": {
+    "title": "Changement d'horloge détecté",
+    "description": "Probook a détecté que l'horloge système a été réglée à une date antérieure. Cette mesure de sécurité protège la validité de votre licence.",
+    "resolution": "Veuillez vérifier que l'horloge système est correcte, puis cliquez sur Réessayer pour restaurer l'accès.",
+    "retry": "Réessayer la vérification"
+  },
+  "banner": {
+    "graceMessage": "Votre licence a expiré. Il vous reste {{days}} jours pour renouveler avant que l'accès soit restreint.",
+    "trialEndingMessage": "Votre essai gratuit se termine dans {{days}} jours. Contactez-nous pour acheter une licence."
+  },
+  "status": {
+    "trial": "Essai",
+    "annual": "Annuelle",
+    "lifetime": "À vie",
+    "active": "Active",
+    "gracePeriod": "Période de grâce",
+    "expired": "Expirée",
+    "daysLeft": "jours restants"
+  },
+  "settings": {
+    "title": "Licence",
+    "licenseType": "Type de licence",
+    "customer": "Licencié à",
+    "expiresAt": "Expire le",
+    "licenseId": "ID de licence",
+    "deviceId": "ID de l'appareil",
+    "importLicense": "Importer une licence"
+  },
+  "tooltip": {
+    "writeDisabled": "Licence expirée — renouvelez votre licence pour créer ou modifier des enregistrements"
+  },
+  "errors": {
+    "trialFailed": "Échec du démarrage de l'essai. Veuillez redémarrer l'application.",
+    "importFailed": "Échec de l'importation de la licence. Le fichier est peut-être invalide ou corrompu.",
+    "retryFailed": "Échec de la vérification. Veuillez vérifier que l'horloge système est correcte et réessayez.",
+    "init": {
+      "network": "Impossible de se connecter au serveur de licence. Vérifiez votre connexion internet.",
+      "engine": "Le moteur de licence n'a pas pu s'initialiser. Essayez de redémarrer l'application.",
+      "file": "Les données de licence sont invalides ou corrompues. Veuillez réimporter votre fichier de licence.",
+      "unknown": "Une erreur inattendue s'est produite lors du chargement des informations de licence."
+    }
+  }
+}

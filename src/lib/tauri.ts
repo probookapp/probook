@@ -72,6 +72,7 @@ import type {
   ReceiptData,
   PrinterConnectionType,
   QueuedTransaction,
+  LicenseStatusInfo,
 } from "@/types";
 import { isTauri } from "./config";
 
@@ -483,4 +484,32 @@ export const posApi = {
   deleteOfflineTransaction: (id: string) =>
     apiCall<void>("delete_offline_transaction", { id }),
   checkDatabaseConnection: () => apiCall<boolean>("check_database_connection"),
+};
+
+// License commands
+export const licenseApi = {
+  checkStatus: () => apiCall<LicenseStatusInfo>("check_license_status"),
+  initialize: () => apiCall<LicenseStatusInfo>("initialize_license"),
+  startTrial: () => apiCall<LicenseStatusInfo>("start_trial"),
+  importLicense: async (fileOrPath: string | File): Promise<LicenseStatusInfo> => {
+    if (isTauri()) {
+      const { invoke } = await import("@tauri-apps/api/core");
+      return invoke<LicenseStatusInfo>("import_license", { filePath: fileOrPath as string });
+    }
+    // Web mode: POST file as multipart form data
+    const { API_BASE_URL } = await import("./config");
+    const formData = new FormData();
+    formData.append("file", fileOrPath as File);
+    const res = await fetch(`${API_BASE_URL}/api/license/import`, {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "Failed to import license");
+    }
+    return res.json();
+  },
+  getDeviceId: () => apiCall<string>("get_device_id"),
 };
