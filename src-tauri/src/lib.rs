@@ -16,6 +16,11 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
             tauri::async_runtime::block_on(async move {
+                // Initialize licensing engine (works offline, no DB needed)
+                if let Err(e) = probook_core::services::licensing::engine::initialize() {
+                    eprintln!("License engine initialization failed: {}", e);
+                }
+
                 // Initialize offline queue for POS
                 if let Some(app_data_dir) = handle.path().app_data_dir().ok() {
                     if let Err(e) = services::offline_queue::init_offline_queue(app_data_dir) {
@@ -231,6 +236,12 @@ pub fn run() {
             commands::mark_offline_transaction_failed,
             commands::delete_offline_transaction,
             commands::check_database_connection,
+            // Licensing commands
+            commands::check_license_status,
+            commands::initialize_license,
+            commands::start_trial,
+            commands::import_license,
+            commands::get_device_id,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

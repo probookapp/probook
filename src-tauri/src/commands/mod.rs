@@ -16,6 +16,7 @@ use probook_core::db::repository;
 use crate::db::{self, connection::{DbConfig, DbConfigSafe}};
 use probook_core::models::*;
 use probook_core::services::import::{self, ImportResult};
+use probook_core::services::licensing::engine::{self as licensing_engine, LicenseStatusInfo};
 
 pub struct AppState {
     pub pool: PgPool,
@@ -25,6 +26,14 @@ pub struct AppState {
 fn require_auth(state: &AppState) -> Result<String, String> {
     let guard = state.current_user_id.lock().unwrap();
     guard.clone().ok_or_else(|| "Authentication required".to_string())
+}
+
+fn require_write_access(state: &AppState) -> Result<String, String> {
+    let user_id = require_auth(state)?;
+    if !licensing_engine::is_write_allowed() {
+        return Err("License expired — write access is disabled. Please renew your license.".to_string());
+    }
+    Ok(user_id)
 }
 
 // Client Commands
@@ -46,7 +55,7 @@ pub async fn get_client(id: String, state: State<'_, AppState>) -> Result<Client
 
 #[tauri::command]
 pub async fn create_client(input: CreateClientInput, state: State<'_, AppState>) -> Result<Client, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::create_client(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -54,7 +63,7 @@ pub async fn create_client(input: CreateClientInput, state: State<'_, AppState>)
 
 #[tauri::command]
 pub async fn update_client(input: UpdateClientInput, state: State<'_, AppState>) -> Result<Client, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::update_client(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -62,7 +71,7 @@ pub async fn update_client(input: UpdateClientInput, state: State<'_, AppState>)
 
 #[tauri::command]
 pub async fn delete_client(id: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::delete_client(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -70,7 +79,7 @@ pub async fn delete_client(id: String, state: State<'_, AppState>) -> Result<(),
 
 #[tauri::command]
 pub async fn batch_delete_clients(ids: Vec<String>, state: State<'_, AppState>) -> Result<u64, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::batch_delete_clients(&state.pool, ids)
         .await
         .map_err(|e| e.to_string())
@@ -95,7 +104,7 @@ pub async fn get_product(id: String, state: State<'_, AppState>) -> Result<Produ
 
 #[tauri::command]
 pub async fn create_product(input: CreateProductInput, state: State<'_, AppState>) -> Result<Product, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::create_product(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -103,7 +112,7 @@ pub async fn create_product(input: CreateProductInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn update_product(input: UpdateProductInput, state: State<'_, AppState>) -> Result<Product, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::update_product(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -111,7 +120,7 @@ pub async fn update_product(input: UpdateProductInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn delete_product(id: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::delete_product(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -119,7 +128,7 @@ pub async fn delete_product(id: String, state: State<'_, AppState>) -> Result<()
 
 #[tauri::command]
 pub async fn batch_delete_products(ids: Vec<String>, state: State<'_, AppState>) -> Result<u64, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::batch_delete_products(&state.pool, ids)
         .await
         .map_err(|e| e.to_string())
@@ -144,7 +153,7 @@ pub async fn get_quote(id: String, state: State<'_, AppState>) -> Result<Quote, 
 
 #[tauri::command]
 pub async fn create_quote(input: CreateQuoteInput, state: State<'_, AppState>) -> Result<Quote, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::create_quote(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -152,7 +161,7 @@ pub async fn create_quote(input: CreateQuoteInput, state: State<'_, AppState>) -
 
 #[tauri::command]
 pub async fn update_quote(input: UpdateQuoteInput, state: State<'_, AppState>) -> Result<Quote, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     // Get the current logo to potentially snapshot it with the quote
     let logo_snapshot = get_logo_base64_internal(&state).await;
 
@@ -163,7 +172,7 @@ pub async fn update_quote(input: UpdateQuoteInput, state: State<'_, AppState>) -
 
 #[tauri::command]
 pub async fn delete_quote(id: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::delete_quote(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -171,7 +180,7 @@ pub async fn delete_quote(id: String, state: State<'_, AppState>) -> Result<(), 
 
 #[tauri::command]
 pub async fn batch_delete_quotes(ids: Vec<String>, state: State<'_, AppState>) -> Result<u64, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::batch_delete_quotes(&state.pool, ids)
         .await
         .map_err(|e| e.to_string())
@@ -179,7 +188,7 @@ pub async fn batch_delete_quotes(ids: Vec<String>, state: State<'_, AppState>) -
 
 #[tauri::command]
 pub async fn convert_quote_to_invoice(id: String, state: State<'_, AppState>) -> Result<Invoice, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::convert_quote_to_invoice(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -187,7 +196,7 @@ pub async fn convert_quote_to_invoice(id: String, state: State<'_, AppState>) ->
 
 #[tauri::command]
 pub async fn duplicate_quote(id: String, state: State<'_, AppState>) -> Result<Quote, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::duplicate_quote(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -212,7 +221,7 @@ pub async fn get_invoice(id: String, state: State<'_, AppState>) -> Result<Invoi
 
 #[tauri::command]
 pub async fn create_invoice(input: CreateInvoiceInput, state: State<'_, AppState>) -> Result<Invoice, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::create_invoice(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -220,7 +229,7 @@ pub async fn create_invoice(input: CreateInvoiceInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn update_invoice(input: UpdateInvoiceInput, state: State<'_, AppState>) -> Result<Invoice, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::update_invoice(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -228,7 +237,7 @@ pub async fn update_invoice(input: UpdateInvoiceInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn delete_invoice(id: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::delete_invoice(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -236,7 +245,7 @@ pub async fn delete_invoice(id: String, state: State<'_, AppState>) -> Result<()
 
 #[tauri::command]
 pub async fn batch_delete_invoices(ids: Vec<String>, state: State<'_, AppState>) -> Result<u64, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::batch_delete_invoices(&state.pool, ids)
         .await
         .map_err(|e| e.to_string())
@@ -244,7 +253,7 @@ pub async fn batch_delete_invoices(ids: Vec<String>, state: State<'_, AppState>)
 
 #[tauri::command]
 pub async fn mark_invoice_paid(id: String, state: State<'_, AppState>) -> Result<Invoice, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::mark_invoice_paid(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -252,7 +261,7 @@ pub async fn mark_invoice_paid(id: String, state: State<'_, AppState>) -> Result
 
 #[tauri::command]
 pub async fn issue_invoice(id: String, state: State<'_, AppState>) -> Result<Invoice, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     // Get the current logo to snapshot it with the invoice
     let logo_snapshot = get_logo_base64_internal(&state).await;
 
@@ -263,7 +272,7 @@ pub async fn issue_invoice(id: String, state: State<'_, AppState>) -> Result<Inv
 
 #[tauri::command]
 pub async fn duplicate_invoice(id: String, state: State<'_, AppState>) -> Result<Invoice, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::duplicate_invoice(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -321,7 +330,7 @@ pub async fn get_payments_by_invoice(invoice_id: String, state: State<'_, AppSta
 
 #[tauri::command]
 pub async fn create_payment(input: CreatePaymentInput, state: State<'_, AppState>) -> Result<Payment, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::create_payment(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -329,7 +338,7 @@ pub async fn create_payment(input: CreatePaymentInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn delete_payment(id: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::delete_payment(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -346,7 +355,7 @@ pub async fn get_company_settings(state: State<'_, AppState>) -> Result<CompanyS
 
 #[tauri::command]
 pub async fn update_company_settings(input: UpdateCompanySettingsInput, state: State<'_, AppState>) -> Result<CompanySettings, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::update_company_settings(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -358,7 +367,7 @@ pub async fn upload_logo(
     app_handle: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     // Get the app data directory
     let app_data_dir = app_handle
         .path()
@@ -438,7 +447,7 @@ pub async fn delete_logo(
     _app_handle: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     let settings = repository::get_company_settings(&state.pool)
         .await
         .map_err(|e| e.to_string())?;
@@ -478,7 +487,7 @@ pub async fn get_expense(id: String, state: State<'_, AppState>) -> Result<Expen
 
 #[tauri::command]
 pub async fn create_expense(input: CreateExpenseInput, state: State<'_, AppState>) -> Result<Expense, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::create_expense(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -486,7 +495,7 @@ pub async fn create_expense(input: CreateExpenseInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn update_expense(input: UpdateExpenseInput, state: State<'_, AppState>) -> Result<Expense, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::update_expense(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -494,7 +503,7 @@ pub async fn update_expense(input: UpdateExpenseInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn delete_expense(id: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::delete_expense(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -502,7 +511,7 @@ pub async fn delete_expense(id: String, state: State<'_, AppState>) -> Result<()
 
 #[tauri::command]
 pub async fn batch_delete_expenses(ids: Vec<String>, state: State<'_, AppState>) -> Result<u64, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::batch_delete_expenses(&state.pool, ids)
         .await
         .map_err(|e| e.to_string())
@@ -527,7 +536,7 @@ pub async fn get_supplier(id: String, state: State<'_, AppState>) -> Result<Supp
 
 #[tauri::command]
 pub async fn create_supplier(input: CreateSupplierInput, state: State<'_, AppState>) -> Result<Supplier, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::create_supplier(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -535,7 +544,7 @@ pub async fn create_supplier(input: CreateSupplierInput, state: State<'_, AppSta
 
 #[tauri::command]
 pub async fn update_supplier(input: UpdateSupplierInput, state: State<'_, AppState>) -> Result<Supplier, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::update_supplier(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -543,7 +552,7 @@ pub async fn update_supplier(input: UpdateSupplierInput, state: State<'_, AppSta
 
 #[tauri::command]
 pub async fn delete_supplier(id: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::delete_supplier(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -551,7 +560,7 @@ pub async fn delete_supplier(id: String, state: State<'_, AppState>) -> Result<(
 
 #[tauri::command]
 pub async fn batch_delete_suppliers(ids: Vec<String>, state: State<'_, AppState>) -> Result<u64, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::batch_delete_suppliers(&state.pool, ids)
         .await
         .map_err(|e| e.to_string())
@@ -584,7 +593,7 @@ pub async fn get_products_for_supplier(supplier_id: String, state: State<'_, App
 
 #[tauri::command]
 pub async fn add_product_supplier(input: CreateProductSupplierInput, state: State<'_, AppState>) -> Result<ProductSupplier, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::add_product_supplier(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -592,7 +601,7 @@ pub async fn add_product_supplier(input: CreateProductSupplierInput, state: Stat
 
 #[tauri::command]
 pub async fn remove_product_supplier(link_id: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::remove_product_supplier(&state.pool, &link_id)
         .await
         .map_err(|e| e.to_string())
@@ -600,7 +609,7 @@ pub async fn remove_product_supplier(link_id: String, state: State<'_, AppState>
 
 #[tauri::command]
 pub async fn update_product_supplier_price(link_id: String, purchase_price_ht: f64, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::update_product_supplier_price(&state.pool, &link_id, purchase_price_ht)
         .await
         .map_err(|e| e.to_string())
@@ -768,7 +777,7 @@ pub async fn export_backup(file_path: String, password: String, state: State<'_,
 
 #[tauri::command]
 pub async fn import_backup(file_path: String, password: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     let data = fs::read(&file_path).map_err(|e| e.to_string())?;
 
     // Try to parse as plain JSON first (local backups)
@@ -910,7 +919,7 @@ pub async fn update_app_settings(
     auto_update_enabled: bool,
     state: State<'_, AppState>,
 ) -> Result<CompanySettings, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::update_app_settings(&state.pool, &app_language, &app_theme, auto_update_enabled)
         .await
         .map_err(|e| e.to_string())
@@ -922,7 +931,7 @@ pub async fn update_backup_settings(
     backup_schedule: String,
     state: State<'_, AppState>,
 ) -> Result<CompanySettings, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::update_backup_settings(&state.pool, auto_backup_enabled, &backup_schedule)
         .await
         .map_err(|e| e.to_string())
@@ -958,7 +967,7 @@ pub async fn create_local_backup(
     app_handle: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<BackupInfo, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     let backups_dir = get_backups_dir(&app_handle)?;
 
     // Generate backup filename with timestamp
@@ -1166,7 +1175,7 @@ pub async fn open_backups_folder(app_handle: AppHandle, state: State<'_, AppStat
 /// Delete a specific backup file
 #[tauri::command]
 pub async fn delete_backup(path: String, app_handle: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     let backup_path = PathBuf::from(&path);
 
     // Safety check: only delete backup files with correct extension
@@ -1206,7 +1215,7 @@ pub async fn get_product_category(id: String, state: State<'_, AppState>) -> Res
 
 #[tauri::command]
 pub async fn create_product_category(input: CreateProductCategoryInput, state: State<'_, AppState>) -> Result<ProductCategory, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::create_product_category(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -1214,7 +1223,7 @@ pub async fn create_product_category(input: CreateProductCategoryInput, state: S
 
 #[tauri::command]
 pub async fn update_product_category(input: UpdateProductCategoryInput, state: State<'_, AppState>) -> Result<ProductCategory, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::update_product_category(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -1222,7 +1231,7 @@ pub async fn update_product_category(input: UpdateProductCategoryInput, state: S
 
 #[tauri::command]
 pub async fn delete_product_category(id: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::delete_product_category(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1236,7 +1245,7 @@ pub async fn upload_product_photo(
     app_handle: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     // Get the app data directory
     let app_data_dir = app_handle
         .path()
@@ -1314,7 +1323,7 @@ pub async fn delete_product_photo(
     product_id: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     let product = repository::get_product_by_id(&state.pool, &product_id)
         .await
         .map_err(|e| e.to_string())?;
@@ -1354,7 +1363,7 @@ pub async fn get_delivery_note(id: String, state: State<'_, AppState>) -> Result
 
 #[tauri::command]
 pub async fn create_delivery_note(input: CreateDeliveryNoteInput, state: State<'_, AppState>) -> Result<DeliveryNote, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::create_delivery_note(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -1362,7 +1371,7 @@ pub async fn create_delivery_note(input: CreateDeliveryNoteInput, state: State<'
 
 #[tauri::command]
 pub async fn update_delivery_note(input: UpdateDeliveryNoteInput, state: State<'_, AppState>) -> Result<DeliveryNote, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::update_delivery_note(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -1370,7 +1379,7 @@ pub async fn update_delivery_note(input: UpdateDeliveryNoteInput, state: State<'
 
 #[tauri::command]
 pub async fn delete_delivery_note(id: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::delete_delivery_note(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1378,7 +1387,7 @@ pub async fn delete_delivery_note(id: String, state: State<'_, AppState>) -> Res
 
 #[tauri::command]
 pub async fn batch_delete_delivery_notes(ids: Vec<String>, state: State<'_, AppState>) -> Result<u64, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::batch_delete_delivery_notes(&state.pool, ids)
         .await
         .map_err(|e| e.to_string())
@@ -1386,7 +1395,7 @@ pub async fn batch_delete_delivery_notes(ids: Vec<String>, state: State<'_, AppS
 
 #[tauri::command]
 pub async fn duplicate_delivery_note(id: String, state: State<'_, AppState>) -> Result<DeliveryNote, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::duplicate_delivery_note(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1394,7 +1403,7 @@ pub async fn duplicate_delivery_note(id: String, state: State<'_, AppState>) -> 
 
 #[tauri::command]
 pub async fn convert_quote_to_delivery_note(id: String, state: State<'_, AppState>) -> Result<DeliveryNote, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::convert_quote_to_delivery_note(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1402,7 +1411,7 @@ pub async fn convert_quote_to_delivery_note(id: String, state: State<'_, AppStat
 
 #[tauri::command]
 pub async fn convert_invoice_to_delivery_note(id: String, state: State<'_, AppState>) -> Result<DeliveryNote, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::convert_invoice_to_delivery_note(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1410,7 +1419,7 @@ pub async fn convert_invoice_to_delivery_note(id: String, state: State<'_, AppSt
 
 #[tauri::command]
 pub async fn convert_delivery_note_to_invoice(id: String, state: State<'_, AppState>) -> Result<Invoice, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::convert_delivery_note_to_invoice(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1418,7 +1427,7 @@ pub async fn convert_delivery_note_to_invoice(id: String, state: State<'_, AppSt
 
 #[tauri::command]
 pub async fn create_invoice_from_delivery_notes(delivery_note_ids: Vec<String>, state: State<'_, AppState>) -> Result<Invoice, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::create_invoice_from_delivery_notes(&state.pool, delivery_note_ids)
         .await
         .map_err(|e| e.to_string())
@@ -1451,7 +1460,7 @@ pub async fn get_client_contact(id: String, state: State<'_, AppState>) -> Resul
 
 #[tauri::command]
 pub async fn create_client_contact(input: CreateClientContactInput, state: State<'_, AppState>) -> Result<ClientContact, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::create_client_contact(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -1459,7 +1468,7 @@ pub async fn create_client_contact(input: CreateClientContactInput, state: State
 
 #[tauri::command]
 pub async fn update_client_contact(input: UpdateClientContactInput, state: State<'_, AppState>) -> Result<ClientContact, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::update_client_contact(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -1467,7 +1476,7 @@ pub async fn update_client_contact(input: UpdateClientContactInput, state: State
 
 #[tauri::command]
 pub async fn delete_client_contact(id: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::delete_client_contact(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1508,7 +1517,7 @@ pub async fn get_reminders_by_document(document_type: String, document_id: Strin
 
 #[tauri::command]
 pub async fn create_reminder(input: CreateReminderInput, state: State<'_, AppState>) -> Result<Reminder, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::create_reminder(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -1516,7 +1525,7 @@ pub async fn create_reminder(input: CreateReminderInput, state: State<'_, AppSta
 
 #[tauri::command]
 pub async fn mark_reminder_sent(id: String, state: State<'_, AppState>) -> Result<Reminder, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::mark_reminder_sent(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1524,7 +1533,7 @@ pub async fn mark_reminder_sent(id: String, state: State<'_, AppState>) -> Resul
 
 #[tauri::command]
 pub async fn delete_reminder(id: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::delete_reminder(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -1532,7 +1541,7 @@ pub async fn delete_reminder(id: String, state: State<'_, AppState>) -> Result<(
 
 #[tauri::command]
 pub async fn check_and_create_reminders(state: State<'_, AppState>) -> Result<Vec<Reminder>, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     let mut all_reminders = Vec::new();
 
     // Create payment due reminders
@@ -1626,7 +1635,7 @@ pub async fn get_alerts_summary(state: State<'_, AppState>) -> Result<AlertsSumm
 
 #[tauri::command]
 pub async fn mark_quote_expired(quote_id: String, state: State<'_, AppState>) -> Result<Quote, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::mark_quote_expired(&state.pool, &quote_id)
         .await
         .map_err(|e| e.to_string())
@@ -1635,7 +1644,7 @@ pub async fn mark_quote_expired(quote_id: String, state: State<'_, AppState>) ->
 // Import Commands
 #[tauri::command]
 pub async fn import_clients(file_path: String, state: State<'_, AppState>) -> Result<ImportResult, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     let (headers, rows) = import::parse_file(&file_path)?;
 
     import::validate_columns(
@@ -1717,7 +1726,7 @@ pub async fn import_clients(file_path: String, state: State<'_, AppState>) -> Re
 
 #[tauri::command]
 pub async fn import_products(file_path: String, state: State<'_, AppState>) -> Result<ImportResult, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     let (headers, rows) = import::parse_file(&file_path)?;
 
     import::validate_columns(
@@ -1813,7 +1822,7 @@ pub async fn import_products(file_path: String, state: State<'_, AppState>) -> R
 
 #[tauri::command]
 pub async fn import_suppliers(file_path: String, state: State<'_, AppState>) -> Result<ImportResult, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     let (headers, rows) = import::parse_file(&file_path)?;
 
     import::validate_columns(
@@ -2032,6 +2041,9 @@ pub async fn get_users(state: State<'_, AppState>) -> Result<Vec<UserInfo>, Stri
 #[tauri::command]
 pub async fn create_user_account(input: CreateUserInput, state: State<'_, AppState>) -> Result<UserInfo, String> {
     require_admin(&state).await?;
+    if !licensing_engine::is_write_allowed() {
+        return Err("License expired — write access is disabled. Please renew your license.".to_string());
+    }
 
     if input.password.len() < 8 {
         return Err("Password must be at least 8 characters".to_string());
@@ -2059,6 +2071,9 @@ pub async fn create_user_account(input: CreateUserInput, state: State<'_, AppSta
 #[tauri::command]
 pub async fn update_user_account(input: UpdateUserInput, state: State<'_, AppState>) -> Result<UserInfo, String> {
     require_admin(&state).await?;
+    if !licensing_engine::is_write_allowed() {
+        return Err("License expired — write access is disabled. Please renew your license.".to_string());
+    }
 
     repository::update_user(&state.pool, &input.id, &input.username, &input.display_name, &input.role, input.is_active)
         .await
@@ -2091,6 +2106,9 @@ pub async fn update_user_account(input: UpdateUserInput, state: State<'_, AppSta
 #[tauri::command]
 pub async fn delete_user_account(id: String, state: State<'_, AppState>) -> Result<(), String> {
     let admin = require_admin(&state).await?;
+    if !licensing_engine::is_write_allowed() {
+        return Err("License expired — write access is disabled. Please renew your license.".to_string());
+    }
 
     if admin.id == id {
         return Err("Cannot delete your own account".to_string());
@@ -2217,7 +2235,7 @@ pub async fn get_pos_register(id: String, state: State<'_, AppState>) -> Result<
 
 #[tauri::command]
 pub async fn create_pos_register(input: CreatePosRegisterInput, state: State<'_, AppState>) -> Result<PosRegister, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::create_pos_register(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -2225,7 +2243,7 @@ pub async fn create_pos_register(input: CreatePosRegisterInput, state: State<'_,
 
 #[tauri::command]
 pub async fn update_pos_register(input: UpdatePosRegisterInput, state: State<'_, AppState>) -> Result<PosRegister, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::update_pos_register(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -2233,7 +2251,7 @@ pub async fn update_pos_register(input: UpdatePosRegisterInput, state: State<'_,
 
 #[tauri::command]
 pub async fn delete_pos_register(id: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::delete_pos_register(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -2251,7 +2269,7 @@ pub async fn get_active_pos_session(register_id: String, state: State<'_, AppSta
 
 #[tauri::command]
 pub async fn open_pos_session(input: OpenSessionInput, state: State<'_, AppState>) -> Result<PosSession, String> {
-    let user_id = require_auth(&state)?;
+    let user_id = require_write_access(&state)?;
     repository::open_pos_session(&state.pool, input, &user_id)
         .await
         .map_err(|e| e.to_string())
@@ -2259,7 +2277,7 @@ pub async fn open_pos_session(input: OpenSessionInput, state: State<'_, AppState
 
 #[tauri::command]
 pub async fn close_pos_session(input: CloseSessionInput, state: State<'_, AppState>) -> Result<PosSession, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::close_pos_session(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -2285,7 +2303,7 @@ pub async fn lookup_product_by_barcode(barcode: String, state: State<'_, AppStat
 
 #[tauri::command]
 pub async fn create_pos_transaction(input: CreatePosTransactionInput, state: State<'_, AppState>) -> Result<PosTransaction, String> {
-    let user_id = require_auth(&state)?;
+    let user_id = require_write_access(&state)?;
     repository::create_pos_transaction(&state.pool, input, &user_id)
         .await
         .map_err(|e| e.to_string())
@@ -2301,7 +2319,7 @@ pub async fn get_pos_transaction(id: String, state: State<'_, AppState>) -> Resu
 
 #[tauri::command]
 pub async fn cancel_pos_transaction(id: String, reason: String, state: State<'_, AppState>) -> Result<PosTransaction, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::cancel_pos_transaction(&state.pool, &id, &reason)
         .await
         .map_err(|e| e.to_string())
@@ -2319,7 +2337,7 @@ pub async fn get_pos_session_transactions(session_id: String, state: State<'_, A
 
 #[tauri::command]
 pub async fn create_pos_cash_movement(input: CreateCashMovementInput, state: State<'_, AppState>) -> Result<PosCashMovement, String> {
-    let user_id = require_auth(&state)?;
+    let user_id = require_write_access(&state)?;
     repository::create_cash_movement(&state.pool, input, &user_id)
         .await
         .map_err(|e| e.to_string())
@@ -2345,7 +2363,7 @@ pub async fn get_pos_printer_configs(state: State<'_, AppState>) -> Result<Vec<P
 
 #[tauri::command]
 pub async fn create_pos_printer_config(input: CreatePrinterConfigInput, state: State<'_, AppState>) -> Result<PosPrinterConfig, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::create_printer_config(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -2353,7 +2371,7 @@ pub async fn create_pos_printer_config(input: CreatePrinterConfigInput, state: S
 
 #[tauri::command]
 pub async fn update_pos_printer_config(input: UpdatePrinterConfigInput, state: State<'_, AppState>) -> Result<PosPrinterConfig, String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::update_printer_config(&state.pool, input)
         .await
         .map_err(|e| e.to_string())
@@ -2361,7 +2379,7 @@ pub async fn update_pos_printer_config(input: UpdatePrinterConfigInput, state: S
 
 #[tauri::command]
 pub async fn delete_pos_printer_config(id: String, state: State<'_, AppState>) -> Result<(), String> {
-    require_auth(&state)?;
+    require_write_access(&state)?;
     repository::delete_printer_config(&state.pool, &id)
         .await
         .map_err(|e| e.to_string())
@@ -2493,4 +2511,33 @@ pub fn delete_offline_transaction(id: String) -> Result<(), String> {
 #[tauri::command]
 pub async fn check_database_connection(state: State<'_, AppState>) -> Result<bool, String> {
     Ok(offline_queue::check_db_connection(&state.pool).await)
+}
+
+// ─── Licensing Commands ─────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn check_license_status() -> Result<LicenseStatusInfo, String> {
+    licensing_engine::get_status()
+}
+
+#[tauri::command]
+pub async fn initialize_license() -> Result<LicenseStatusInfo, String> {
+    licensing_engine::initialize()
+}
+
+#[tauri::command]
+pub async fn start_trial() -> Result<LicenseStatusInfo, String> {
+    licensing_engine::start_trial()
+}
+
+#[tauri::command]
+pub async fn import_license(file_path: String) -> Result<LicenseStatusInfo, String> {
+    let file_bytes = fs::read(&file_path)
+        .map_err(|e| format!("Failed to read license file: {}", e))?;
+    licensing_engine::import_license(&file_bytes)
+}
+
+#[tauri::command]
+pub async fn get_device_id() -> Result<String, String> {
+    licensing_engine::get_device_id()
 }

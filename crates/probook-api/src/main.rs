@@ -39,6 +39,12 @@ async fn main() {
 
     tracing::info!("Database connected and migrations applied");
 
+    // Initialize licensing engine (works offline, no DB needed)
+    match probook_core::services::licensing::engine::initialize() {
+        Ok(info) => tracing::info!("License engine initialized: status={:?}", info.status),
+        Err(e) => tracing::warn!("License engine init failed: {}", e),
+    }
+
     // Build the router
     let app = probook_api::build_router(pool, &jwt_secret, &cors_origin);
 

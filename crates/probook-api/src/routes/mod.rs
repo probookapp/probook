@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod license;
 pub mod clients;
 pub mod products;
 pub mod quotes;
@@ -19,10 +20,12 @@ use std::sync::Arc;
 
 use crate::AppState;
 use crate::middleware::auth::auth_middleware;
+use crate::middleware::license::license_middleware;
 
 pub fn api_router(state: Arc<AppState>) -> Router {
     let public_routes = Router::new()
-        .merge(auth::public_routes());
+        .merge(auth::public_routes())
+        .merge(license::public_routes());
 
     let protected_routes = Router::new()
         .merge(auth::protected_routes())
@@ -40,6 +43,7 @@ pub fn api_router(state: Arc<AppState>) -> Router {
         .merge(reminders::routes())
         .merge(reports::routes())
         .merge(alerts::routes())
+        .layer(middleware::from_fn(license_middleware))
         .layer(middleware::from_fn_with_state(state.clone(), auth_middleware));
 
     Router::new()
